@@ -5,8 +5,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sekretess.R;
+import com.sekretess.dto.Channel;
 import com.sekretess.dto.UserDto;
 import com.sekretess.store.SekretessProtocolStore;
 
@@ -28,10 +31,12 @@ import java.net.URL;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Random;
+import java.util.concurrent.Executors;
 
 public class SignupActivity extends AppCompatActivity {
 
     private SignalProtocolStore signalProtocolStore;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +48,8 @@ public class SignupActivity extends AppCompatActivity {
 
     private void initializeNewUser(View view) {
         try {
+            Base64.Encoder encoder = Base64.getEncoder();
+
             int signedPreKeyId = new Random().nextInt(Medium.MAX_VALUE - 1);
             ECKeyPair ecKeyPair = Curve.generateKeyPair();
             IdentityKey identityKey = new IdentityKey(ecKeyPair.getPublicKey());
@@ -53,18 +60,53 @@ public class SignupActivity extends AppCompatActivity {
 //
             SignedPreKeyRecord signedPreKeyRecord = generateSignedPreKey(identityKeyPair, signedPreKeyId);
             signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
-        } catch (Exception e) {
 
+            String[] opk = generateSignedPreKeys(15);
+
+            Executors.newSingleThreadExecutor().submit(() -> createUser(encoder.encodeToString(identityKeyPair.serialize()),
+                    encoder.encodeToString(signedPreKeyRecord.serialize()), opk));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    private void createUser() throws IOException {
-        URL consumerServiceUrl = new URL("http://78.47.90.202:8081/api/v1/consumers");
-        HttpURLConnection httpURLConnection = (HttpURLConnection) consumerServiceUrl.openConnection();
-        httpURLConnection.setRequestMethod("POST");
-        OutputStream outputStream = httpURLConnection.getOutputStream();
-        UserDto userDto = new UserDto();
+    private void createUser(String ik, String spk, String[] opk) {
 
+        try {
+            String email = ((CharSequence) ((EditText) findViewById(R.id.txtSignupEmail)).getText()).toString();
+            String password = ((CharSequence) ((EditText) findViewById(R.id.txtSignupPassword)).getText()).toString();
+
+            URL consumerServiceUrl = new URL("http://78.47.90.202:8081/api/v1/consumers");
+            HttpURLConnection httpURLConnection = (HttpURLConnection) consumerServiceUrl.openConnection();
+            httpURLConnection.setRequestMethod("POST");
+            httpURLConnection.setRequestProperty("Content-Type","application/json");
+            httpURLConnection.setDoOutput(true);
+            httpURLConnection.setDoInput(true);
+
+            OutputStream outputStream = httpURLConnection.getOutputStream();
+//
+            UserDto userDto = new UserDto();
+            userDto.setUsername(email.split("@")[0]);
+            userDto.setEmail(email);
+            userDto.setIpk(ik);
+            userDto.setSpk(spk);
+            userDto.setOpk(opk);
+            userDto.setSigPrekey("123");
+            userDto.setPassword(password);
+            Channel[] channels = new Channel[1];
+            Channel channel = new Channel();
+            channel.setName("email");
+            channel.setValue("12313");
+            channels[0] = channel;
+            userDto.setChannels(channels);
+            String jsonObject = objectMapper.writeValueAsString(userDto);
+            outputStream.write(jsonObject.getBytes("UTF-8"));
+            outputStream.flush();
+            httpURLConnection.disconnect();
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     private SignedPreKeyRecord generateSignedPreKey(IdentityKeyPair identityKeyPair, int signedPreKeyId) throws InvalidKeyException {

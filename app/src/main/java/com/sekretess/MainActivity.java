@@ -9,6 +9,7 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.security.crypto.EncryptedSharedPreferences;
 
 import com.sekretess.databinding.ActivityLoginBinding;
+import com.sekretess.ui.ChatsActivity;
 import com.sekretess.ui.SignupActivity;
 
 public class MainActivity extends AppCompatActivity {
@@ -17,7 +18,7 @@ public class MainActivity extends AppCompatActivity {
     private EncryptedSharedPreferences encryptedSharedPreferences;
 
     public MainActivity() {
-        
+
     }
 
     @Override
@@ -27,6 +28,8 @@ public class MainActivity extends AppCompatActivity {
         binding.btnSignup.setOnClickListener(v ->
                 startActivity(new Intent(this, SignupActivity.class)));
         setContentView(binding.getRoot());
+        binding.btnLogin.setOnClickListener(v ->
+                startActivity(new Intent(this, ChatsActivity.class)));
 
     }
 

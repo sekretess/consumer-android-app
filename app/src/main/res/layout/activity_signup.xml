@@ -7,7 +7,7 @@
     tools:context=".ui.SignupActivity">
 
     <EditText
-        android:id="@+id/txtEmail"
+        android:id="@+id/txtSignupEmail"
         android:layout_width="385dp"
         android:layout_height="68dp"
         android:layout_marginStart="14dp"
@@ -21,7 +21,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <EditText
-        android:id="@+id/editTextTextPassword"
+        android:id="@+id/txtSignupPassword"
         android:layout_width="385dp"
         android:layout_height="68dp"
         android:layout_marginStart="15dp"
@@ -32,7 +32,7 @@
         android:inputType="textPassword"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtEmail" />
+        app:layout_constraintTop_toBottomOf="@+id/txtSignupEmail" />
 
     <EditText
         android:id="@+id/txtPasswordVerify"
@@ -45,7 +45,7 @@
         android:inputType="textPassword"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/editTextTextPassword" />
+        app:layout_constraintTop_toBottomOf="@+id/txtSignupPassword" />
 
     <Button
         android:id="@+id/btnSignUp"
