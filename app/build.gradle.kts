@@ -19,16 +19,18 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            isDebuggable=false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     buildFeatures {
         viewBinding = true
     }
+    buildToolsVersion = "34.0.0"
 }
 
 dependencies {
@@ -42,13 +44,16 @@ dependencies {
     implementation("androidx.navigation:navigation-ui:2.7.7")
     implementation("org.signal:libsignal-client:0.40.1")
     implementation("androidx.security:security-crypto:1.0.0")
-    implementation("androidx.annotation:annotation:1.6.0")
-    runtimeOnly ("org.signal:libsignal-android:0.40.1")
-    compileOnly("org.projectlombok:lombok:1.18.30")
+    implementation("androidx.annotation:annotation:1.7.1")
+    implementation("com.rabbitmq:amqp-client:5.20.0")
+    implementation("androidx.work:work-runtime:2.9.0")
+    implementation("androidx.activity:activity:1.8.2")
+    runtimeOnly("org.signal:libsignal-android:0.40.1")
     annotationProcessor("org.projectlombok:lombok:1.18.30")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.10.3")
-    implementation("com.fasterxml.jackson.core:jackson-core:2.10.3")
-    implementation("com.fasterxml.jackson.core:jackson-annotations:2.10.3")
+    annotationProcessor("org.projectlombok:lombok:1.18.30")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.12.0")
+    implementation("com.fasterxml.jackson.core:jackson-core:2.12.0")
+    implementation("com.fasterxml.jackson.core:jackson-annotations:2.12.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")

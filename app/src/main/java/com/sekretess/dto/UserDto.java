@@ -1,8 +1,11 @@
 package com.sekretess.dto;
 
-import lombok.Data;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class UserDto {
     public String getUsername() {
         return username;
@@ -68,6 +71,15 @@ public class UserDto {
         this.channels = channels;
     }
 
+    public Integer getRegId() {
+        return regId;
+    }
+
+    public void setRegId(Integer regId) {
+        this.regId = regId;
+    }
+
+    private Integer regId;
     private String username;
     private String password;
     private String email;

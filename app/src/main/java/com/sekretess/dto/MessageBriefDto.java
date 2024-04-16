@@ -1,13 +1,13 @@
 package com.sekretess.dto;
 
-public class MessageCountDto {
+public class MessageBriefDto {
     private String sender;
     private int count;
 
-    public MessageCountDto() {
+    public MessageBriefDto() {
     }
 
-    public MessageCountDto(String sender, int count) {
+    public MessageBriefDto(String sender, int count) {
         this.sender = sender;
         this.count = count;
     }

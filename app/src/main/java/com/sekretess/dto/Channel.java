@@ -1,8 +1,7 @@
 package com.sekretess.dto;
 
-import lombok.Data;
 
-@Data
+
 public class Channel {
     public String getName() {
         return name;
