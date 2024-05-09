@@ -9,16 +9,11 @@ import android.view.Menu;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.sekretess.dto.jwt.Jwt;
-import com.sekretess.service.SekretessRabbitMqService;
+import com.sekretess.repository.DbHelper;
 import com.sekretess.ui.ChatsActivity;
 import com.sekretess.ui.LoginActivity;
-import com.sekretess.service.SignalProtocolService;
-
-import org.signal.libsignal.protocol.InvalidMessageException;
 
 public class MainActivity extends AppCompatActivity {
-
-
     public MainActivity() {
 
     }
@@ -26,21 +21,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        SharedPreferences sekretesSharedPreferences = getApplicationContext()
-                .getSharedPreferences(Constants.SEKRETESS_PREFERENCES_NAME, Context.MODE_PRIVATE);
-        String jwtStr = sekretesSharedPreferences
-                .getString(Constants.PREFERENCES_JWT_PROPERTY_NAME, "");
-
-        if (!jwtStr.isEmpty()) {
-            Jwt jwt = Jwt.fromString(jwtStr);
-            String queueName = jwt.getAccessToken().getPayload().getPreferredUsername();
-            Intent backgroundRabbitMqConsumerService =
-                    new Intent(this, SekretessRabbitMqService.class);
-            backgroundRabbitMqConsumerService.putExtra("queueName", queueName);
-            backgroundRabbitMqConsumerService.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startService(backgroundRabbitMqConsumerService);
-            startService(new Intent(this, SignalProtocolService.class));
+        Jwt jwt = new DbHelper(getApplicationContext()).getJwt();
+        if (jwt != null) {
             startActivity(new Intent(this, ChatsActivity.class));
+            broadcastSuccessfulLogin(jwt.getAccessToken().getPayload().getPreferredUsername());
         } else {
             startActivity(new Intent(this, LoginActivity.class));
         }
@@ -53,4 +37,10 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+
+    private void broadcastSuccessfulLogin(String queueName) {
+        Intent intent = new Intent(Constants.EVENT_LOGIN);
+        intent.putExtra("queueName", queueName);
+        sendBroadcast(intent);
+    }
 }

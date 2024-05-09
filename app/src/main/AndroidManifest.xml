@@ -4,10 +4,11 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <application
         android:allowBackup="true"
@@ -18,8 +19,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat"
-        android:usesCleartextTraffic="true"
-        tools:targetApi="31">
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".ui.MessagesFromSenderActivity"
             android:exported="false" />
@@ -58,16 +58,26 @@
 
         <service
             android:name=".service.SekretessRabbitMqService"
+            android:foregroundServiceType="phoneCall"
             android:process=":remote"
             android:stopWithTask="false" />
         <service
             android:name=".service.RefreshTokenService"
+            android:foregroundServiceType="phoneCall"
             android:process=":remote"
             android:stopWithTask="false" />
         <service
             android:name=".service.SignalProtocolService"
+            android:foregroundServiceType="phoneCall"
             android:process=":remote"
             android:stopWithTask="false" />
+
+        <receiver android:name=".service.BootHandlerService"
+            android:exported="true">
+            <intent-filter >
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

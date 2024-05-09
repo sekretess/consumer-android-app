@@ -7,6 +7,17 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UserDto {
+    private Integer regId;
+    private String username;
+    private String password;
+    private String email;
+    private String ik;
+    private String spk;
+    private String[] opk;
+    private String SPKSignature;
+    private Channel[] channels;
+    private String spkID;
+
     public String getUsername() {
         return username;
     }
@@ -31,14 +42,6 @@ public class UserDto {
         this.email = email;
     }
 
-    public String getIpk() {
-        return ipk;
-    }
-
-    public void setIpk(String ipk) {
-        this.ipk = ipk;
-    }
-
     public String getSpk() {
         return spk;
     }
@@ -55,13 +58,6 @@ public class UserDto {
         this.opk = opk;
     }
 
-    public String getSigPrekey() {
-        return sigPrekey;
-    }
-
-    public void setSigPrekey(String sigPrekey) {
-        this.sigPrekey = sigPrekey;
-    }
 
     public Channel[] getChannels() {
         return channels;
@@ -79,13 +75,28 @@ public class UserDto {
         this.regId = regId;
     }
 
-    private Integer regId;
-    private String username;
-    private String password;
-    private String email;
-    private String ipk;
-    private String spk;
-    private String[] opk;
-    private String sigPrekey;
-    private Channel[] channels;
+
+    public String getSPKSignature() {
+        return SPKSignature;
+    }
+
+    public void setSPKSignature(String SPKSignature) {
+        this.SPKSignature = SPKSignature;
+    }
+
+    public String getIk() {
+        return ik;
+    }
+
+    public void setIk(String ik) {
+        this.ik = ik;
+    }
+
+    public String getSpkID() {
+        return spkID;
+    }
+
+    public void setSpkID(String spkID) {
+        this.spkID = spkID;
+    }
 }

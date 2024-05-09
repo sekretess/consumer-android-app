@@ -8,8 +8,8 @@ android {
 
     defaultConfig {
         applicationId = "com.sekretess"
-        minSdk = 34
-        targetSdk = 34
+        minSdk = 33
+        targetSdk = 33
         versionCode = 1
         versionName = "1.0"
 
@@ -34,20 +34,19 @@ android {
 }
 
 dependencies {
-
+    implementation ("net.zetetic:android-database-sqlcipher:4.5.3")//Encrypted database
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.11.0")
+    implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
-    implementation("androidx.navigation:navigation-fragment:2.7.7")
-    implementation("androidx.navigation:navigation-ui:2.7.7")
     implementation("org.signal:libsignal-client:0.40.1")
+    implementation("androidx.sqlite:sqlite:2.4.0")
     implementation("androidx.security:security-crypto:1.0.0")
     implementation("androidx.annotation:annotation:1.7.1")
     implementation("com.rabbitmq:amqp-client:5.20.0")
-    implementation("androidx.work:work-runtime:2.9.0")
-    implementation("androidx.activity:activity:1.8.2")
+    implementation("androidx.navigation:navigation-fragment:2.7.7")
+    implementation("androidx.navigation:navigation-ui:2.7.7")
+//    implementation("androidx.work:work-runtime:2.9.0")
+//    implementation("androidx.activity:activity:1.4.0")
     runtimeOnly("org.signal:libsignal-android:0.40.1")
     annotationProcessor("org.projectlombok:lombok:1.18.30")
     annotationProcessor("org.projectlombok:lombok:1.18.30")

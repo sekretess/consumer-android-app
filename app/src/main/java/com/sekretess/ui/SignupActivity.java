@@ -1,7 +1,9 @@
 package com.sekretess.ui;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -9,20 +11,28 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.sekretess.Constants;
 import com.sekretess.R;
-import com.sekretess.dto.KeyMaterial;
-import com.sekretess.service.SekretessRabbitMqService;
-import com.sekretess.utils.KeycloakManager;
-import com.sekretess.service.SignalProtocolService;
-
-import java.util.Base64;
-import java.util.Set;
 
 public class SignupActivity extends AppCompatActivity {
 
+    private final BroadcastReceiver signupFailedEventBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.i("SignupActivity", "signup-failed");
+            Toast.makeText(getApplicationContext(), "User creation failed",
+                            Toast.LENGTH_LONG)
+                    .show();
+        }
+    };
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(signupFailedEventBroadcastReceiver,
+                new IntentFilter(Constants.EVENT_SIGNUP_FAILED), RECEIVER_EXPORTED);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,11 +56,11 @@ public class SignupActivity extends AppCompatActivity {
     }
 
     private void broadcastInitializeKeys(String email, String username, String password) {
-        Intent intent = new Intent("initialize-key-event");
+        Intent intent = new Intent(Constants.EVENT_INITIALIZE_KEY);
         intent.putExtra("email", email);
         intent.putExtra("username", username);
         intent.putExtra("password", password);
-        LocalBroadcastManager.getInstance(SignupActivity.this).sendBroadcast(intent);
+        sendBroadcast(intent);
     }
 
 }

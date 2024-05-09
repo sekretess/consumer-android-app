@@ -12,46 +12,40 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.sekretess.Constants;
 import com.sekretess.dto.jwt.Jwt;
+import com.sekretess.repository.DbHelper;
 import com.sekretess.utils.KeycloakManager;
 
-public class RefreshTokenService extends Service {
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class RefreshTokenService extends SekretessBackgroundService {
+    public static final int REFRESH_TOKEN_SERVICE_NOTIFICATION = 3;
+    public static final AtomicInteger serviceInstances = new AtomicInteger(0);
+    private DbHelper dbHelper;
+
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+    public void started(Intent intent) {
+        serviceInstances.getAndSet(1);
+        this.dbHelper = new DbHelper(getApplicationContext());
         startRefreshTokenService();
-        return Service.START_STICKY;
     }
 
 
     private void startRefreshTokenService() {
-        int refreshTokenInterval = 15;
-        SharedPreferences.Editor sharedPreferencesEditor =
-                getSharedPreferences(Constants.SEKRETESS_PREFERENCES_NAME, MODE_PRIVATE)
-                        .edit();
-
         new CountDownTimer(Long.MAX_VALUE, 10000) {
             @Override
             public void onTick(long millisUntilFinished) {
-                SharedPreferences sharedPreferences = getApplicationContext()
-                        .getSharedPreferences(Constants.SEKRETESS_PREFERENCES_NAME, Context.MODE_PRIVATE);
-                String jwtStr = sharedPreferences.getString(Constants.PREFERENCES_JWT_PROPERTY_NAME,
-                        "");
+                Jwt currentJwt = dbHelper.getJwt();
 
-                if (!jwtStr.isEmpty()) {
-                    Jwt currentJwt = Jwt.fromString(jwtStr);
+                if (currentJwt != null) {
                     Jwt newJwt = KeycloakManager.getInstance().refreshJwt(currentJwt);
                     if (newJwt == null) {
-                        sharedPreferencesEditor.remove(Constants.PREFERENCES_JWT_PROPERTY_NAME);
-                        sharedPreferencesEditor.apply();
-                        sharedPreferencesEditor.commit();
+                        dbHelper.removeJwt();
                         LocalBroadcastManager
                                 .getInstance(RefreshTokenService.this)
-                                .sendBroadcast(new Intent("refresh-token-failed"));
+                                .sendBroadcast(new Intent(Constants.EVENT_REFRESH_TOKEN_FAILED));
 
                     } else {
-                        sharedPreferencesEditor.putString(Constants.PREFERENCES_JWT_PROPERTY_NAME,
-                                newJwt.getJwtStr());
-                        sharedPreferencesEditor.apply();
-                        sharedPreferencesEditor.commit();
+                        dbHelper.storeJwt(newJwt.getJwtStr());
                     }
                 }
             }
@@ -61,6 +55,21 @@ public class RefreshTokenService extends Service {
 
             }
         }.start();
+    }
+
+    @Override
+    public void destroyed() {
+        serviceInstances.getAndSet(0);
+    }
+
+    @Override
+    public int getNotificationId() {
+        return REFRESH_TOKEN_SERVICE_NOTIFICATION;
+    }
+
+    @Override
+    public String getChannelId() {
+        return "sekretess:refresh-token-service-channel";
     }
 
     @Nullable

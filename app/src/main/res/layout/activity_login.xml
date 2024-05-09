@@ -7,7 +7,7 @@
     tools:context=".ui.LoginActivity">
 
     <EditText
-        android:id="@+id/txtEmailAddress"
+        android:id="@+id/txtUserName"
         android:layout_width="match_parent"
         android:layout_height="68dp"
         android:layout_marginStart="10dp"
@@ -60,6 +60,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtEmailAddress" />
+        app:layout_constraintTop_toBottomOf="@+id/txtUserName" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

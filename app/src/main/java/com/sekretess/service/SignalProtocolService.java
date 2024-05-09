@@ -4,9 +4,7 @@ import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.Service;
 import android.content.BroadcastReceiver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -21,29 +19,21 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.sekretess.Constants;
 import com.sekretess.R;
 import com.sekretess.dto.KeyMaterial;
 import com.sekretess.dto.jwt.Jwt;
-import com.sekretess.dto.jwt.Payload;
-import com.sekretess.model.MessageEntity;
 import com.sekretess.repository.DbHelper;
+import com.sekretess.repository.SekretessSignalProtocolStore;
 import com.sekretess.ui.LoginActivity;
 import com.sekretess.utils.KeycloakManager;
 
-import org.signal.libsignal.protocol.DuplicateMessageException;
 import org.signal.libsignal.protocol.IdentityKey;
 import org.signal.libsignal.protocol.IdentityKeyPair;
 import org.signal.libsignal.protocol.InvalidKeyException;
-import org.signal.libsignal.protocol.InvalidKeyIdException;
-import org.signal.libsignal.protocol.InvalidMessageException;
-import org.signal.libsignal.protocol.InvalidVersionException;
-import org.signal.libsignal.protocol.LegacyMessageException;
 import org.signal.libsignal.protocol.SessionCipher;
 import org.signal.libsignal.protocol.SignalProtocolAddress;
-import org.signal.libsignal.protocol.UntrustedIdentityException;
 import org.signal.libsignal.protocol.ecc.Curve;
 import org.signal.libsignal.protocol.ecc.ECKeyPair;
 import org.signal.libsignal.protocol.message.PreKeySignalMessage;
@@ -54,26 +44,21 @@ import org.signal.libsignal.protocol.state.impl.InMemorySignalProtocolStore;
 import org.signal.libsignal.protocol.util.KeyHelper;
 import org.signal.libsignal.protocol.util.Medium;
 
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.cert.CertificateException;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Random;
-import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class SignalProtocolService extends Service {
-    private SignalProtocolStore signalProtocolStore;
-    private Base64.Decoder base64Decoder = Base64.getDecoder();
-    private DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.systemDefault());
+public class SignalProtocolService extends SekretessBackgroundService {
+    private static SekretessSignalProtocolStore signalProtocolStore;
+    private final Base64.Decoder base64Decoder = Base64.getDecoder();
     private DbHelper dbHelper;
 
-    private BroadcastReceiver encryptedMessageBroadcastReceiver = new BroadcastReceiver() {
+    public static final int SIGNAL_PROTOCOL_NOTIFICATION = 2;
+    public static final AtomicInteger serviceInstances = new AtomicInteger(0);
+
+    private final BroadcastReceiver encryptedMessageBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String encryptedMessage = intent.getStringExtra("encryptedMessage");
@@ -83,10 +68,42 @@ public class SignalProtocolService extends Service {
         }
     };
 
-
-    private BroadcastReceiver initializeKeyBroadcastReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver loginEventBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            try {
+                if (signalProtocolStore == null) {
+                    Log.w("SignalProtocolService", "Signal protocol store is null. Initializing protocolStore...");
+                    IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
+                    if (identityKeyPair == null) {
+                        Log.w("SignalProtocolService", "No cryptographic keys found. Initializing keys...");
+                        KeyMaterial keyMaterial = initializeKeys();
+                        KeycloakManager.getInstance().updateKeys(dbHelper.getJwt().getJwtStr(), keyMaterial);
+                    } else {
+                        Log.w("SignalProtocolService", "Cryptographic keys found. Loading from database...");
+                        int registrationId = dbHelper.getRegistrationId();
+                        signalProtocolStore = new SekretessSignalProtocolStore(context, identityKeyPair, registrationId);
+                        SignedPreKeyRecord signedPreKeyRecord = dbHelper.getSignedPreKeyRecord();
+                        signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
+
+                        PreKeyRecord[] preKeyRecords = dbHelper.getPreKeyRecords();
+                        for (PreKeyRecord preKeyRecord : preKeyRecords) {
+                            signalProtocolStore.storePreKey(preKeyRecord.getId(), preKeyRecord);
+                        }
+                        dbHelper.loadSessions(signalProtocolStore);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e("SignalProtocolService",
+                        "Something wrong gone during handle login event. No cryptographic env initialized!", e);
+            }
+        }
+    };
+
+    private final BroadcastReceiver initializeKeyBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.i("SignalProtocolService", "Initialize event received");
             String email = intent.getStringExtra("email");
             String username = intent.getStringExtra("username");
             String password = intent.getStringExtra("password");
@@ -94,85 +111,76 @@ public class SignalProtocolService extends Service {
 
             try {
                 KeyMaterial keyMaterial = initializeKeys();
-                boolean result = KeycloakManager.getInstance()
-                        .createUser(username, email, password, keyMaterial.getRegistrationId(),
-                                encoder.encodeToString(keyMaterial.getIdentityKeyPair().serialize()),
-                                encoder.encodeToString(keyMaterial.getSignedPreKeyRecord().serialize()),
-                                encoder.encodeToString(keyMaterial.getSignature()),
-                                keyMaterial.getOpk());
+                boolean result = KeycloakManager.getInstance().createUser(username, email, password,
+                        keyMaterial.getRegistrationId(),
+                        encoder.encodeToString(keyMaterial.getIdentityKeyPair().getPublicKey().serialize()),
+                        encoder.encodeToString(keyMaterial.getSignedPreKeyRecord().getKeyPair().getPublicKey().serialize()),
+                        keyMaterial.getOpk(),
+                        encoder.encodeToString(keyMaterial.getSignedPreKeyRecord().getSignature()),
+                        String.valueOf(keyMaterial.getSignedPreKeyRecord().getId()));
+
                 if (result) {
-                    SharedPreferences.Editor sharedPreferences =
-                            getSharedPreferences(Constants.SEKRETESS_PREFERENCES_NAME, MODE_PRIVATE)
-                                    .edit();
-
-                    sharedPreferences.putStringSet(Constants.PREFERENCES_OPK_PROPERTY_NAME,
-                            Set.of(keyMaterial.getOpk()));
-                    sharedPreferences.apply();
-                    sharedPreferences.commit();
-
-                    startActivity(new Intent(SignalProtocolService.this, LoginActivity.class));
+                    Intent loginActivityIntent = new Intent(SignalProtocolService.this, LoginActivity.class);
+                    loginActivityIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(loginActivityIntent);
                 } else {
-                    Toast.makeText(getApplicationContext(), "User creation failed",
-                                    Toast.LENGTH_LONG)
-                            .show();
+                    broadcastSignupFailed();
                 }
             } catch (Exception e) {
                 Log.e("SignalProtocolService", "Error occurred during initialize user", e);
-                Toast.makeText(getApplicationContext(), "User creation failed",
-                                Toast.LENGTH_LONG)
-                        .show();
+                broadcastSignupFailed();
             }
         }
     };
 
-    private BroadcastReceiver updateOpkBroadcastReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver updateOpkBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            KeyMaterial keyMaterial = updateOneTimeKeys();
-            SharedPreferences sharedPreferences =
-                    getSharedPreferences(Constants.SEKRETESS_PREFERENCES_NAME, MODE_PRIVATE);
+            Log.i("SignalProtocolService", "Update event received");
+            try {
+                KeyMaterial keyMaterial = updateOneTimeKeys();
+                Jwt jwt = dbHelper.getJwt();
+                if (jwt != null) {
+                    KeycloakManager.getInstance().updateKeys(jwt.getJwtStr(), keyMaterial);
 
-            SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
-            sharedPreferencesEditor.putStringSet(Constants.PREFERENCES_OPK_PROPERTY_NAME,
-                    Set.of(keyMaterial.getOpk()));
-            sharedPreferencesEditor.apply();
-            sharedPreferencesEditor.commit();
+                    Toast.makeText(getApplicationContext(), "One time keys updated", Toast.LENGTH_LONG).show();
+                } else {
 
-            String jwtStr = sharedPreferences.getString(Constants.PREFERENCES_JWT_PROPERTY_NAME, "");
-
-            KeycloakManager.getInstance().updateKeys(jwtStr, keyMaterial);
-
-            Toast
-                    .makeText(getApplicationContext(), "One time keys updated",
-                            Toast.LENGTH_LONG)
-                    .show();
+                }
+            } catch (Exception e) {
+                Log.e("SignalProtocolService", "Error occurred during update OPK", e);
+            }
         }
     };
 
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        LocalBroadcastManager.getInstance(this).registerReceiver(encryptedMessageBroadcastReceiver,
-                new IntentFilter("new-incoming-encrypted-message"));
-        LocalBroadcastManager.getInstance(this).registerReceiver(initializeKeyBroadcastReceiver,
-                new IntentFilter("initialize-key-event"));
+    public void started(Intent intent) {
+        serviceInstances.getAndSet(1);
+        getApplicationContext().registerReceiver(encryptedMessageBroadcastReceiver, new IntentFilter(Constants.EVENT_NEW_INCOMING_ENCRYPTED_MESSAGE), RECEIVER_EXPORTED);
+        getApplicationContext().registerReceiver(initializeKeyBroadcastReceiver, new IntentFilter(Constants.EVENT_INITIALIZE_KEY), RECEIVER_EXPORTED);
+        getApplicationContext().registerReceiver(updateOpkBroadcastReceiver, new IntentFilter(Constants.EVENT_UPDATE_KEY), RECEIVER_EXPORTED);
+        getApplicationContext().registerReceiver(loginEventBroadcastReceiver, new IntentFilter(Constants.EVENT_LOGIN), RECEIVER_EXPORTED);
 
-        LocalBroadcastManager.getInstance(this).registerReceiver(updateOpkBroadcastReceiver,
-                new IntentFilter("update-key-event"));
-
-        SharedPreferences sharedPreferences = getSharedPreferences(Constants.SEKRETESS_PREFERENCES_NAME, MODE_PRIVATE);
-        Set<String> opkSet = sharedPreferences
-                .getStringSet(Constants.PREFERENCES_OPK_PROPERTY_NAME, Set.of());
-        if (opkSet.isEmpty()) {
-            String jwtStr = sharedPreferences.getString(Constants.PREFERENCES_JWT_PROPERTY_NAME, "");
-            initializeKeysFromJwt(Jwt.fromString(jwtStr));
-        } else {
-            initializePreKeys(opkSet);
-        }
+        Log.i("SignalProtocolService", "All broadcastreceivers registered");
+        Log.i("SignalProtocolService", "signalProtocolStore = " + signalProtocolStore);
         dbHelper = new DbHelper(this);
-        return START_STICKY;
     }
 
+    @Override
+    public String getChannelId() {
+        return "sekretess:signal-protocol-service-channel";
+    }
+
+    @Override
+    public int getNotificationId() {
+        return SIGNAL_PROTOCOL_NOTIFICATION;
+    }
+
+    @Override
+    public void destroyed() {
+        serviceInstances.getAndSet(0);
+    }
 
     @Nullable
     @Override
@@ -180,85 +188,63 @@ public class SignalProtocolService extends Service {
         return null;
     }
 
-
-    public void initializeKeysFromJwt(Jwt jwt) {
-        try {
-            Base64.Decoder base64Decoder = Base64.getDecoder();
-
-            Payload idTokenPayload = jwt.getIdToken().getPayload();
-            IdentityKeyPair identityKeyPair =
-                    new IdentityKeyPair(base64Decoder.decode(idTokenPayload.getIdentityKeyPair()));
-            signalProtocolStore =
-                    new InMemorySignalProtocolStore(identityKeyPair,
-                            idTokenPayload.getRegistrationId());
-
-            SignedPreKeyRecord signedPreKeyRecord =
-                    new SignedPreKeyRecord(base64Decoder.decode(idTokenPayload.getSignedPrekey()));
-            signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
-            String[] oneTimePreKeys = jwt.getIdToken().getPayload().getOneTimePrekeys();
-            if (oneTimePreKeys != null) {
-                for (String oneTimePreKey : oneTimePreKeys) {
-                    PreKeyRecord preKeyRecord = new PreKeyRecord(base64Decoder.decode(oneTimePreKey));
-                    signalProtocolStore.storePreKey(preKeyRecord.getId(), preKeyRecord);
-                }
-            }
-        } catch (Exception e) {
-            Log.e("SignalProtocolService", "Error occurred during initialize keys from JWT", e);
-        }
-    }
-
-    public KeyMaterial updateOneTimeKeys() {
+    public KeyMaterial updateOneTimeKeys() throws InvalidKeyException {
         //Generate one-time prekeys
-        String[] opk = generateSignedPreKeys(5);
-        return new KeyMaterial(opk);
+        PreKeyRecord[] opk = generateSignedPreKeys(15);
+        dbHelper.storePreKeyRecords(opk);
+        return new KeyMaterial(dbHelper.getRegistrationId(), serializeSignedPreKeys(opk),
+                dbHelper.getSignedPreKeyRecord(), dbHelper.getIdentityKeyPair(),
+                dbHelper.getSignedPreKeyRecord().getSignature());
     }
 
     public KeyMaterial initializeKeys() throws InvalidKeyException {
-        int signedPreKeyId = new Random().nextInt(Medium.MAX_VALUE - 1);
+
         ECKeyPair ecKeyPair = Curve.generateKeyPair();
         IdentityKey identityKey = new IdentityKey(ecKeyPair.getPublicKey());
         IdentityKeyPair identityKeyPair = new IdentityKeyPair(identityKey, ecKeyPair.getPrivateKey());
 
         int registrationId = KeyHelper.generateRegistrationId(false);
-        this.signalProtocolStore = new InMemorySignalProtocolStore(identityKeyPair, registrationId);
+        signalProtocolStore = new SekretessSignalProtocolStore(getApplicationContext(), identityKeyPair, registrationId);
         //Generate signed prekeyRecord
         ECKeyPair keyPair = Curve.generateKeyPair();
         byte[] signature = Curve.calculateSignature(identityKeyPair.getPrivateKey(), keyPair.getPublicKey().serialize());
 
-        SignedPreKeyRecord signedPreKeyRecord = new SignedPreKeyRecord(signedPreKeyId,
-                System.currentTimeMillis(), keyPair, signature);
+        int signedPreKeyId = new Random().nextInt(Medium.MAX_VALUE - 1);
+        SignedPreKeyRecord signedPreKeyRecord = new SignedPreKeyRecord(signedPreKeyId, System.currentTimeMillis(), keyPair, signature);
 
         signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
 
         //Generate one-time prekeys
-        String[] opk = generateSignedPreKeys(15);
+        PreKeyRecord[] opk = generateSignedPreKeys(15);
 
-        return new KeyMaterial(registrationId, opk, signedPreKeyRecord, identityKeyPair, signature);
+        Log.i("SignalProtocolService", "Keys initialized");
+        dbHelper.storeIdentityKeyPair(identityKeyPair);
+        dbHelper.storePreKeyRecords(opk);
+        dbHelper.storeRegistrationId(registrationId);
+        dbHelper.storeSignedPreKeyRecord(signedPreKeyRecord);
+
+        return new KeyMaterial(registrationId, serializeSignedPreKeys(opk), signedPreKeyRecord, identityKeyPair, signature);
     }
 
-    private void initializePreKeys(Set<String> prekeys) {
-        try {
-            Base64.Decoder decoder = Base64.getDecoder();
-            SecureRandom preKeyRecordIdGenerator = new SecureRandom();
-            for (String prekey : prekeys) {
-                int id = preKeyRecordIdGenerator.nextInt(Integer.MAX_VALUE);
-                PreKeyRecord preKeyRecord = new PreKeyRecord(decoder.decode(prekey));
-                signalProtocolStore.storePreKey(id, preKeyRecord);
-            }
-        } catch (Exception e) {
-            Log.e("SignalProtocolService", "Error occurred during initialize service", e);
-        }
-    }
-
-    public String[] generateSignedPreKeys(int count) {
-        String[] oneTimePreKeys = new String[count];
-        Base64.Encoder encoder = Base64.getEncoder();
+    public PreKeyRecord[] generateSignedPreKeys(int count) {
+        PreKeyRecord[] preKeyRecords = new PreKeyRecord[count];
         SecureRandom preKeyRecordIdGenerator = new SecureRandom();
         for (int i = 0; i < count; i++) {
             int id = preKeyRecordIdGenerator.nextInt(Integer.MAX_VALUE);
-            PreKeyRecord preKeyRecord = new PreKeyRecord(id, Curve.generateKeyPair());
+            ECKeyPair ecKeyPair = Curve.generateKeyPair();
+            PreKeyRecord preKeyRecord = new PreKeyRecord(id, ecKeyPair);
             signalProtocolStore.storePreKey(id, preKeyRecord);
-            oneTimePreKeys[i] = encoder.encodeToString(preKeyRecord.serialize());
+            preKeyRecords[i] = preKeyRecord;
+        }
+        return preKeyRecords;
+    }
+
+    public String[] serializeSignedPreKeys(PreKeyRecord[] preKeyRecords) throws InvalidKeyException {
+        String[] oneTimePreKeys = new String[preKeyRecords.length];
+        Base64.Encoder encoder = Base64.getEncoder();
+        int idx = 0;
+        for (PreKeyRecord preKeyRecord : preKeyRecords) {
+            oneTimePreKeys[idx++] = preKeyRecord.getId() + ":" + encoder.encodeToString(preKeyRecord.getKeyPair().getPublicKey().serialize());
         }
         return oneTimePreKeys;
     }
@@ -270,33 +256,17 @@ public class SignalProtocolService extends Service {
             SessionCipher sessionCipher = new SessionCipher(signalProtocolStore, signalProtocolAddress);
             String message = new String(sessionCipher.decrypt(preKeySignalMessage));
 
-            ContentValues values = new ContentValues();
-            values.put(MessageEntity.COLUMN_SENDER, name);
-            values.put(MessageEntity.COLUMN_MESSAGE_BODY, message);
-            values.put(MessageEntity.COLUMN_CREATED_AT,
-                    dateTimeFormatter.format(Instant.now()));
-            dbHelper.getWritableDatabase().insert(MessageEntity.TABLE_NAME,
-                    null, values);
+            dbHelper.storeDecryptedMessage(name, message);
+            broadcastNewMessageReceived();
 
             String channelId = "sekretess_notif";
-            Notification notification = new NotificationCompat
-                    .Builder(SignalProtocolService.this, channelId)
-                    .setContentTitle("Message from " + name)
-                    .setLargeIcon(BitmapFactory.decodeResource(getResources(),
-                            R.drawable.ic_notif_sekretess))
-                    .setContentText(message.substring(0, Math.min(10, message.length())).concat("..."))
-                    .setSmallIcon(R.drawable.ic_notif_sekretess)
-                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                    .build();
-            NotificationManagerCompat notificationManager =
-                    NotificationManagerCompat.from(getApplicationContext());
+            Notification notification = new NotificationCompat.Builder(SignalProtocolService.this, channelId).setContentTitle("Message from " + name).setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_notif_sekretess)).setContentText(message.substring(0, Math.min(10, message.length())).concat("...")).setSmallIcon(R.drawable.ic_notif_sekretess).setVisibility(NotificationCompat.VISIBILITY_PUBLIC).build();
+            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
             int m = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
 
-            NotificationChannel channel = new NotificationChannel(channelId,
-                    "Channel human readable title",
-                    NotificationManager.IMPORTANCE_DEFAULT);
+            NotificationChannel channel = new NotificationChannel(channelId, "Channel human readable title", NotificationManager.IMPORTANCE_DEFAULT);
             notificationManager.createNotificationChannel(channel);
-            broadcastNewMessageReceived();
+
 
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
                 notificationManager.notify(m, notification);
@@ -309,8 +279,16 @@ public class SignalProtocolService extends Service {
     }
 
     private void broadcastNewMessageReceived() {
-        Intent intent = new Intent("new-incoming-message");
-        LocalBroadcastManager.getInstance(SignalProtocolService.this).sendBroadcast(intent);
+        Log.i("SignalProtocolService", "Sending new-incoming-message event");
+        Intent intent = new Intent(Constants.EVENT_NEW_INCOMING_MESSAGE);
+        intent.setAction(Constants.EVENT_NEW_INCOMING_MESSAGE);
+        sendBroadcast(intent);
     }
 
+    private void broadcastSignupFailed() {
+        Log.i("SignalProtocolService", "Sending signup-failed event");
+        Intent intent = new Intent(Constants.EVENT_SIGNUP_FAILED);
+        intent.setAction(Constants.EVENT_SIGNUP_FAILED);
+        sendBroadcast(intent);
+    }
 }

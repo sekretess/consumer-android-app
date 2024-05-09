@@ -19,6 +19,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -55,12 +56,6 @@ public class KeycloakManager {
 
     private Jwt refreshJwtInternal(Jwt currentToken) {
         Token refreshToken = currentToken.getRefreshToken();
-        Long expireTime = refreshToken.getPayload().getExpireTime();
-//        if (expireTime <= System.currentTimeMillis()/1000) {
-//            Log.e("KeycloakService", "Refresh token expired.");
-//            return null;
-//        }
-
         try {
             URL url = new URL(apiServerUrl.concat("/auth/refresh"));
             URLConnection urlConnection = url.openConnection();
@@ -127,16 +122,24 @@ public class KeycloakManager {
         return null;
     }
 
-    public void updateKeys(String jwt, KeyMaterial newKeys) {
+    public void updateKeys(String jwt, KeyMaterial keyMaterial) {
         try {
+            Base64.Encoder encoder = Base64.getEncoder();
             Executors.newSingleThreadExecutor()
-                    .submit(() -> updateOpksInternal(jwt, newKeys));
+                    .submit(() -> updateOpksInternal(jwt,
+                            keyMaterial.getRegistrationId(),
+                            encoder.encodeToString(keyMaterial.getIdentityKeyPair().getPublicKey().serialize()),
+                            encoder.encodeToString(keyMaterial.getSignedPreKeyRecord().getKeyPair().getPublicKey().serialize()),
+                            keyMaterial.getOpk(),
+                            encoder.encodeToString(keyMaterial.getSignedPreKeyRecord().getSignature()),
+                            String.valueOf(keyMaterial.getSignedPreKeyRecord().getId())));
         } catch (Exception e) {
             Log.e("KeycloakService", "Error occurred during update opks", e);
         }
     }
 
-    private void updateOpksInternal(String jwtStr, KeyMaterial newKeys) {
+    private void updateOpksInternal(String jwtStr, int registrationId, String ik, String spk, String[] opk,
+                                    String spkSignature, String spkId) {
         try {
             Jwt jwt = Jwt.fromString(jwtStr);
             String username = jwt.getAccessToken().getPayload().getPreferredUsername();
@@ -148,7 +151,13 @@ public class KeycloakManager {
             OutputStream outputStream = httpURLConnection.getOutputStream();
 
             UserDto userDto = new UserDto();
-            userDto.setOpk(newKeys.getOpk());
+            userDto.setRegId(registrationId);
+            userDto.setUsername(username);
+            userDto.setIk(ik);
+            userDto.setSpk(spk);
+            userDto.setSpkID(spkId);
+            userDto.setSPKSignature(spkSignature);
+            userDto.setOpk(opk);
 
             String jsonObject = objectMapper.writeValueAsString(userDto);
             outputStream.write(jsonObject.getBytes(StandardCharsets.UTF_8));
@@ -161,22 +170,23 @@ public class KeycloakManager {
         }
     }
 
-    public boolean createUser(String username, String email, String password, int registrationId, String ik, String spk,
-                              String signature, String[] opk) {
+    public boolean createUser(String username, String email, String password, int registrationId,
+                              String ik, String spk, String[] opk, String spkSignature, String spkId) {
         try {
             Future<Boolean> future =
                     Executors
                             .newSingleThreadExecutor()
                             .submit(() -> createUserInternal(username, email, password,
-                                    registrationId, ik, spk, signature, opk));
+                                    registrationId, ik, spk, opk, spkSignature, spkId));
             return future.get(20, TimeUnit.SECONDS);
         } catch (Exception e) {
             return false;
         }
     }
 
-    public boolean createUserInternal(String username, String email, String password, int registrationId, String ik, String spk,
-                                      String signature, String[] opk) {
+    public boolean createUserInternal(String username, String email, String password,
+                                      int registrationId, String ik, String spk, String[] opk,
+                                      String spkSignature, String spkId) {
         try {
             URL consumerServiceUrl = new URL(apiServerUrl);
             HttpURLConnection httpURLConnection = (HttpURLConnection) consumerServiceUrl.openConnection();
@@ -189,10 +199,11 @@ public class KeycloakManager {
             userDto.setRegId(registrationId);
             userDto.setUsername(username);
             userDto.setEmail(email);
-            userDto.setIpk(ik);
-            userDto.setSpk(signature);
+            userDto.setIk(ik);
+            userDto.setSpk(spk);
+            userDto.setSpkID(spkId);
+            userDto.setSPKSignature(spkSignature);
             userDto.setOpk(opk);
-            userDto.setSigPrekey(spk);
             userDto.setPassword(password);
             Channel[] channels = new Channel[1];
             Channel channel = new Channel();
@@ -205,7 +216,8 @@ public class KeycloakManager {
             outputStream.flush();
             outputStream.close();
             String response = httpURLConnection.getResponseMessage();
-            return true;
+            int responseCode = httpURLConnection.getResponseCode();
+            return responseCode >= 200 && responseCode <= 299;
         } catch (Exception e) {
             Log.e("KeycloakService", "Error occurred during initialize new user", e);
         }

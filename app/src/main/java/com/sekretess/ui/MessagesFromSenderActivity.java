@@ -3,18 +3,14 @@ package com.sekretess.ui;
 import android.database.Cursor;
 import android.os.Bundle;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
-import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.sekretess.Constants;
 import com.sekretess.R;
 import com.sekretess.dto.MessageRecordDto;
-import com.sekretess.model.MessageEntity;
+import com.sekretess.model.MessageStoreEntity;
 import com.sekretess.repository.DbHelper;
 
 import java.util.ArrayList;
@@ -34,16 +30,14 @@ public class MessagesFromSenderActivity extends AppCompatActivity {
         List<MessageRecordDto> messages = getMessages(from);
         messageAdapter = new MessageAdapter(messages);
         recyclerView.setAdapter(messageAdapter);
-//        recyclerView.addItemDecoration(new DividerItemDecoration(this,
-//                DividerItemDecoration.VERTICAL));
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
     }
 
     private List<MessageRecordDto> getMessages(String from) {
-        Cursor resultCursor = new DbHelper(this).getReadableDatabase()
-                .query(MessageEntity.TABLE_NAME, new String[]{MessageEntity.COLUMN_SENDER,
-                                MessageEntity.COLUMN_MESSAGE_BODY,
-                                MessageEntity.COLUMN_CREATED_AT
+        Cursor resultCursor = new DbHelper(this).getReadableDatabase(Constants.password)
+                .query(MessageStoreEntity.TABLE_NAME, new String[]{MessageStoreEntity.COLUMN_SENDER,
+                                MessageStoreEntity.COLUMN_MESSAGE_BODY,
+                                MessageStoreEntity.COLUMN_CREATED_AT
                         },
                         "sender=?",
                         new String[]{from}, null, null, null);

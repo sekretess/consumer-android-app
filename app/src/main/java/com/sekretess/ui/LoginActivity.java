@@ -13,18 +13,17 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.sekretess.Constants;
 import com.sekretess.R;
 import com.sekretess.dto.jwt.Jwt;
+import com.sekretess.repository.DbHelper;
 import com.sekretess.utils.KeycloakManager;
-import com.sekretess.service.SignalProtocolService;
 
 public class LoginActivity extends AppCompatActivity {
 
+    private DbHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SharedPreferences sekretesSharedPreferences = getApplication()
-                .getSharedPreferences(Constants.SEKRETESS_PREFERENCES_NAME, MODE_PRIVATE);
-        SharedPreferences.Editor sharedPreferencesEditor = sekretesSharedPreferences.edit();
         super.onCreate(savedInstanceState);
+        dbHelper = new DbHelper(getApplicationContext());
         setContentView(R.layout.activity_login);
         Button btnSignup = findViewById(R.id.btnSignup);
         Button btnLogin = findViewById(R.id.btnLogin);
@@ -32,30 +31,24 @@ public class LoginActivity extends AppCompatActivity {
                 startActivity(new Intent(this, SignupActivity.class)));
 
         btnLogin.setOnClickListener(v -> {
-            EditText txtEmailAddress = findViewById(R.id.txtEmailAddress);
-            EditText txtPassword = findViewById(R.id.txtLoginPassword);
+            String txtUserName = ((EditText) findViewById(R.id.txtUserName)).getText().toString();
+            String txtPassword = ((EditText) findViewById(R.id.txtLoginPassword)).getText().toString();
             LoginActivity.this.runOnUiThread(() -> {
             });
 
-            Jwt jwt = KeycloakManager.getInstance().login(txtEmailAddress.getText().toString(),
-                    txtPassword.getText().toString());
+            Jwt jwt = KeycloakManager.getInstance().login(txtUserName, txtPassword);
             try {
-                if (jwt.getRefreshExpiresIn() - 5 <= 3) {
-                    Toast
-                            .makeText(getApplicationContext(),
-                                    "Refresh token expiration time too short",
-                                    Toast.LENGTH_LONG).show();
-                    return;
-                }
                 if (jwt != null) {
+                    if (jwt.getRefreshExpiresIn() - 5 <= 3) {
+                        Toast
+                                .makeText(getApplicationContext(),
+                                        "Refresh token expiration time too short",
+                                        Toast.LENGTH_LONG).show();
+                        return;
+                    }
 
-                    sharedPreferencesEditor
-                            .putString(Constants.PREFERENCES_JWT_PROPERTY_NAME, jwt.getJwtStr());
-                    sharedPreferencesEditor.apply();
-                    sharedPreferencesEditor.commit();
-
-//                    SignalProtocolService.getInstance().initializeKeysFromJwt(jwt);
-
+                    dbHelper.storeJwt(jwt.getJwtStr());
+                    broadcastSuccessfulLogin(txtUserName);
                     startActivity(new Intent(this, ChatsActivity.class));
                 } else {
                     try {
@@ -70,7 +63,11 @@ public class LoginActivity extends AppCompatActivity {
                 Log.e("LoginActivity", "Error occurred during login", e);
             }
         });
+    }
 
-
+    private void broadcastSuccessfulLogin(String queueName) {
+        Intent intent = new Intent(Constants.EVENT_LOGIN);
+        intent.putExtra("queueName", queueName);
+        sendBroadcast(intent);
     }
 }
