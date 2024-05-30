@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sekretess.Constants;
 import com.sekretess.R;
+import com.sekretess.adapters.MessageAdapter;
 import com.sekretess.dto.MessageRecordDto;
 import com.sekretess.model.MessageStoreEntity;
 import com.sekretess.repository.DbHelper;
@@ -26,7 +27,7 @@ public class MessagesFromSenderActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         String from = getIntent().getStringExtra("from");
         setContentView(R.layout.chat_layout);
-        recyclerView = (RecyclerView) findViewById(R.id.messages_rv);
+        recyclerView = findViewById(R.id.messages_rv);
         List<MessageRecordDto> messages = getMessages(from);
         messageAdapter = new MessageAdapter(messages);
         recyclerView.setAdapter(messageAdapter);

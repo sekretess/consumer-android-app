@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
@@ -21,6 +21,10 @@
         android:theme="@style/Theme.AppCompat"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".ui.SubscriptionActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ui.MessagesFromSenderActivity"
             android:exported="false" />
         <activity
@@ -29,53 +33,42 @@
         <activity
             android:name=".ui.SignupActivity"
             android:exported="false"
-            android:launchMode="singleTop" />
+            />
         <activity
             android:name=".ui.LoginActivity"
-            android:exported="true"
-            android:launchMode="singleTop">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
+            android:exported="false"
+           />
 
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:host="magic-url"
-                    android:scheme="sekretess" />
-            </intent-filter>
-        </activity>
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:label="@string/app_name">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
         <service
             android:name=".service.SekretessRabbitMqService"
-            android:foregroundServiceType="phoneCall"
+            android:foregroundServiceType="remoteMessaging"
             android:process=":remote"
             android:stopWithTask="false" />
         <service
             android:name=".service.RefreshTokenService"
-            android:foregroundServiceType="phoneCall"
+            android:foregroundServiceType="remoteMessaging"
             android:process=":remote"
             android:stopWithTask="false" />
         <service
             android:name=".service.SignalProtocolService"
-            android:foregroundServiceType="phoneCall"
+            android:foregroundServiceType="remoteMessaging"
             android:process=":remote"
             android:stopWithTask="false" />
 
-        <receiver android:name=".service.BootHandlerService"
+        <receiver
+            android:name=".service.BootHandlerService"
             android:exported="true">
-            <intent-filter >
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
     </application>

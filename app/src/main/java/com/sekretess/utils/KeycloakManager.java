@@ -3,6 +3,7 @@ package com.sekretess.utils;
 import android.util.Log;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sekretess.Constants;
 import com.sekretess.dto.Channel;
 import com.sekretess.dto.KeyMaterial;
 import com.sekretess.dto.RefreshTokenRequestDto;
@@ -31,7 +32,6 @@ public class KeycloakManager {
 
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final String apiServerUrl = "http://78.47.90.202:8081/api/v1/consumers";
 
     private KeycloakManager() {
 
@@ -48,7 +48,7 @@ public class KeycloakManager {
         try {
             Future<Jwt> future = Executors
                     .newSingleThreadExecutor().submit(() -> refreshJwtInternal(currentToken));
-            return (Jwt) future.get(20, TimeUnit.SECONDS);
+            return future.get(20, TimeUnit.SECONDS);
         } catch (Exception e) {
             return null;
         }
@@ -56,9 +56,10 @@ public class KeycloakManager {
 
     private Jwt refreshJwtInternal(Jwt currentToken) {
         Token refreshToken = currentToken.getRefreshToken();
+        HttpURLConnection urlConnection = null;
         try {
-            URL url = new URL(apiServerUrl.concat("/auth/refresh"));
-            URLConnection urlConnection = url.openConnection();
+            URL url = new URL(Constants.CONSUMER_API_URL.concat("/auth/refresh"));
+            urlConnection = (HttpURLConnection) url.openConnection();
             urlConnection.addRequestProperty("Content-Type", "application/json");
             urlConnection.setDoOutput(true);
             urlConnection.setDoInput(true);
@@ -79,6 +80,9 @@ public class KeycloakManager {
             return Jwt.fromString(response.toString());
         } catch (Exception e) {
             Log.e("KeycloakService", "Can not refresh jwt", e);
+        } finally {
+            if (urlConnection != null)
+                urlConnection.disconnect();
         }
 
         return null;
@@ -95,9 +99,10 @@ public class KeycloakManager {
     }
 
     private Jwt loginInternal(String username, String password) {
+        HttpURLConnection urlConnection = null;
         try {
-            URL url = new URL(apiServerUrl.concat("/auth/login"));
-            URLConnection urlConnection = url.openConnection();
+            URL url = new URL(Constants.CONSUMER_API_URL.concat("/auth/login"));
+            urlConnection = (HttpURLConnection) url.openConnection();
             urlConnection.addRequestProperty("Content-Type", "application/json");
             urlConnection.setDoOutput(true);
             urlConnection.setDoInput(true);
@@ -118,6 +123,9 @@ public class KeycloakManager {
 
         } catch (Exception e) {
             Log.e("KeycloakService", "Error occurred during login.", e);
+        } finally {
+            if (urlConnection != null)
+                urlConnection.disconnect();
         }
         return null;
     }
@@ -128,8 +136,10 @@ public class KeycloakManager {
             Executors.newSingleThreadExecutor()
                     .submit(() -> updateOpksInternal(jwt,
                             keyMaterial.getRegistrationId(),
-                            encoder.encodeToString(keyMaterial.getIdentityKeyPair().getPublicKey().serialize()),
-                            encoder.encodeToString(keyMaterial.getSignedPreKeyRecord().getKeyPair().getPublicKey().serialize()),
+                            encoder.encodeToString(keyMaterial.getIdentityKeyPair().getPublicKey()
+                                    .serialize()),
+                            encoder.encodeToString(keyMaterial.getSignedPreKeyRecord().getKeyPair()
+                                    .getPublicKey().serialize()),
                             keyMaterial.getOpk(),
                             encoder.encodeToString(keyMaterial.getSignedPreKeyRecord().getSignature()),
                             String.valueOf(keyMaterial.getSignedPreKeyRecord().getId())));
@@ -138,15 +148,18 @@ public class KeycloakManager {
         }
     }
 
-    private void updateOpksInternal(String jwtStr, int registrationId, String ik, String spk, String[] opk,
-                                    String spkSignature, String spkId) {
+    private void updateOpksInternal(String jwtStr, int registrationId, String ik, String spk,
+                                    String[] opk, String spkSignature, String spkId) {
+        HttpURLConnection httpURLConnection = null;
         try {
             Jwt jwt = Jwt.fromString(jwtStr);
             String username = jwt.getAccessToken().getPayload().getPreferredUsername();
-            URL consumerServiceUrl = new URL(apiServerUrl + "/" + username + "/key-bundles");
-            HttpURLConnection httpURLConnection = (HttpURLConnection) consumerServiceUrl.openConnection();
+            URL consumerServiceUrl =
+                    new URL(Constants.CONSUMER_API_URL + "/" + username + "/key-bundles");
+            httpURLConnection = (HttpURLConnection) consumerServiceUrl.openConnection();
             httpURLConnection.setRequestMethod("PATCH");
-            httpURLConnection.setRequestProperty("Authorization", "Bearer " + jwt.getAccessToken().getToken());
+            httpURLConnection.setRequestProperty("Authorization",
+                    "Bearer " + jwt.getAccessToken().getToken());
             httpURLConnection.setRequestProperty("Content-Type", "application/json");
             OutputStream outputStream = httpURLConnection.getOutputStream();
 
@@ -167,6 +180,9 @@ public class KeycloakManager {
 
         } catch (Throwable e) {
             Log.e("KeycloakService", "Error occurred during update OPKs", e);
+        } finally {
+            if (httpURLConnection != null)
+                httpURLConnection.disconnect();
         }
     }
 
@@ -187,9 +203,10 @@ public class KeycloakManager {
     public boolean createUserInternal(String username, String email, String password,
                                       int registrationId, String ik, String spk, String[] opk,
                                       String spkSignature, String spkId) {
+        HttpURLConnection httpURLConnection = null;
         try {
-            URL consumerServiceUrl = new URL(apiServerUrl);
-            HttpURLConnection httpURLConnection = (HttpURLConnection) consumerServiceUrl.openConnection();
+            URL consumerServiceUrl = new URL(Constants.CONSUMER_API_URL);
+            httpURLConnection = (HttpURLConnection) consumerServiceUrl.openConnection();
             httpURLConnection.setRequestMethod("POST");
             httpURLConnection.setRequestProperty("Content-Type", "application/json");
 
@@ -220,6 +237,9 @@ public class KeycloakManager {
             return responseCode >= 200 && responseCode <= 299;
         } catch (Exception e) {
             Log.e("KeycloakService", "Error occurred during initialize new user", e);
+        } finally {
+            if (httpURLConnection != null)
+                httpURLConnection.disconnect();
         }
         return false;
     }

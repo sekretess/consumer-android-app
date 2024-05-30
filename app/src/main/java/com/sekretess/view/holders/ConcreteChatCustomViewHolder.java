@@ -1,6 +1,5 @@
-package com.sekretess.ui;
+package com.sekretess.view.holders;
 
-import android.view.TextureView;
 import android.view.View;
 import android.widget.TextView;
 
@@ -16,8 +15,8 @@ public class ConcreteChatCustomViewHolder extends RecyclerView.ViewHolder {
 
     public ConcreteChatCustomViewHolder(@NonNull View itemView) {
         super(itemView);
-        this.messageText = (TextView) itemView.findViewById(R.id.messageText);
-        this.messageDate = (TextView) itemView.findViewById(R.id.text_gchat_date_me);
-        this.messageTime = (TextView) itemView.findViewById(R.id.text_gchat_timestamp_me);
+        this.messageText = itemView.findViewById(R.id.messageText);
+        this.messageDate = itemView.findViewById(R.id.text_gchat_date_me);
+        this.messageTime = itemView.findViewById(R.id.text_gchat_timestamp_me);
     }
 }

@@ -6,4 +6,8 @@
         android:orderInCategory="100"
         android:title="Refresh Tokens"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/action_subscription"
+        android:orderInCategory="101"
+        android:title="Channels" />
 </menu>

@@ -109,11 +109,11 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                     public void handleDelivery(String consumerTag, Envelope envelope,
                                                AMQP.BasicProperties properties, byte[] body) {
                         try {
-                            MessageDto messageDto = objectMapper.readValue(body, MessageDto.class);
+                            String senderName = envelope.getExchange();
+                            int deviceId = -1;
+                            String message = objectMapper.readValue(body, String.class);
                             Log.i("SekretessRabbitMqService", "Encoded message received");
-                            broadcastNewMessageReceived(messageDto.getText(), messageDto.getSender(),
-                                    messageDto.getDeviceId());
-
+                            broadcastNewMessageReceived(message, senderName, deviceId);
                         } catch (Exception e) {
                             Log.e(TAG, e.getMessage(), e);
                         }

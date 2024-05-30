@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.sekretess.Constants;
 import com.sekretess.MainActivity;
 import com.sekretess.R;
+import com.sekretess.adapters.SendersAdapter;
 import com.sekretess.dto.MessageBriefDto;
 import com.sekretess.repository.DbHelper;
 
@@ -27,7 +28,7 @@ import java.util.List;
 public class ChatsActivity extends AppCompatActivity {
     private SendersAdapter sendersAdapter;
     private RecyclerView recyclerView;
-    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.i("ChatsActivity", "new-incoming-message event received");
@@ -38,7 +39,7 @@ public class ChatsActivity extends AppCompatActivity {
         }
     };
 
-    private BroadcastReceiver refreshTokenFailedBroadcastReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver refreshTokenFailedBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             startActivity(new Intent(ChatsActivity.this, MainActivity.class));
@@ -50,13 +51,13 @@ public class ChatsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chats);
-        recyclerView = (RecyclerView) findViewById(R.id.chat);
+        recyclerView =
+                findViewById(R.id.chat);
         List<MessageBriefDto> messageBriefs = new DbHelper(getApplicationContext()).getMessageBriefs();
         sendersAdapter = new SendersAdapter(messageBriefs);
         recyclerView.setAdapter(sendersAdapter);
         recyclerView.addItemDecoration(new DividerItemDecoration(this,
                 DividerItemDecoration.VERTICAL));
-//        startService(new Intent(this, RefreshTokenService.class));
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         registerReceiver(refreshTokenFailedBroadcastReceiver,
@@ -81,6 +82,8 @@ public class ChatsActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.action_refresh_token) {
             broadcastUpdateKeyEvent();
+        } else if (item.getItemId() == R.id.action_subscription) {
+            startActivity(new Intent(this, SubscriptionActivity.class));
         }
         return true;
     }
