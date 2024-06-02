@@ -58,16 +58,9 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
 
-                <data android:scheme="com.ptruiz.authtest"
+                <data android:scheme="http"
+                    android:host="localhost:8888"
                     android:path="/oauth2redirect"/>
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-
-                <data android:scheme="com.ptruiz.authtest"
-                    android:path="/logout"/>
             </intent-filter>
         </activity>
 

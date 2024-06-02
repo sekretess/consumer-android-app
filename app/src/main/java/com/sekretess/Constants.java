@@ -23,5 +23,5 @@ public interface Constants {
     Uri KEYCLOAK_OPENID_CONFIGURATION_URL = Uri.parse("http://185.211.5.3:32200/realms/consumer/.well-known/openid-configuration");
 
 
-    Uri AUTH_REDIRECT_URL = Uri.parse("com.ptruiz.authtest:/oauth2redirect");
+    Uri AUTH_REDIRECT_URL = Uri.parse("http://localhost:8888/oauth2redirect");
 }
