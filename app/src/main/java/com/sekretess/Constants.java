@@ -1,5 +1,9 @@
 package com.sekretess;
 
+import android.net.Uri;
+
+import java.net.URI;
+
 public interface Constants {
 
     String EVENT_LOGIN = "login-event";
@@ -15,4 +19,9 @@ public interface Constants {
 
     String CONSUMER_API_URL = "http://78.47.90.202:8081/api/v1/consumers";
     String BUSINESS_API_URL = "http://78.47.90.202:8080/api/v1/businesses";
+
+    Uri KEYCLOAK_OPENID_CONFIGURATION_URL = Uri.parse("http://185.211.5.3:32200/realms/consumer/.well-known/openid-configuration");
+
+
+    Uri AUTH_REDIRECT_URL = Uri.parse("com.ptruiz.authtest:/oauth2redirect");
 }

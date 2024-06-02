@@ -9,6 +9,7 @@ import android.util.Log;
 import com.sekretess.Constants;
 import com.sekretess.dto.MessageBriefDto;
 import com.sekretess.dto.jwt.Jwt;
+import com.sekretess.model.AuthStateStoreEntity;
 import com.sekretess.model.IdentityKeyPairStoreEntity;
 import com.sekretess.model.JwtStoreEntity;
 import com.sekretess.model.MessageStoreEntity;
@@ -179,6 +180,27 @@ public class DbHelper extends SQLiteOpenHelper {
         return null;
     }
 
+    public void storeAuthState(String authState) {
+        ContentValues values = new ContentValues();
+        values.put(AuthStateStoreEntity.COLUMN_AUTH_STATE, authState);
+        getWritableDatabase(Constants.password).delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+        getWritableDatabase(Constants.password)
+                .insert(AuthStateStoreEntity.TABLE_NAME, null, values);
+    }
+
+    @SuppressLint("Range")
+    public String getAuthState() {
+        try (Cursor result = getReadableDatabase(Constants.password)
+                .query(AuthStateStoreEntity.TABLE_NAME,
+                        new String[]{AuthStateStoreEntity.COLUMN_AUTH_STATE},
+                        null, null, null, null, null)) {
+            if (result.moveToNext()) {
+                return result.getString(result.getColumnIndex(AuthStateStoreEntity.COLUMN_AUTH_STATE));
+            }
+        }
+        return null;
+    }
+
 
     public void storeDecryptedMessage(String sender, String message) {
         ContentValues values = new ContentValues();
@@ -271,6 +293,7 @@ public class DbHelper extends SQLiteOpenHelper {
         db.execSQL(PreKeyRecordStoreEntity.SQL_CREATE_TABLE);
         db.execSQL(JwtStoreEntity.SQL_CREATE_TABLE);
         db.execSQL(SessionStoreEntity.SQL_CREATE);
+        db.execSQL(AuthStateStoreEntity.SQL_CREATE);
     }
 
     @Override
@@ -281,6 +304,7 @@ public class DbHelper extends SQLiteOpenHelper {
         db.execSQL(SignedPreKeyRecordStoreEntity.SQL_DROP_TABLE);
         db.execSQL(PreKeyRecordStoreEntity.SQL_DROP_TABLE);
         db.execSQL(JwtStoreEntity.SQL_DROP_TABLE);
-        db.execSQL(SessionStoreEntity.SQL_DROP);
+        db.execSQL(SessionStoreEntity.SQL_DROP_TABLE);
+        db.execSQL(AuthStateStoreEntity.SQL_DROP_TABLE);
     }
 }

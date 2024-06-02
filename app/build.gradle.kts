@@ -14,7 +14,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders["appAuthRedirectScheme"] = "com.sekretess"
     }
+
 
     buildTypes {
         release {
@@ -35,6 +37,8 @@ android {
 
 dependencies {
     implementation ("net.zetetic:android-database-sqlcipher:4.5.3")//Encrypted database
+    implementation ("com.auth0.android:jwtdecode:2.0.0")
+    implementation ("net.openid:appauth:0.9.1")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")

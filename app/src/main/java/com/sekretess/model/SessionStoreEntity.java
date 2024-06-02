@@ -22,5 +22,5 @@ public class SessionStoreEntity implements BaseColumns {
             COLUMN_SESSION + " TEXT," +
             COLUMN_CREATED_AT + " TEXT)";
 
-    public static final String SQL_DROP = "DROP TABLE IF EXISTS " + TABLE_NAME;
+    public static final String SQL_DROP_TABLE = "DROP TABLE IF EXISTS " + TABLE_NAME;
 }
