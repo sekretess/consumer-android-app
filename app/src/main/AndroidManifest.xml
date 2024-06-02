@@ -58,8 +58,7 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
 
-                <data android:scheme="http"
-                    android:host="localhost:8888"
+                <data android:scheme="com.sekretess"
                     android:path="/oauth2redirect"/>
             </intent-filter>
         </activity>
