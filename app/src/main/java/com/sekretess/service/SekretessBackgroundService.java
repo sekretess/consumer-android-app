@@ -13,20 +13,15 @@ import com.sekretess.R;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class SekretessBackgroundService extends Service {
-//    private PowerManager.WakeLock wakeLock;
 
     @Override
     public final void onCreate() {
         super.onCreate();
-        PowerManager pwm = (PowerManager) getSystemService(POWER_SERVICE);
-//        wakeLock = pwm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "sekretess:rb-awaik-lock");
     }
 
     @Override
     public final int onStartCommand(Intent intent, int flags, int startId) {
-//        if (serviceInstances.getOpaque() > 0)
-//            stopSelf();
-//        wakeLock.acquire();
+
         startForeground(getNotificationId(), notifyUserThatLocationServiceStarted());
         started(intent);
         return START_STICKY;

@@ -8,7 +8,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.os.IBinder;
@@ -23,11 +22,12 @@ import androidx.core.app.NotificationManagerCompat;
 import com.sekretess.Constants;
 import com.sekretess.R;
 import com.sekretess.dto.KeyMaterial;
-import com.sekretess.dto.jwt.Jwt;
 import com.sekretess.repository.DbHelper;
 import com.sekretess.repository.SekretessSignalProtocolStore;
 import com.sekretess.ui.LoginActivity;
 import com.sekretess.utils.KeycloakManager;
+
+import net.openid.appauth.AuthState;
 
 import org.signal.libsignal.protocol.IdentityKey;
 import org.signal.libsignal.protocol.IdentityKeyPair;
@@ -38,9 +38,7 @@ import org.signal.libsignal.protocol.ecc.Curve;
 import org.signal.libsignal.protocol.ecc.ECKeyPair;
 import org.signal.libsignal.protocol.message.PreKeySignalMessage;
 import org.signal.libsignal.protocol.state.PreKeyRecord;
-import org.signal.libsignal.protocol.state.SignalProtocolStore;
 import org.signal.libsignal.protocol.state.SignedPreKeyRecord;
-import org.signal.libsignal.protocol.state.impl.InMemorySignalProtocolStore;
 import org.signal.libsignal.protocol.util.KeyHelper;
 import org.signal.libsignal.protocol.util.Medium;
 
@@ -78,7 +76,7 @@ public class SignalProtocolService extends SekretessBackgroundService {
                     if (identityKeyPair == null) {
                         Log.w("SignalProtocolService", "No cryptographic keys found. Initializing keys...");
                         KeyMaterial keyMaterial = initializeKeys();
-                        KeycloakManager.getInstance().updateKeys(dbHelper.getJwt().getJwtStr(), keyMaterial);
+                        KeycloakManager.getInstance().updateKeys(dbHelper.getAuthState(), keyMaterial);
                     } else {
                         Log.w("SignalProtocolService", "Cryptographic keys found. Loading from database...");
                         int registrationId = dbHelper.getRegistrationId();
@@ -139,9 +137,9 @@ public class SignalProtocolService extends SekretessBackgroundService {
             Log.i("SignalProtocolService", "Update event received");
             try {
                 KeyMaterial keyMaterial = updateOneTimeKeys();
-                Jwt jwt = dbHelper.getJwt();
-                if (jwt != null) {
-                    KeycloakManager.getInstance().updateKeys(jwt.getJwtStr(), keyMaterial);
+                AuthState authState = dbHelper.getAuthState();
+                if (authState != null) {
+                    KeycloakManager.getInstance().updateKeys(authState, keyMaterial);
 
                     Toast.makeText(getApplicationContext(), "One time keys updated", Toast.LENGTH_LONG).show();
                 } else {

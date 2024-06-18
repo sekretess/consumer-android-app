@@ -42,6 +42,7 @@ public class ChatsActivity extends AppCompatActivity {
     private final BroadcastReceiver refreshTokenFailedBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            Log.i("ChatActivity", "Refresh token failed event received");
             startActivity(new Intent(ChatsActivity.this, MainActivity.class));
             ChatsActivity.this.finishActivity(1);
         }

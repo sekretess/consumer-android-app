@@ -8,7 +8,6 @@ import android.util.Log;
 
 import com.sekretess.Constants;
 import com.sekretess.dto.MessageBriefDto;
-import com.sekretess.dto.jwt.Jwt;
 import com.sekretess.model.AuthStateStoreEntity;
 import com.sekretess.model.IdentityKeyPairStoreEntity;
 import com.sekretess.model.JwtStoreEntity;
@@ -18,10 +17,12 @@ import com.sekretess.model.RegistrationIdStoreEntity;
 import com.sekretess.model.SessionStoreEntity;
 import com.sekretess.model.SignedPreKeyRecordStoreEntity;
 
+import net.openid.appauth.AuthState;
 import net.sqlcipher.Cursor;
 import net.sqlcipher.database.SQLiteDatabase;
 import net.sqlcipher.database.SQLiteOpenHelper;
 
+import org.json.JSONException;
 import org.signal.libsignal.protocol.IdentityKeyPair;
 import org.signal.libsignal.protocol.InvalidMessageException;
 import org.signal.libsignal.protocol.SignalProtocolAddress;
@@ -155,31 +156,6 @@ public class DbHelper extends SQLiteOpenHelper {
         }
     }
 
-    public void storeJwt(String jwt) {
-        ContentValues values = new ContentValues();
-        values.put(JwtStoreEntity.COLUMN_JWT, jwt);
-        values.put(JwtStoreEntity.COLUMN_CREATED_AT, dateTimeFormatter.format(Instant.now()));
-        getWritableDatabase(Constants.password)
-                .insert(JwtStoreEntity.TABLE_NAME, null, values);
-    }
-
-    public void removeJwt() {
-        getWritableDatabase(Constants.password).delete(JwtStoreEntity.TABLE_NAME, null, null);
-    }
-
-    @SuppressLint("Range")
-    public Jwt getJwt() {
-        try (Cursor result = getReadableDatabase(Constants.password).
-                query(JwtStoreEntity.TABLE_NAME,
-                        new String[]{JwtStoreEntity.COLUMN_JWT},
-                        null, null, null, null, null)) {
-            if (result.moveToNext()) {
-                return Jwt.fromString(result.getString(result.getColumnIndex(JwtStoreEntity.COLUMN_JWT)));
-            }
-        }
-        return null;
-    }
-
     public void storeAuthState(String authState) {
         ContentValues values = new ContentValues();
         values.put(AuthStateStoreEntity.COLUMN_AUTH_STATE, authState);
@@ -188,15 +164,23 @@ public class DbHelper extends SQLiteOpenHelper {
                 .insert(AuthStateStoreEntity.TABLE_NAME, null, values);
     }
 
+    public void removeAuthState() {
+        getWritableDatabase(Constants.password).delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+    }
+
     @SuppressLint("Range")
-    public String getAuthState() {
+    public AuthState getAuthState() {
         try (Cursor result = getReadableDatabase(Constants.password)
                 .query(AuthStateStoreEntity.TABLE_NAME,
                         new String[]{AuthStateStoreEntity.COLUMN_AUTH_STATE},
                         null, null, null, null, null)) {
             if (result.moveToNext()) {
-                return result.getString(result.getColumnIndex(AuthStateStoreEntity.COLUMN_AUTH_STATE));
+                return AuthState.jsonDeserialize(result
+                        .getString(result.getColumnIndex(AuthStateStoreEntity.COLUMN_AUTH_STATE)));
             }
+        } catch (JSONException e) {
+            Log.e("DbHelper", "Getting AuthState failed", e);
+            return null;
         }
         return null;
     }
@@ -280,7 +264,8 @@ public class DbHelper extends SQLiteOpenHelper {
     public void removeSession(SignalProtocolAddress address) {
         getWritableDatabase(Constants.password)
                 .delete(SessionStoreEntity.TABLE_NAME,
-                        SessionStoreEntity.COLUMN_ADDRESS_NAME + "=? AND" + SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID + " = ?",
+                        SessionStoreEntity.COLUMN_ADDRESS_NAME + "=? AND"
+                                + SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID + " = ?",
                         new Object[]{address.getName(), address.getDeviceId()});
     }
 

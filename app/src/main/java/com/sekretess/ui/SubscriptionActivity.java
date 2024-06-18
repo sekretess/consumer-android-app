@@ -45,7 +45,7 @@ public class SubscriptionActivity extends AppCompatActivity {
                 .map(BusinessDto::new)
                 .collect(Collectors.toList());
         List<String> subscribedBusinesses = ApiClient
-                .getSubscribedBusinesses(dbHelper.getJwt().getIdToken().getToken());
+                .getSubscribedBusinesses(dbHelper.getAuthState().getIdToken());
         SubscriptionAdapter subscriptionAdapter =
                 new SubscriptionAdapter(businessList, subscribedBusinesses);
         recyclerView.setAdapter(subscriptionAdapter);
