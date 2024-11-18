@@ -13,7 +13,7 @@ public class SessionStoreEntity implements BaseColumns {
     public static final String COLUMN_CREATED_AT = "created_at";
 
 
-    public static final String SQL_CREATE = "CREATE TABLE " + TABLE_NAME +
+    public static final String SQL_CREATE = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME +
             "(" +
             _ID + " INTEGER PRIMARY KEY," +
             COLUMN_ADDRESS_DEVICE_ID + " INTEGER," +

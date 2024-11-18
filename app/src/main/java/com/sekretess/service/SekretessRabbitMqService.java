@@ -18,6 +18,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -83,6 +84,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     @Override
     public void started(Intent intent) {
         Log.i("SekretessRabbitMqService", "SekretessRabbitMqService started successfully");
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         getApplicationContext()
                 .registerReceiver(loggedInEventReceiver, new IntentFilter(Constants.EVENT_LOGIN),
                         RECEIVER_EXPORTED);
@@ -109,11 +111,19 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                     public void handleDelivery(String consumerTag, Envelope envelope,
                                                AMQP.BasicProperties properties, byte[] body) {
                         try {
-                            String senderName = envelope.getExchange();
-                            int deviceId = -1;
-                            String message = objectMapper.readValue(body, String.class);
-                            Log.i("SekretessRabbitMqService", "Encoded message received");
-                            broadcastNewMessageReceived(message, senderName, deviceId);
+                            String exchangeName = envelope.getExchange();
+                            Log.i("SekretessRabbitMqService", "Received payload:"+ new String(body));
+                            MessageDto message = objectMapper.readValue(body, MessageDto.class);
+                            String encryptedText = message.getText();
+
+                            String sender = exchangeName;
+                            if(exchangeName.equalsIgnoreCase(queueName)){
+                                sender = message.getSender();
+                            }
+
+                            
+                            Log.i("SekretessRabbitMqService", "Encoded message received : " + message);
+                            broadcastNewMessageReceived(encryptedText, sender);
                         } catch (Exception e) {
                             Log.e(TAG, e.getMessage(), e);
                         }
@@ -126,11 +136,10 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         }
     }
 
-    private void broadcastNewMessageReceived(String encryptedMessage, String name, int deviceId) {
+    private void broadcastNewMessageReceived(String encryptedMessage, String sender) {
         Intent intent = new Intent(Constants.EVENT_NEW_INCOMING_ENCRYPTED_MESSAGE);
         intent.putExtra("encryptedMessage", encryptedMessage);
-        intent.putExtra("name", name);
-        intent.putExtra("deviceId", deviceId);
+        intent.putExtra("sender", sender);
         sendBroadcast(intent);
     }
 

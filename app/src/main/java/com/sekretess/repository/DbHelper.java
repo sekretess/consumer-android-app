@@ -6,8 +6,10 @@ import android.content.Context;
 import android.util.Log;
 
 
+import com.auth0.android.jwt.JWT;
 import com.sekretess.Constants;
 import com.sekretess.dto.MessageBriefDto;
+import com.sekretess.dto.RegistrationAndDeviceId;
 import com.sekretess.model.AuthStateStoreEntity;
 import com.sekretess.model.IdentityKeyPairStoreEntity;
 import com.sekretess.model.JwtStoreEntity;
@@ -42,13 +44,15 @@ public class DbHelper extends SQLiteOpenHelper {
     private final DateTimeFormatter dateTimeFormatter
             = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.systemDefault());
 
-    public static final int DATABASE_VERSION = 1;
-    public static final String DATABASE_NAME = "sekretess_enc.db";
+    public static final int DATABASE_VERSION = 11;
+    public static final String DATABASE_NAME = "sekretess-enc.db";
 
 
     public DbHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
         SQLiteDatabase.loadLibs(context);
+
+        this.getWritableDatabase(Constants.password);
     }
 
     @SuppressLint("Range")
@@ -74,20 +78,30 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
     @SuppressLint("Range")
-    public Integer getRegistrationId() {
+    public RegistrationAndDeviceId getRegistrationId() {
         try (Cursor cursor = getReadableDatabase(Constants.password).query(RegistrationIdStoreEntity.TABLE_NAME,
-                new String[]{RegistrationIdStoreEntity._ID, RegistrationIdStoreEntity.COLUMN_REG_ID},
+                new String[]{RegistrationIdStoreEntity._ID, RegistrationIdStoreEntity.COLUMN_REG_ID, RegistrationIdStoreEntity.COLUMN_DEVICE_ID},
                 null, null, null, null, null)) {
+            if (cursor.getCount() == 0) {
+                Log.e("DbHelper", " No Registration id found");
+            }
             if (cursor.moveToNext()) {
-                return cursor.getInt(cursor.getColumnIndex(RegistrationIdStoreEntity.COLUMN_REG_ID));
+                String[] columnNames = cursor.getColumnNames();
+                for (String columnName : columnNames) {
+                    Log.i("DbHelper", "ColumnName: " + columnName);
+                }
+                return new RegistrationAndDeviceId(cursor
+                        .getInt(cursor.getColumnIndex(RegistrationIdStoreEntity.COLUMN_REG_ID)),
+                        cursor.getInt(cursor.getColumnIndex(RegistrationIdStoreEntity.COLUMN_DEVICE_ID)));
             }
         }
         return null;
     }
 
-    public void storeRegistrationId(Integer registrationId) {
+    public void storeRegistrationId(Integer registrationId, int deviceId) {
         ContentValues contentValues = new ContentValues();
         contentValues.put(RegistrationIdStoreEntity.COLUMN_REG_ID, registrationId);
+        contentValues.put(RegistrationIdStoreEntity.COLUMN_DEVICE_ID, deviceId);
         contentValues.put(RegistrationIdStoreEntity.COLUMN_CREATED_AT, dateTimeFormatter.format(Instant.now()));
         getWritableDatabase(Constants.password)
                 .insert(RegistrationIdStoreEntity.TABLE_NAME, null, contentValues);
@@ -187,9 +201,12 @@ public class DbHelper extends SQLiteOpenHelper {
 
 
     public void storeDecryptedMessage(String sender, String message) {
+        JWT jwt = new JWT(getAuthState().getIdToken());
+        String username = getUserNameFromJwt();
         ContentValues values = new ContentValues();
         values.put(MessageStoreEntity.COLUMN_SENDER, sender);
         values.put(MessageStoreEntity.COLUMN_MESSAGE_BODY, message);
+        values.put(MessageStoreEntity.COLUMN_USERNAME, username);
         values.put(MessageStoreEntity.COLUMN_CREATED_AT,
                 dateTimeFormatter.format(Instant.now()));
         getWritableDatabase(Constants.password).insert(MessageStoreEntity.TABLE_NAME,
@@ -198,12 +215,13 @@ public class DbHelper extends SQLiteOpenHelper {
 
     public List<MessageBriefDto> getMessageBriefs() {
         List<MessageBriefDto> resultArray;
+
         try (Cursor resultCursor = getReadableDatabase(Constants.password)
                 .query(MessageStoreEntity.TABLE_NAME,
                         new String[]{MessageStoreEntity.COLUMN_SENDER,
                                 "COUNT(" + MessageStoreEntity.COLUMN_SENDER + ") AS count"},
-                        null,
-                        null,
+                        MessageStoreEntity.COLUMN_USERNAME +"=?",
+                        new String[]{getUserNameFromJwt()},
                         MessageStoreEntity.COLUMN_SENDER,
                         null,
                         null
@@ -271,6 +289,7 @@ public class DbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
+        Log.i("DbHelper", "OnCreate called. Creating tables");
         db.execSQL(MessageStoreEntity.SQL_CREATE_TABLE);
         db.execSQL(IdentityKeyPairStoreEntity.SQL_CREATE_TABLE);
         db.execSQL(RegistrationIdStoreEntity.SQL_CREATE_TABLE);
@@ -291,5 +310,19 @@ public class DbHelper extends SQLiteOpenHelper {
         db.execSQL(JwtStoreEntity.SQL_DROP_TABLE);
         db.execSQL(SessionStoreEntity.SQL_DROP_TABLE);
         db.execSQL(AuthStateStoreEntity.SQL_DROP_TABLE);
+
+        Log.i("DbHelper", "OnUpgrade called. Creating tables");
+        db.execSQL(MessageStoreEntity.SQL_CREATE_TABLE);
+        db.execSQL(IdentityKeyPairStoreEntity.SQL_CREATE_TABLE);
+        db.execSQL(RegistrationIdStoreEntity.SQL_CREATE_TABLE);
+        db.execSQL(SignedPreKeyRecordStoreEntity.SQL_CREATE_TABLE);
+        db.execSQL(PreKeyRecordStoreEntity.SQL_CREATE_TABLE);
+        db.execSQL(JwtStoreEntity.SQL_CREATE_TABLE);
+        db.execSQL(SessionStoreEntity.SQL_CREATE);
+        db.execSQL(AuthStateStoreEntity.SQL_CREATE);
+    }
+
+    public String getUserNameFromJwt() {
+        return new JWT(getAuthState().getIdToken()).getClaim(Constants.USERNAME_CLAIM).asString();
     }
 }

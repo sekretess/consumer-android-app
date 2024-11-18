@@ -1,6 +1,8 @@
 package com.sekretess.utils;
 
+import android.net.http.HttpResponseCache;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.auth0.android.jwt.JWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,10 +41,10 @@ public class KeycloakManager {
     }
 
 
-    public void updateKeys(AuthState authState, KeyMaterial keyMaterial) {
+    public boolean updateKeys(AuthState authState, KeyMaterial keyMaterial) {
         try {
             Base64.Encoder encoder = Base64.getEncoder();
-            Executors.newSingleThreadExecutor()
+            Future<Boolean> f = Executors.newSingleThreadExecutor()
                     .submit(() -> updateOpksInternal(authState,
                             keyMaterial.getRegistrationId(),
                             encoder.encodeToString(keyMaterial.getIdentityKeyPair().getPublicKey()
@@ -52,19 +54,21 @@ public class KeycloakManager {
                             keyMaterial.getOpk(),
                             encoder.encodeToString(keyMaterial.getSignedPreKeyRecord().getSignature()),
                             String.valueOf(keyMaterial.getSignedPreKeyRecord().getId())));
+            return f.get();
         } catch (Exception e) {
             Log.e("KeycloakService", "Error occurred during update opks", e);
+            return false;
         }
     }
 
-    private void updateOpksInternal(AuthState authState, int registrationId, String ik, String spk,
+    private boolean updateOpksInternal(AuthState authState, int registrationId, String ik, String spk,
                                     String[] opk, String spkSignature, String spkId) {
         HttpURLConnection httpURLConnection = null;
         try {
             JWT jwt = new JWT(authState.getAccessToken());
-            String username = jwt.getClaim("preferred_username").asString();
+            String username = jwt.getClaim(Constants.USERNAME_CLAIM).asString();
             URL consumerServiceUrl =
-                    new URL(Constants.CONSUMER_API_URL + "/" + username + "/key-bundles");
+                    new URL(Constants.CONSUMER_API_URL  + "/key-bundles");
             httpURLConnection = (HttpURLConnection) consumerServiceUrl.openConnection();
             httpURLConnection.setRequestMethod("PATCH");
             httpURLConnection.setRequestProperty("Authorization",
@@ -87,8 +91,12 @@ public class KeycloakManager {
             outputStream.close();
             String responseMessage = httpURLConnection.getResponseMessage();
 
+            return httpURLConnection.getResponseCode() >= HttpURLConnection.HTTP_OK &&
+                    httpURLConnection.getResponseCode() <= HttpURLConnection.HTTP_PARTIAL;
+
         } catch (Throwable e) {
             Log.e("KeycloakService", "Error occurred during update OPKs", e);
+            return false;
         } finally {
             if (httpURLConnection != null)
                 httpURLConnection.disconnect();
