@@ -38,6 +38,7 @@ import org.signal.libsignal.protocol.SessionCipher;
 import org.signal.libsignal.protocol.SignalProtocolAddress;
 import org.signal.libsignal.protocol.ecc.Curve;
 import org.signal.libsignal.protocol.ecc.ECKeyPair;
+import org.signal.libsignal.protocol.ecc.ECPrivateKey;
 import org.signal.libsignal.protocol.kem.KEMKeyPair;
 import org.signal.libsignal.protocol.kem.KEMKeyType;
 import org.signal.libsignal.protocol.message.PreKeySignalMessage;
@@ -209,7 +210,7 @@ public class SignalProtocolService extends SekretessBackgroundService {
         //Generate one-time prekeys
         PreKeyRecord[] opk = generatePreKeys(15);
         SignedPreKeyRecord signedPreKeyRecord = dbHelper.getSignedPreKeyRecord();
-        KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(15, signedPreKeyRecord.getSignature());
+        KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(dbHelper.getIdentityKeyPair().getPrivateKey());
         return new KeyMaterial(dbHelper.getRegistrationId().getRegistrationId(),
                 serializeSignedPreKeys(opk), signedPreKeyRecord,
                 dbHelper.getIdentityKeyPair(), dbHelper.getSignedPreKeyRecord().getSignature(),
@@ -229,7 +230,8 @@ public class SignalProtocolService extends SekretessBackgroundService {
         signalProtocolStore = new SekretessSignalProtocolStore(getApplicationContext(),
                 identityKeyPair, registrationId);
         ECKeyPair keyPair = Curve.generateKeyPair();
-        byte[] signature = generateSignature(identityKeyPair, keyPair);
+        byte[] signature = Curve.calculateSignature(identityKeyPair.getPrivateKey(),
+                keyPair.getPublicKey().serialize());;
         //Generate one-time prekeys
         PreKeyRecord[] opk = generatePreKeys(15);
         this.deviceId = Math.abs(new Random().nextInt(Medium.MAX_VALUE - 1));
@@ -237,8 +239,8 @@ public class SignalProtocolService extends SekretessBackgroundService {
         dbHelper.storeIdentityKeyPair(identityKeyPair);
         dbHelper.storeRegistrationId(registrationId, deviceId);
 
-        SignedPreKeyRecord signedPreKeyRecord = generateSignedPreKey(ecKeyPair, signature);
-        KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(15, signature);
+        SignedPreKeyRecord signedPreKeyRecord = generateSignedPreKey(keyPair, signature);
+        KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
 
         return new KeyMaterial(registrationId, serializeSignedPreKeys(opk), signedPreKeyRecord,
                 identityKeyPair, signature, serializeKyberPreKeys(kyberPreKeyRecords.getKyberPreKeyRecords()),
@@ -247,31 +249,32 @@ public class SignalProtocolService extends SekretessBackgroundService {
                 kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId());
     }
 
-    private KyberPreKeyRecords generateKyberPreKeys(int count, byte[] signature) {
+    private KyberPreKeyRecords generateKyberPreKeys(ECPrivateKey ecPrivateKey) {
         // Generate post quantum resistance keys
+        int count = 15;
         KyberPreKeyRecord[] kyberPreKeyRecords = new KyberPreKeyRecord[count];
-        KEMKeyPair kemKeyPair = KEMKeyPair.generate(KEMKeyType.KYBER_1024);
+
         for (int i = 0; i < count; i++) {
-            KyberPreKeyRecord kyberPreKeyRecord = generateKyberPreKey(kemKeyPair, signature);
+            KyberPreKeyRecord kyberPreKeyRecord = generateKyberPreKey(ecPrivateKey);
             kyberPreKeyRecords[i] = kyberPreKeyRecord;
         }
-        KyberPreKeyRecord lastResortKyberPreKeyRecord = generateKyberPreKey(kemKeyPair, signature);
+        KEMKeyPair kemKeyPair = KEMKeyPair.generate(KEMKeyType.KYBER_1024);
+        KyberPreKeyRecord lastResortKyberPreKeyRecord = generateKyberPreKey(ecPrivateKey);
         // Generated post quantum keys
         return new KyberPreKeyRecords(lastResortKyberPreKeyRecord, kyberPreKeyRecords);
     }
 
-    private KyberPreKeyRecord generateKyberPreKey(KEMKeyPair keyPair, byte[] signature) {
+    private KyberPreKeyRecord generateKyberPreKey(ECPrivateKey ecPrivateKey) {
         int kyberSignedPreKeyId = new Random().nextInt(Medium.MAX_VALUE - 1);
+        KEMKeyPair kemKeyPair = KEMKeyPair.generate(KEMKeyType.KYBER_1024);
         KyberPreKeyRecord kyberPreKeyRecord = new KyberPreKeyRecord(kyberSignedPreKeyId,
-                System.currentTimeMillis(), keyPair, signature);
+                System.currentTimeMillis(), kemKeyPair, ecPrivateKey.calculateSignature(kemKeyPair.getPublicKey().serialize()));
         signalProtocolStore.storeKyberPreKey(kyberPreKeyRecord.getId(), kyberPreKeyRecord);
         dbHelper.storeKyberPreKey(kyberPreKeyRecord);
         return kyberPreKeyRecord;
     }
 
-    private byte[] generateSignature(IdentityKeyPair identityKeyPair, ECKeyPair keyPair) throws InvalidKeyException {
-        return Curve.calculateSignature(identityKeyPair.getPrivateKey(), keyPair.getPublicKey().serialize());
-    }
+
 
     private SignedPreKeyRecord generateSignedPreKey(ECKeyPair keyPair, byte[] signature) {
         //Generate signed prekeyRecord
@@ -312,7 +315,8 @@ public class SignalProtocolService extends SekretessBackgroundService {
 
     private String serializeKyberPreKey(KyberPreKeyRecord kyberPreKeyRecord) {
         return kyberPreKeyRecord.getId() + ":"
-                + base64Encoder.encodeToString(kyberPreKeyRecord.getKeyPair().getPublicKey().serialize());
+                + base64Encoder.encodeToString(kyberPreKeyRecord.getKeyPair().getPublicKey().serialize())
+                + ":" + base64Encoder.encodeToString(kyberPreKeyRecord.getSignature());
     }
 
     private String[] serializeKyberPreKeys(KyberPreKeyRecord[] kyberPreKeyRecords) {

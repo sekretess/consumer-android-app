@@ -29,6 +29,19 @@ import net.openid.appauth.AuthorizationService;
 import net.openid.appauth.AuthorizationServiceConfiguration;
 import net.openid.appauth.ResponseTypeValues;
 import net.openid.appauth.TokenRequest;
+import net.openid.appauth.connectivity.ConnectionBuilder;
+
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -81,7 +94,33 @@ public class LoginActivity extends AppCompatActivity {
                             .getAuthorizationRequestIntent(authorizationRequest);
                     startActivityForResult(authorizationRequestIntent, RC_AUTH);
                 }
-        );
+                , uri -> {
+                    URL url = new URL(uri.toString());
+                    HttpsURLConnection httpsURLConnection = (HttpsURLConnection) url.openConnection();
+                    try {
+                        SSLContext sslContext = SSLContext.getInstance("TLS");
+                        sslContext.init(null, new TrustManager[]{new X509TrustManager() {
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+
+                            }
+
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+
+                            }
+
+                            @Override
+                            public X509Certificate[] getAcceptedIssuers() {
+                                return null;
+                            }
+                        }}, new SecureRandom());
+                        httpsURLConnection.setSSLSocketFactory(sslContext.getSocketFactory());
+                    }catch (Exception e){
+
+                    }
+                    return httpsURLConnection;
+                });
     }
 
     @Override

@@ -138,7 +138,7 @@ public class KeycloakManager {
             userDto.setSpk(base64Encoder.encodeToString(keyMaterial.getSignedPreKeyRecord().getKeyPair()
                     .getPublicKey().serialize()));
             userDto.setSpkID(String.valueOf(keyMaterial.getSignedPreKeyRecord().getId()));
-            userDto.setSPKSignature(base64Encoder.encodeToString(keyMaterial.getSignedPreKeyRecord().getSignature()));
+            userDto.setSPKSignature(base64Encoder.encodeToString(keyMaterial.getSignature()));
             userDto.setOpk(keyMaterial.getOpk());
             // Setting PostQuantum keys
             userDto.setOpqk(keyMaterial.getSerializedKyberPreKeys());
