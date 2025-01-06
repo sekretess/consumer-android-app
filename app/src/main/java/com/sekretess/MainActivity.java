@@ -3,19 +3,23 @@ package com.sekretess;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.sekretess.dto.jwt.Jwt;
+import com.auth0.android.jwt.JWT;
 import com.sekretess.repository.DbHelper;
 import com.sekretess.service.RefreshTokenService;
 import com.sekretess.service.SekretessRabbitMqService;
 import com.sekretess.service.SignalProtocolService;
 import com.sekretess.ui.ChatsActivity;
 import com.sekretess.ui.LoginActivity;
+
+import net.openid.appauth.AuthState;
+
+import java.util.Optional;
 
 public class MainActivity extends AppCompatActivity {
     public MainActivity() {
@@ -36,24 +40,34 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if(!isServiceRunning(SignalProtocolService.class)){
+        if (!isServiceRunning(SignalProtocolService.class)) {
             startForegroundService(new Intent(this, SignalProtocolService.class));
         }
-        if(!isServiceRunning(SekretessRabbitMqService.class)){
+        if (!isServiceRunning(SekretessRabbitMqService.class)) {
             startForegroundService(new Intent(this, SekretessRabbitMqService.class));
         }
 
-        if(!isServiceRunning(RefreshTokenService.class)){
+        if (!isServiceRunning(RefreshTokenService.class)) {
             startForegroundService(new Intent(this, RefreshTokenService.class));
         }
 
-        Jwt jwt = new DbHelper(getApplicationContext()).getJwt();
-        if (jwt != null) {
+        Optional<AuthState> authState = restoreState();
+
+        authState.ifPresentOrElse(state -> {
             startActivity(new Intent(this, ChatsActivity.class));
-            broadcastSuccessfulLogin(jwt.getAccessToken().getPayload().getPreferredUsername());
-        } else {
-            startActivity(new Intent(this, LoginActivity.class));
+            String username = new JWT(state.getAccessToken()).getClaim(Constants.USERNAME_CLAIM).asString();
+            broadcastSuccessfulLogin(username);
+        }, () -> startActivity(new Intent(this, LoginActivity.class)));
+    }
+
+    private Optional<AuthState> restoreState() {
+        DbHelper dbHelper = new DbHelper(getApplicationContext());
+        AuthState authState = dbHelper.getAuthState();
+        if (authState == null) {
+            return Optional.empty();
         }
+
+        return Optional.ofNullable(authState);
     }
 
     @Override

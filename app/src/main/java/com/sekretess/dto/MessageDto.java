@@ -3,8 +3,7 @@ package com.sekretess.dto;
 public class MessageDto {
     private String text;
     private String sender;
-    private String user;
-    private int deviceId;
+    private String consumerExchange;
 
     public String getText() {
         return text;
@@ -22,19 +21,11 @@ public class MessageDto {
         this.sender = sender;
     }
 
-    public String getUser() {
-        return user;
+    public String getConsumerExchange() {
+        return consumerExchange;
     }
 
-    public void setUser(String user) {
-        this.user = user;
-    }
-
-    public int getDeviceId() {
-        return deviceId;
-    }
-
-    public void setDeviceId(int deviceId) {
-        this.deviceId = deviceId;
+    public void setConsumerExchange(String consumerExchange) {
+        this.consumerExchange = consumerExchange;
     }
 }
