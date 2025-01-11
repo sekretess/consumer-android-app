@@ -90,6 +90,36 @@ public class ApiClient {
         }
     }
 
+    public static void refreshChannelSubscription(String jwt) {
+        try {
+            Executors
+                    .newSingleThreadExecutor()
+                    .submit(() -> refreshChannelSubscriptionInternal(jwt));
+        } catch (Exception e) {
+            Log.e("ApiClient", "Error occurred during refresh channel subscription.", e);
+        }
+    }
+
+    private static void refreshChannelSubscriptionInternal(String jwt) {
+        HttpURLConnection urlConnection = null;
+        try {
+            URL consumerApiUrl = new URL(Constants.CONSUMER_API_URL + "/ads/businesses/refresh-subscription");
+            urlConnection = (HttpURLConnection) consumerApiUrl.openConnection();
+            urlConnection.setRequestMethod("POST");
+            urlConnection.setRequestProperty("Authorization", "Bearer " + jwt);
+            urlConnection.setDoOutput(true);
+            urlConnection.setDoInput(true);
+            urlConnection.connect();
+            urlConnection.getInputStream().read();
+            Log.i("ApiClient", "Refresh channel subscription API called");
+        } catch (Exception e) {
+            Log.e("ApiClient", "Error occurred during refresh channel subscription", e);
+        } finally {
+            if (urlConnection != null)
+                urlConnection.disconnect();
+        }
+    }
+
     public static List<String> getBusinesses() {
         try {
             Future<List<String>> future = Executors
@@ -157,8 +187,10 @@ public class ApiClient {
             while ((line = bufferedReader.readLine()) != null) {
                 response.append(line);
             }
-            return objectMapper.readValue(response.toString(), List.class);
-
+            List result = objectMapper.readValue(response.toString(), List.class);
+            if (result == null)
+                return Collections.EMPTY_LIST;
+            return result;
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during get businesses", e);
         } finally {

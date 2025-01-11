@@ -29,9 +29,7 @@ import net.openid.appauth.AuthorizationService;
 import net.openid.appauth.AuthorizationServiceConfiguration;
 import net.openid.appauth.ResponseTypeValues;
 import net.openid.appauth.TokenRequest;
-import net.openid.appauth.connectivity.ConnectionBuilder;
 
-import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
@@ -39,7 +37,6 @@ import java.security.cert.X509Certificate;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 

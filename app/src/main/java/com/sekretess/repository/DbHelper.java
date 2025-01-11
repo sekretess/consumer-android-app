@@ -18,6 +18,7 @@ import com.sekretess.model.LastResortKyberPreKeyRecordEntity;
 import com.sekretess.model.MessageStoreEntity;
 import com.sekretess.model.PreKeyRecordStoreEntity;
 import com.sekretess.model.RegistrationIdStoreEntity;
+import com.sekretess.model.SenderKeyEntity;
 import com.sekretess.model.SessionStoreEntity;
 import com.sekretess.model.SignedPreKeyRecordStoreEntity;
 
@@ -30,6 +31,7 @@ import org.json.JSONException;
 import org.signal.libsignal.protocol.IdentityKeyPair;
 import org.signal.libsignal.protocol.InvalidMessageException;
 import org.signal.libsignal.protocol.SignalProtocolAddress;
+import org.signal.libsignal.protocol.groups.state.SenderKeyRecord;
 import org.signal.libsignal.protocol.state.KyberPreKeyRecord;
 import org.signal.libsignal.protocol.state.PreKeyRecord;
 import org.signal.libsignal.protocol.state.SessionRecord;
@@ -42,12 +44,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.UUID;
 
 public class DbHelper extends SQLiteOpenHelper {
     private final DateTimeFormatter dateTimeFormatter
             = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.systemDefault());
 
-    public static final int DATABASE_VERSION = 12;
+    public static final int DATABASE_VERSION = 13;
     public static final String DATABASE_NAME = "sekretess-enc.db";
     private static final Base64.Encoder base64Encoder = Base64.getEncoder();
     private static final Base64.Decoder base64Decoder = Base64.getDecoder();
@@ -140,20 +143,17 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
     @SuppressLint("Range")
-    public PreKeyRecord[] getPreKeyRecords() throws InvalidMessageException {
-        PreKeyRecord[] preKeyRecords;
+    public void loadPreKeyRecords(SignalProtocolStore signalProtocolStore) throws InvalidMessageException {
         try (Cursor cursor = getReadableDatabase(Constants.password).query(PreKeyRecordStoreEntity.TABLE_NAME,
                 new String[]{PreKeyRecordStoreEntity._ID, PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD},
                 null, null, null, null, null)) {
-            int opkCount = cursor.getCount();
-            preKeyRecords = new PreKeyRecord[opkCount];
-            int idx = 0;
             while (cursor.moveToNext()) {
-                preKeyRecords[idx++] = new PreKeyRecord(base64Decoder.decode(cursor
+                PreKeyRecord preKeyRecord = new PreKeyRecord(base64Decoder.decode(cursor
                         .getString(cursor.getColumnIndex(PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD))));
+                signalProtocolStore.storePreKey(preKeyRecord.getId(), preKeyRecord);
             }
         }
-        return preKeyRecords;
+
     }
 
     public void removePreKeyRecord(int prekeyId) {
@@ -175,11 +175,19 @@ public class DbHelper extends SQLiteOpenHelper {
         }
     }
 
+    public void markKyberPreKeyUsed(int kyberPreKeyId) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(KyberPreKeyRecordsEntity.COLUMN_USED, 1);
+        getWritableDatabase(Constants.password).update(KyberPreKeyRecordsEntity.TABLE_NAME, SQLiteDatabase.CONFLICT_REPLACE,
+                contentValues, KyberPreKeyRecordsEntity.COLUMN_PREKEY_ID + "=?", new Object[]{kyberPreKeyId});
+    }
+
     public void storeKyberPreKey(KyberPreKeyRecord kyberPreKeyRecord) {
         ContentValues contentValues = new ContentValues();
         contentValues.put(KyberPreKeyRecordsEntity.COLUMN_PREKEY_ID, kyberPreKeyRecord.getId());
         contentValues.put(KyberPreKeyRecordsEntity.COLUMN_KPK_RECORD,
                 base64Encoder.encodeToString(kyberPreKeyRecord.serialize()));
+        contentValues.put(KyberPreKeyRecordsEntity.COLUMN_USED, 0);
         contentValues.put(KyberPreKeyRecordsEntity.COLUMN_CREATED_AT,
                 dateTimeFormatter.format(Instant.now()));
         getWritableDatabase(Constants.password)
@@ -255,6 +263,15 @@ public class DbHelper extends SQLiteOpenHelper {
         return resultArray;
     }
 
+    public void storeSenderKey(SignalProtocolAddress sender, UUID distributionId, SenderKeyRecord record) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(SenderKeyEntity.COLUMN_ADDRESS_NAME, sender.getName());
+        contentValues.put(SenderKeyEntity.COLUMN_ADDRESS_DEVICE_ID, sender.getDeviceId());
+        contentValues.put(SenderKeyEntity.COLUMN_DISTRIBUTION_UUID, distributionId.toString());
+        contentValues.put(SenderKeyEntity.COLUMN_SENDER_KEY_RECORD, base64Encoder.encodeToString(record.serialize()));
+        getWritableDatabase(Constants.password)
+                .insert(SenderKeyEntity.TABLE_NAME, null, contentValues);
+    }
 
     public void storeSession(SignalProtocolAddress address, SessionRecord sessionRecord) {
         ContentValues contentValues = new ContentValues();
@@ -268,6 +285,26 @@ public class DbHelper extends SQLiteOpenHelper {
                 base64Encoder.encodeToString(sessionRecord.serialize()));
         getWritableDatabase(Constants.password)
                 .insert(SessionStoreEntity.TABLE_NAME, null, contentValues);
+    }
+
+    @SuppressLint("Range")
+    public void loadKyberPreKeys(SekretessSignalProtocolStore signalProtocolStore) throws InvalidMessageException {
+        try (Cursor result = getReadableDatabase(Constants.password)
+                .query(KyberPreKeyRecordsEntity.TABLE_NAME, new String[]{
+                                KyberPreKeyRecordsEntity.COLUMN_PREKEY_ID, KyberPreKeyRecordsEntity.COLUMN_KPK_RECORD,
+                                KyberPreKeyRecordsEntity.COLUMN_USED},
+                        null, null, null, null, null)) {
+            while (result.moveToNext()) {
+                int prekeyId = result.getInt(result.getColumnIndex(KyberPreKeyRecordsEntity.COLUMN_PREKEY_ID));
+                String kpkRecordBase64 = result.getString(result.getColumnIndex(KyberPreKeyRecordsEntity.COLUMN_KPK_RECORD));
+                int used = result.getInt(result.getColumnIndex(KyberPreKeyRecordsEntity.COLUMN_USED));
+
+                signalProtocolStore.storeKyberPreKey(prekeyId, new KyberPreKeyRecord(base64Decoder.decode(kpkRecordBase64)));
+                if (used == 1) {
+                    signalProtocolStore.markKyberPreKeyUsed(prekeyId);
+                }
+            }
+        }
     }
 
     @SuppressLint("Range")
@@ -315,6 +352,7 @@ public class DbHelper extends SQLiteOpenHelper {
         db.execSQL(SessionStoreEntity.SQL_CREATE);
         db.execSQL(AuthStateStoreEntity.SQL_CREATE);
         db.execSQL(KyberPreKeyRecordsEntity.SQL_CREATE_TABLE);
+        db.execSQL(SenderKeyEntity.SQL_CREATE_TABLE);
     }
 
     @Override
@@ -328,6 +366,7 @@ public class DbHelper extends SQLiteOpenHelper {
         db.execSQL(SessionStoreEntity.SQL_DROP_TABLE);
         db.execSQL(AuthStateStoreEntity.SQL_DROP_TABLE);
         db.execSQL(KyberPreKeyRecordsEntity.SQL_DROP_TABLE);
+        db.execSQL(SenderKeyEntity.SQL_DROP_TABLE);
 
         Log.i("DbHelper", "OnUpgrade called. Creating tables");
         db.execSQL(MessageStoreEntity.SQL_CREATE_TABLE);
@@ -339,10 +378,12 @@ public class DbHelper extends SQLiteOpenHelper {
         db.execSQL(SessionStoreEntity.SQL_CREATE);
         db.execSQL(AuthStateStoreEntity.SQL_CREATE);
         db.execSQL(KyberPreKeyRecordsEntity.SQL_CREATE_TABLE);
+        db.execSQL(SenderKeyEntity.SQL_CREATE_TABLE);
     }
 
     public String getUserNameFromJwt() {
         return new JWT(getAuthState().getIdToken()).getClaim(Constants.USERNAME_CLAIM).asString();
     }
+
 
 }

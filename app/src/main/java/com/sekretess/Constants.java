@@ -12,11 +12,12 @@ public interface Constants {
     String EVENT_UPDATE_KEY = "update-key-event";
     String EVENT_NEW_INCOMING_ENCRYPTED_MESSAGE = "new-incoming-encrypted-message-event";
 
+    String SEKRETESS_NOTIFICATION_CHANNEL_NAME = "sekretess_notif";
     String EVENT_REFRESH_TOKEN_FAILED = "refresh-token-failed-event";
 
     String EVENT_NEW_INCOMING_MESSAGE = "new-incoming-mesage-event";
     String EVENT_SIGNUP_FAILED = "signup-failed-event";
-
+    String RABBIT_MQ_CONSUMER_QUEUE_SUFFIX = "_consumer";
     byte[] password = "sekretes_!23dg5333".getBytes();
 
     String CONSUMER_API_URL = "http://consumer.sekretess.co:8081/api/v1/consumers";
