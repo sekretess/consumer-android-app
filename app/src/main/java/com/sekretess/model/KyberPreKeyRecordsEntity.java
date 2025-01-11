@@ -7,6 +7,7 @@ public class KyberPreKeyRecordsEntity implements BaseColumns {
 
     public static final String COLUMN_PREKEY_ID = "prekey_id";
     public static final String COLUMN_KPK_RECORD = "kpk_record";
+    public static final String COLUMN_USED = "used";
     public static final String COLUMN_CREATED_AT = "created_at";
 
     public static final String SQL_CREATE_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME +
@@ -14,6 +15,7 @@ public class KyberPreKeyRecordsEntity implements BaseColumns {
             _ID + " INTEGER PRIMARY KEY, " +
             COLUMN_PREKEY_ID + " INTEGER, " +
             COLUMN_KPK_RECORD + " TEXT, " +
+            COLUMN_USED + " INTEGER, " +
             COLUMN_CREATED_AT + " TEXT )";
 
     public static final String SQL_DROP_TABLE = "DROP TABLE IF EXISTS " + TABLE_NAME;

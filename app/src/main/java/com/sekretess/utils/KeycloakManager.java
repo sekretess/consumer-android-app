@@ -146,12 +146,6 @@ public class KeycloakManager {
             userDto.setPqspkSignature(base64Encoder.encodeToString(keyMaterial.getSignature()));
             userDto.setPqspkid(String.valueOf(keyMaterial.getLastResortKyberPreKeyId()));
             userDto.setPassword(password);
-            Channel[] channels = new Channel[1];
-            Channel channel = new Channel();
-            channel.setName("email");
-            channel.setValue("12313");
-            channels[0] = channel;
-            userDto.setChannels(channels);
             String jsonObject = objectMapper.writeValueAsString(userDto);
             outputStream.write(jsonObject.getBytes(StandardCharsets.UTF_8));
             outputStream.flush();

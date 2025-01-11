@@ -4,6 +4,17 @@ public class MessageDto {
     private String text;
     private String sender;
     private String consumerExchange;
+    private String businessExchange;
+    private String type;
+    public String getBusinessExchange() {
+        return businessExchange;
+    }
+
+    public void setBusinessExchange(String businessExchange) {
+        this.businessExchange = businessExchange;
+    }
+
+
 
     public String getText() {
         return text;
@@ -27,5 +38,13 @@ public class MessageDto {
 
     public void setConsumerExchange(String consumerExchange) {
         this.consumerExchange = consumerExchange;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

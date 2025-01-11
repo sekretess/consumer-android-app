@@ -27,31 +27,48 @@ import com.sekretess.dto.RegistrationAndDeviceId;
 import com.sekretess.repository.DbHelper;
 import com.sekretess.repository.SekretessSignalProtocolStore;
 import com.sekretess.ui.LoginActivity;
+import com.sekretess.utils.ApiClient;
 import com.sekretess.utils.KeycloakManager;
 
 import net.openid.appauth.AuthState;
 
+import org.signal.libsignal.protocol.DuplicateMessageException;
 import org.signal.libsignal.protocol.IdentityKey;
 import org.signal.libsignal.protocol.IdentityKeyPair;
 import org.signal.libsignal.protocol.InvalidKeyException;
+import org.signal.libsignal.protocol.InvalidKeyIdException;
+import org.signal.libsignal.protocol.InvalidMessageException;
+import org.signal.libsignal.protocol.InvalidVersionException;
+import org.signal.libsignal.protocol.LegacyMessageException;
+import org.signal.libsignal.protocol.NoSessionException;
 import org.signal.libsignal.protocol.SessionCipher;
 import org.signal.libsignal.protocol.SignalProtocolAddress;
+import org.signal.libsignal.protocol.UntrustedIdentityException;
 import org.signal.libsignal.protocol.ecc.Curve;
 import org.signal.libsignal.protocol.ecc.ECKeyPair;
 import org.signal.libsignal.protocol.ecc.ECPrivateKey;
+import org.signal.libsignal.protocol.groups.GroupCipher;
+import org.signal.libsignal.protocol.groups.GroupSessionBuilder;
+import org.signal.libsignal.protocol.groups.state.SenderKeyStore;
 import org.signal.libsignal.protocol.kem.KEMKeyPair;
 import org.signal.libsignal.protocol.kem.KEMKeyType;
 import org.signal.libsignal.protocol.message.PreKeySignalMessage;
+import org.signal.libsignal.protocol.message.SenderKeyDistributionMessage;
 import org.signal.libsignal.protocol.state.KyberPreKeyRecord;
 import org.signal.libsignal.protocol.state.PreKeyRecord;
 import org.signal.libsignal.protocol.state.SignedPreKeyRecord;
 import org.signal.libsignal.protocol.util.KeyHelper;
 import org.signal.libsignal.protocol.util.Medium;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SignalProtocolService extends SekretessBackgroundService {
@@ -60,6 +77,7 @@ public class SignalProtocolService extends SekretessBackgroundService {
     private int deviceId;
     private final Base64.Decoder base64Decoder = Base64.getDecoder();
     private DbHelper dbHelper;
+    private static final Map<String, GroupCipher> groupCipherTable = new ConcurrentHashMap<>();
 
     public static final int SIGNAL_PROTOCOL_NOTIFICATION = 2;
     public static final AtomicInteger serviceInstances = new AtomicInteger(0);
@@ -68,8 +86,10 @@ public class SignalProtocolService extends SekretessBackgroundService {
         @Override
         public void onReceive(Context context, Intent intent) {
             String encryptedMessage = intent.getStringExtra("encryptedMessage");
+            String exchangeName = intent.getStringExtra("exchangeName");
+            String messageType = intent.getStringExtra("messageType");
             String sender = intent.getStringExtra("sender");
-            decryptMessage(encryptedMessage, sender, deviceId);
+            decryptMessage(encryptedMessage, sender, exchangeName, messageType);
         }
     };
 
@@ -80,6 +100,9 @@ public class SignalProtocolService extends SekretessBackgroundService {
                 if (signalProtocolStore == null) {
                     Log.w("SignalProtocolService", "Signal protocol store is null. Initializing protocolStore...");
                     IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
+                    if (groupCipherTable.isEmpty()) {
+                        ApiClient.refreshChannelSubscription(dbHelper.getAuthState().getIdToken());
+                    }
                     if (identityKeyPair == null) {
                         Log.w("SignalProtocolService", "No cryptographic keys found. Initializing keys...");
                         KeyMaterial keyMaterial = initializeKeys();
@@ -97,11 +120,9 @@ public class SignalProtocolService extends SekretessBackgroundService {
                         signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
                         deviceId = registrationId.getDeviceId();
 
-                        PreKeyRecord[] preKeyRecords = dbHelper.getPreKeyRecords();
-                        for (PreKeyRecord preKeyRecord : preKeyRecords) {
-                            signalProtocolStore.storePreKey(preKeyRecord.getId(), preKeyRecord);
-                        }
+                        dbHelper.loadPreKeyRecords(signalProtocolStore);
                         dbHelper.loadSessions(signalProtocolStore);
+                        dbHelper.loadKyberPreKeys(signalProtocolStore);
                     }
                 } else {
                     for (SignedPreKeyRecord signedPreKeyRecord : signalProtocolStore.loadSignedPreKeys()) {
@@ -231,7 +252,8 @@ public class SignalProtocolService extends SekretessBackgroundService {
                 identityKeyPair, registrationId);
         ECKeyPair keyPair = Curve.generateKeyPair();
         byte[] signature = Curve.calculateSignature(identityKeyPair.getPrivateKey(),
-                keyPair.getPublicKey().serialize());;
+                keyPair.getPublicKey().serialize());
+        ;
         //Generate one-time prekeys
         PreKeyRecord[] opk = generatePreKeys(15);
         this.deviceId = Math.abs(new Random().nextInt(Medium.MAX_VALUE - 1));
@@ -258,7 +280,6 @@ public class SignalProtocolService extends SekretessBackgroundService {
             KyberPreKeyRecord kyberPreKeyRecord = generateKyberPreKey(ecPrivateKey);
             kyberPreKeyRecords[i] = kyberPreKeyRecord;
         }
-        KEMKeyPair kemKeyPair = KEMKeyPair.generate(KEMKeyType.KYBER_1024);
         KyberPreKeyRecord lastResortKyberPreKeyRecord = generateKyberPreKey(ecPrivateKey);
         // Generated post quantum keys
         return new KyberPreKeyRecords(lastResortKyberPreKeyRecord, kyberPreKeyRecords);
@@ -273,7 +294,6 @@ public class SignalProtocolService extends SekretessBackgroundService {
         dbHelper.storeKyberPreKey(kyberPreKeyRecord);
         return kyberPreKeyRecord;
     }
-
 
 
     private SignedPreKeyRecord generateSignedPreKey(ECKeyPair keyPair, byte[] signature) {
@@ -313,13 +333,13 @@ public class SignalProtocolService extends SekretessBackgroundService {
     }
 
 
-    private String serializeKyberPreKey(KyberPreKeyRecord kyberPreKeyRecord) {
+    private String serializeKyberPreKey(KyberPreKeyRecord kyberPreKeyRecord) throws InvalidKeyException {
         return kyberPreKeyRecord.getId() + ":"
                 + base64Encoder.encodeToString(kyberPreKeyRecord.getKeyPair().getPublicKey().serialize())
                 + ":" + base64Encoder.encodeToString(kyberPreKeyRecord.getSignature());
     }
 
-    private String[] serializeKyberPreKeys(KyberPreKeyRecord[] kyberPreKeyRecords) {
+    private String[] serializeKyberPreKeys(KyberPreKeyRecord[] kyberPreKeyRecords) throws InvalidKeyException {
         String[] serializedKyberPreKeys = new String[kyberPreKeyRecords.length];
         int idx = 0;
         for (KyberPreKeyRecord kyberPreKeyRecord : kyberPreKeyRecords) {
@@ -328,43 +348,95 @@ public class SignalProtocolService extends SekretessBackgroundService {
         return serializedKyberPreKeys;
     }
 
-    public void decryptMessage(String base64Message, String name, int deviceId) {
+    public void processKeyDistributionMessage(String name, String base64Key) {
         try {
-            PreKeySignalMessage preKeySignalMessage = new PreKeySignalMessage(base64Decoder.decode(base64Message));
-            SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(name, deviceId);
-            SessionCipher sessionCipher = new SessionCipher(signalProtocolStore, signalProtocolAddress);
-            String message = new String(sessionCipher.decrypt(preKeySignalMessage));
+            Log.i("SignalProtocolService", "base64 keyDistributionMessage: " + base64Key);
+            SenderKeyDistributionMessage senderKeyDistributionMessage =
+                    new SenderKeyDistributionMessage(Base64.getDecoder().decode(base64Key));
 
-            Log.i("SignalProtocolService", "Decrypted message: " + message);
-            dbHelper.storeDecryptedMessage(name, message);
-            broadcastNewMessageReceived();
+            new GroupSessionBuilder(signalProtocolStore)
+                    .process(new SignalProtocolAddress(name, deviceId), senderKeyDistributionMessage);
 
-            String channelId = "sekretess_notif";
-            Notification notification = new NotificationCompat
-                    .Builder(SignalProtocolService.this, channelId)
-                    .setContentTitle("Message from " + name)
-                    .setLargeIcon(BitmapFactory
-                            .decodeResource(getResources(), R.drawable.ic_notif_sekretess))
-                    .setContentText(message.substring(0, Math.min(10, message.length()))
-                            .concat("...")).setSmallIcon(R.drawable.ic_notif_sekretess)
-                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).build();
-            NotificationManagerCompat notificationManager = NotificationManagerCompat
-                    .from(getApplicationContext());
-            int m = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
-
-            NotificationChannel channel = new NotificationChannel(channelId,
-                    "Channel human readable title", NotificationManager.IMPORTANCE_DEFAULT);
-            notificationManager.createNotificationChannel(channel);
+            GroupCipher groupCipher = new GroupCipher(signalProtocolStore, new SignalProtocolAddress(name, deviceId));
+            groupCipherTable.put(name, groupCipher);
+            Log.i("SignalProtocolService", "Group chat chipper created and stored : " + name);
+        } catch (Exception e) {
+            Log.e("SignalProtocolService", "Error during decrypt key distribution message", e);
+        }
+    }
 
 
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                    == PackageManager.PERMISSION_GRANTED) {
-                notificationManager.notify(m, notification);
+    private void decryptMessage(String base64Message, String sender, String exchangeName, String messageType) {
+        try {
+            switch (messageType.toLowerCase()) {
+                case "advert":
+                    processAdvertisementMessage(base64Message, exchangeName);
+                    break;
+                case "private":
+                case "key_dist":
+                    processPrivateMessage(base64Message, sender, exchangeName, messageType);
+                    break;
             }
-
-
         } catch (Exception e) {
             Log.e("SignalProtocolService", "Error occurred during decrypt message.", e);
+        }
+    }
+
+    private void processAdvertisementMessage(String base64Message, String exchangeName) throws NoSessionException,
+            InvalidMessageException, DuplicateMessageException, LegacyMessageException {
+        String sender = exchangeName.split("_")[0];
+        GroupCipher groupCipher = groupCipherTable.get(sender);
+        Log.i("SignalProtocolService", "Decrypted advertisement exchangeName: " + exchangeName
+                + " sender :" + sender);
+        if (groupCipher != null) {
+            String message = new String(groupCipher.decrypt(base64Decoder.decode(base64Message)));
+            Log.i("SignalProtocolService", "Decrypted advertisement message: " + message);
+            dbHelper.storeDecryptedMessage(sender, message);
+            broadcastNewMessageReceived();
+            publishNotification(sender, message);
+        }
+    }
+
+    private void processPrivateMessage(String base64Message, String sender, String exchangeName, String messageType) throws InvalidMessageException,
+            InvalidVersionException, LegacyMessageException, InvalidKeyException,
+            UntrustedIdentityException, DuplicateMessageException, InvalidKeyIdException {
+
+        PreKeySignalMessage preKeySignalMessage = new PreKeySignalMessage(base64Decoder.decode(base64Message));
+        SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(sender, deviceId);
+        SessionCipher sessionCipher = new SessionCipher(signalProtocolStore, signalProtocolAddress);
+        String message = new String(sessionCipher.decrypt(preKeySignalMessage));
+
+        if (messageType.equalsIgnoreCase("key_dist")) {
+            processKeyDistributionMessage(sender, message);
+        } else {
+            Log.i("SignalProtocolService", "Decrypted private message: " + message);
+            dbHelper.storeDecryptedMessage(exchangeName.split("_")[0], message);
+            broadcastNewMessageReceived();
+            publishNotification(sender, message);
+        }
+    }
+
+    private void publishNotification(String sender, String text) {
+        Notification notification = new NotificationCompat
+                .Builder(SignalProtocolService.this, Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME)
+                .setContentTitle("Message from " + sender)
+                .setLargeIcon(BitmapFactory
+                        .decodeResource(getResources(), R.drawable.ic_notif_sekretess))
+                .setContentText(text.substring(0, Math.min(10, text.length()))
+                        .concat("...")).setSmallIcon(R.drawable.ic_notif_sekretess)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).build();
+        NotificationManagerCompat notificationManager = NotificationManagerCompat
+                .from(getApplicationContext());
+        int m = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
+
+        NotificationChannel channel = new NotificationChannel(Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME,
+                "New message", NotificationManager.IMPORTANCE_DEFAULT);
+        notificationManager.createNotificationChannel(channel);
+
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) {
+            notificationManager.notify(m, notification);
         }
     }
 
@@ -381,4 +453,5 @@ public class SignalProtocolService extends SekretessBackgroundService {
         intent.setAction(Constants.EVENT_SIGNUP_FAILED);
         sendBroadcast(intent);
     }
+
 }
