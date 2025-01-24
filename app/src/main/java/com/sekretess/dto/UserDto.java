@@ -3,6 +3,7 @@ package com.sekretess.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -17,6 +18,50 @@ public class UserDto {
     private String SPKSignature;
     private Channel[] channels;
     private String spkID;
+
+    @JsonProperty("PQSPK")
+    private String pqspk;
+
+    @JsonProperty("PQSPKID")
+    private String pqspkid;
+
+    @JsonProperty("PQSPKSignature")
+    private String pqspkSignature;
+
+    @JsonProperty("OPQK")
+    private String[] opqk;
+
+    public String getPqspk() {
+        return pqspk;
+    }
+
+    public void setOpqk(String[] opqk) {
+        this.opqk = opqk;
+    }
+
+    public String getPqspkid() {
+        return pqspkid;
+    }
+
+    public void setPqspk(String pqspk) {
+        this.pqspk = pqspk;
+    }
+
+    public String getPqspkSignature() {
+        return pqspkSignature;
+    }
+
+    public void setPqspkid(String pqspkid) {
+        this.pqspkid = pqspkid;
+    }
+
+    public String[] getOpqk() {
+        return opqk;
+    }
+
+    public void setPqspkSignature(String pqspkSignature) {
+        this.pqspkSignature = pqspkSignature;
+    }
 
     public String getUsername() {
         return username;

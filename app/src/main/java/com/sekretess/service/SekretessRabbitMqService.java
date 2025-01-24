@@ -18,6 +18,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -49,7 +50,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         @Override
         public void onReceive(Context context, Intent intent) {
             String queueName = intent.getStringExtra("queueName");
-            future = Executors.newSingleThreadExecutor().submit(() -> startConsumeQueue(queueName, intent));
+            future = Executors.newSingleThreadExecutor().submit(() -> startConsumeQueue(queueName));
         }
     };
 
@@ -83,6 +84,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     @Override
     public void started(Intent intent) {
         Log.i("SekretessRabbitMqService", "SekretessRabbitMqService started successfully");
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         getApplicationContext()
                 .registerReceiver(loggedInEventReceiver, new IntentFilter(Constants.EVENT_LOGIN),
                         RECEIVER_EXPORTED);
@@ -94,7 +96,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         return null;
     }
 
-    private void startConsumeQueue(String queueName, Intent intent) {
+    private void startConsumeQueue(String queueName) {
         try {
             if (rabbitMqChannel == null || !rabbitMqChannel.getConnection().isOpen()) {
                 ConnectionFactory connectionFactory = new ConnectionFactory();
@@ -104,16 +106,34 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                 rabbitMqChannel = rabbitMqConnection.createChannel();
                 rabbitMqChannel.confirmSelect();
                 Log.i("SekretessRabbitMqService", "RabbitMq Consumer connection established.");
-                rabbitMqChannel.basicConsume(queueName, true, new DefaultConsumer(rabbitMqChannel) {
+                rabbitMqChannel.basicConsume(queueName.concat(Constants.RABBIT_MQ_CONSUMER_QUEUE_SUFFIX), true, new DefaultConsumer(rabbitMqChannel) {
                     @Override
                     public void handleDelivery(String consumerTag, Envelope envelope,
                                                AMQP.BasicProperties properties, byte[] body) {
                         try {
-                            String senderName = envelope.getExchange();
-                            int deviceId = -1;
-                            String message = objectMapper.readValue(body, String.class);
-                            Log.i("SekretessRabbitMqService", "Encoded message received");
-                            broadcastNewMessageReceived(message, senderName, deviceId);
+                            String exchangeName = envelope.getExchange();
+                            Log.i("SekretessRabbitMqService", "Received payload:" + new String(body));
+                            MessageDto message = objectMapper.readValue(body, MessageDto.class);
+                            String encryptedText = message.getText();
+                            String messageType = message.getType();
+                            String sender = "";
+                            switch (messageType.toLowerCase()) {
+                                case "advert":
+                                    exchangeName = message.getBusinessExchange();
+                                    break;
+                                case "key_dist":
+                                    exchangeName = message.getConsumerExchange();
+                                    sender = message.getSender();
+                                    break;
+                                case "private":
+                                    exchangeName = message.getConsumerExchange();
+                                    break;
+                            }
+
+
+                            Log.i("SekretessRabbitMqService", "Encoded message received : " + message);
+                            broadcastNewMessageReceived(encryptedText, sender, exchangeName, messageType);
+
                         } catch (Exception e) {
                             Log.e(TAG, e.getMessage(), e);
                         }
@@ -126,11 +146,12 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         }
     }
 
-    private void broadcastNewMessageReceived(String encryptedMessage, String name, int deviceId) {
+    private void broadcastNewMessageReceived(String encryptedMessage, String sender, String exchangeName, String messageType) {
         Intent intent = new Intent(Constants.EVENT_NEW_INCOMING_ENCRYPTED_MESSAGE);
         intent.putExtra("encryptedMessage", encryptedMessage);
-        intent.putExtra("name", name);
-        intent.putExtra("deviceId", deviceId);
+        intent.putExtra("exchangeName", exchangeName);
+        intent.putExtra("messageType", messageType);
+        intent.putExtra("sender", sender);
         sendBroadcast(intent);
     }
 

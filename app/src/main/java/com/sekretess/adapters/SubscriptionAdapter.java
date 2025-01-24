@@ -1,10 +1,8 @@
 package com.sekretess.adapters;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -12,15 +10,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sekretess.R;
 import com.sekretess.dto.BusinessDto;
-import com.sekretess.dto.jwt.Jwt;
 import com.sekretess.repository.DbHelper;
 import com.sekretess.ui.ButtonClickListener;
-import com.sekretess.utils.ApiClient;
 import com.sekretess.view.holders.SubscriptionViewHolder;
 
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.ArrayList;
 import java.util.List;
 
 public class SubscriptionAdapter extends RecyclerView.Adapter<SubscriptionViewHolder> {
@@ -38,7 +31,7 @@ public class SubscriptionAdapter extends RecyclerView.Adapter<SubscriptionViewHo
     @Override
     public SubscriptionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         Context context = parent.getContext();
-        dbHelper = new DbHelper(context);
+        dbHelper = DbHelper.getInstance(context);
         LayoutInflater layoutInflater = LayoutInflater.from(context);
         View subscriptionView = layoutInflater.inflate(R.layout.subscription_layout, parent, false);
         return new SubscriptionViewHolder(subscriptionView);

@@ -32,7 +32,7 @@ public class ChatsActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.i("ChatsActivity", "new-incoming-message event received");
-            List<MessageBriefDto> messageBriefs = new DbHelper(context).getMessageBriefs();
+            List<MessageBriefDto> messageBriefs = DbHelper.getInstance(context).getMessageBriefs();
             sendersAdapter = new SendersAdapter(messageBriefs);
             recyclerView.setAdapter(sendersAdapter);
             sendersAdapter.notifyItemInserted(messageBriefs.size());
@@ -42,6 +42,7 @@ public class ChatsActivity extends AppCompatActivity {
     private final BroadcastReceiver refreshTokenFailedBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            Log.i("ChatActivity", "Refresh token failed event received");
             startActivity(new Intent(ChatsActivity.this, MainActivity.class));
             ChatsActivity.this.finishActivity(1);
         }
@@ -53,7 +54,7 @@ public class ChatsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_chats);
         recyclerView =
                 findViewById(R.id.chat);
-        List<MessageBriefDto> messageBriefs = new DbHelper(getApplicationContext()).getMessageBriefs();
+        List<MessageBriefDto> messageBriefs = DbHelper.getInstance(getApplicationContext()).getMessageBriefs();
         sendersAdapter = new SendersAdapter(messageBriefs);
         recyclerView.setAdapter(sendersAdapter);
         recyclerView.addItemDecoration(new DividerItemDecoration(this,
