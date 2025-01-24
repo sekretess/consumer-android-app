@@ -27,7 +27,7 @@ public class SubscriptionActivity extends AppCompatActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        DbHelper dbHelper = new DbHelper(getApplicationContext());
+        DbHelper dbHelper = DbHelper.getInstance(getApplicationContext());
         setContentView(R.layout.activity_subscription);
         recyclerView = findViewById(R.id.subscriptionsRecycler);
         List<BusinessDto> businessList = ApiClient.getBusinesses()

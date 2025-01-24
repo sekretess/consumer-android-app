@@ -101,6 +101,8 @@ public class SignalProtocolService extends SekretessBackgroundService {
                     Log.w("SignalProtocolService", "Signal protocol store is null. Initializing protocolStore...");
                     IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
                     if (groupCipherTable.isEmpty()) {
+                        Log.w("SignalProtocolService", "Group chat chipper (Advertisement) is empty. " +
+                                "Initializing re-joining to channels...");
                         ApiClient.refreshChannelSubscription(dbHelper.getAuthState().getIdToken());
                     }
                     if (identityKeyPair == null) {
@@ -203,7 +205,7 @@ public class SignalProtocolService extends SekretessBackgroundService {
             Log.i("SignalProtocolService", "SignalProtocolStore is null. Starting logging in process");
             startLoginActivity();
         }
-        dbHelper = new DbHelper(this);
+        dbHelper =  DbHelper.getInstance(this);
     }
 
     @Override

@@ -31,7 +31,7 @@ public class SubscriptionAdapter extends RecyclerView.Adapter<SubscriptionViewHo
     @Override
     public SubscriptionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         Context context = parent.getContext();
-        dbHelper = new DbHelper(context);
+        dbHelper = DbHelper.getInstance(context);
         LayoutInflater layoutInflater = LayoutInflater.from(context);
         View subscriptionView = layoutInflater.inflate(R.layout.subscription_layout, parent, false);
         return new SubscriptionViewHolder(subscriptionView);
