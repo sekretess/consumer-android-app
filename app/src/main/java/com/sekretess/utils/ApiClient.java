@@ -105,7 +105,7 @@ public class ApiClient {
         try {
             URL consumerApiUrl = new URL(Constants.CONSUMER_API_URL + "/ads/businesses/refresh-subscription");
             urlConnection = (HttpURLConnection) consumerApiUrl.openConnection();
-            urlConnection.setRequestMethod("POST");
+            urlConnection.setRequestMethod("PUT");
             urlConnection.setRequestProperty("Authorization", "Bearer " + jwt);
             urlConnection.setDoOutput(true);
             urlConnection.setDoInput(true);

@@ -18,7 +18,6 @@ public interface Constants {
     String EVENT_NEW_INCOMING_MESSAGE = "new-incoming-mesage-event";
     String EVENT_SIGNUP_FAILED = "signup-failed-event";
     String RABBIT_MQ_CONSUMER_QUEUE_SUFFIX = "_consumer";
-    byte[] password = "sekretes_!23dg5333".getBytes();
 
     String CONSUMER_API_URL = "http://consumer.sekretess.co:8081/api/v1/consumers";
     String BUSINESS_API_URL = "http://business.sekretess.co:8082/api/v1/businesses";

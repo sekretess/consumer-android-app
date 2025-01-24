@@ -70,7 +70,7 @@ public class RefreshTokenService extends SekretessBackgroundService {
     @Override
     public void started(Intent intent) {
         serviceInstances.getAndSet(1);
-        this.dbHelper = new DbHelper(getApplicationContext());
+        this.dbHelper =  DbHelper.getInstance(getApplicationContext());
         getApplicationContext()
                 .registerReceiver(loggedInEventReceiver, new IntentFilter(Constants.EVENT_LOGIN),
                         RECEIVER_EXPORTED);

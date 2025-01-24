@@ -21,7 +21,7 @@ public class ButtonClickListener implements View.OnClickListener {
     @Override
     public void onClick(View v) {
         Context context = v.getContext();
-        DbHelper dbHelper = new DbHelper(context);
+        DbHelper dbHelper = DbHelper.getInstance(context);
         AuthState authState = dbHelper.getAuthState();
         Button button = (Button) v;
         String buttonText = button.getText().toString();

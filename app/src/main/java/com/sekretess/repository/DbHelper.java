@@ -1,14 +1,23 @@
 package com.sekretess.repository;
 
+import android.adservices.measurement.MeasurementManager;
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyProperties;
+import android.util.AndroidRuntimeException;
 import android.util.Log;
 
+
+import androidx.security.crypto.EncryptedSharedPreferences;
+import androidx.security.crypto.MasterKeys;
 
 import com.auth0.android.jwt.JWT;
 import com.sekretess.Constants;
 import com.sekretess.dto.MessageBriefDto;
+import com.sekretess.dto.MessageRecordDto;
 import com.sekretess.dto.RegistrationAndDeviceId;
 import com.sekretess.model.AuthStateStoreEntity;
 import com.sekretess.model.IdentityKeyPairStoreEntity;
@@ -27,6 +36,7 @@ import net.sqlcipher.Cursor;
 import net.sqlcipher.database.SQLiteDatabase;
 import net.sqlcipher.database.SQLiteOpenHelper;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.json.JSONException;
 import org.signal.libsignal.protocol.IdentityKeyPair;
 import org.signal.libsignal.protocol.InvalidMessageException;
@@ -38,6 +48,9 @@ import org.signal.libsignal.protocol.state.SessionRecord;
 import org.signal.libsignal.protocol.state.SignalProtocolStore;
 import org.signal.libsignal.protocol.state.SignedPreKeyRecord;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -45,27 +58,51 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.net.ssl.KeyManagerFactory;
 
 public class DbHelper extends SQLiteOpenHelper {
     private final DateTimeFormatter dateTimeFormatter
             = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.systemDefault());
 
     public static final int DATABASE_VERSION = 13;
-    public static final String DATABASE_NAME = "sekretess-enc.db";
+    public static final String DATABASE_NAME = "sekretess_enc_db.db";
     private static final Base64.Encoder base64Encoder = Base64.getEncoder();
     private static final Base64.Decoder base64Decoder = Base64.getDecoder();
+    private Context mContext;
 
+    private static DbHelper mInstance;
 
-    public DbHelper(Context context) {
+    private DbHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
-        SQLiteDatabase.loadLibs(context);
+        this.mContext = context;
+        SQLiteDatabase.loadLibs(this.mContext);
+        try {
+            String p = p();
+            if (p == null || p.isBlank() || p.isEmpty()) {
+                p = cp();
+            }
+            this.getWritableDatabase(p);
+        } catch (Exception e) {
+            Log.e("DBHelper", "Db initialization failed. ", e);
+        }
+    }
 
-        this.getWritableDatabase(Constants.password);
+    public static synchronized DbHelper getInstance(Context context) {
+        synchronized (DbHelper.class) {
+            if (mInstance == null) {
+                mInstance = new DbHelper(context.getApplicationContext());
+            }
+            return mInstance;
+        }
     }
 
     @SuppressLint("Range")
     public IdentityKeyPair getIdentityKeyPair() {
-        try (Cursor cursor = getReadableDatabase(Constants.password).query(IdentityKeyPairStoreEntity.TABLE_NAME,
+        try (Cursor cursor = getReadableDatabase(p()).query(IdentityKeyPairStoreEntity.TABLE_NAME,
                 new String[]{IdentityKeyPairStoreEntity._ID, IdentityKeyPairStoreEntity.COLUMN_IKP},
                 null, null, null, null, null)) {
             if (cursor.moveToNext()) {
@@ -81,13 +118,13 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(IdentityKeyPairStoreEntity.COLUMN_IKP,
                 base64Encoder.encodeToString(identityKeyPair.serialize()));
         contentValues.put(IdentityKeyPairStoreEntity.COLUMN_CREATED_AT, dateTimeFormatter.format(Instant.now()));
-        getWritableDatabase(Constants.password)
+        getWritableDatabase(p())
                 .insert(IdentityKeyPairStoreEntity.TABLE_NAME, null, contentValues);
     }
 
     @SuppressLint("Range")
     public RegistrationAndDeviceId getRegistrationId() {
-        try (Cursor cursor = getReadableDatabase(Constants.password).query(RegistrationIdStoreEntity.TABLE_NAME,
+        try (Cursor cursor = getReadableDatabase(p()).query(RegistrationIdStoreEntity.TABLE_NAME,
                 new String[]{RegistrationIdStoreEntity._ID, RegistrationIdStoreEntity.COLUMN_REG_ID, RegistrationIdStoreEntity.COLUMN_DEVICE_ID},
                 null, null, null, null, null)) {
             if (cursor.getCount() == 0) {
@@ -107,17 +144,18 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
     public void storeRegistrationId(Integer registrationId, int deviceId) {
+
         ContentValues contentValues = new ContentValues();
         contentValues.put(RegistrationIdStoreEntity.COLUMN_REG_ID, registrationId);
         contentValues.put(RegistrationIdStoreEntity.COLUMN_DEVICE_ID, deviceId);
         contentValues.put(RegistrationIdStoreEntity.COLUMN_CREATED_AT, dateTimeFormatter.format(Instant.now()));
-        getWritableDatabase(Constants.password)
+        getWritableDatabase(p())
                 .insert(RegistrationIdStoreEntity.TABLE_NAME, null, contentValues);
     }
 
     @SuppressLint("Range")
     public SignedPreKeyRecord getSignedPreKeyRecord() {
-        try (Cursor cursor = getReadableDatabase(Constants.password).query(SignedPreKeyRecordStoreEntity.TABLE_NAME,
+        try (Cursor cursor = getReadableDatabase(p()).query(SignedPreKeyRecordStoreEntity.TABLE_NAME,
                 new String[]{SignedPreKeyRecordStoreEntity._ID, SignedPreKeyRecordStoreEntity.COLUMN_SPK_RECORD},
                 null, null, null, null, null)) {
             if (cursor.moveToNext()) {
@@ -138,13 +176,13 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(SignedPreKeyRecordStoreEntity.COLUMN_SPK_RECORD, base64Encoder
                 .encodeToString(signedPreKeyRecord.serialize()));
         contentValues.put(SignedPreKeyRecordStoreEntity.COLUMN_CREATED_AT, dateTimeFormatter.format(Instant.now()));
-        getWritableDatabase(Constants.password)
+        getWritableDatabase(p())
                 .insert(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
     }
 
     @SuppressLint("Range")
     public void loadPreKeyRecords(SignalProtocolStore signalProtocolStore) throws InvalidMessageException {
-        try (Cursor cursor = getReadableDatabase(Constants.password).query(PreKeyRecordStoreEntity.TABLE_NAME,
+        try (Cursor cursor = getReadableDatabase(p()).query(PreKeyRecordStoreEntity.TABLE_NAME,
                 new String[]{PreKeyRecordStoreEntity._ID, PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD},
                 null, null, null, null, null)) {
             while (cursor.moveToNext()) {
@@ -157,7 +195,7 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
     public void removePreKeyRecord(int prekeyId) {
-        getWritableDatabase(Constants.password).delete(PreKeyRecordStoreEntity.TABLE_NAME,
+        getWritableDatabase(p()).delete(PreKeyRecordStoreEntity.TABLE_NAME,
                 PreKeyRecordStoreEntity.COLUMN_PREKEY_ID + "=?", new String[]{String.valueOf(prekeyId)});
 
     }
@@ -170,7 +208,7 @@ public class DbHelper extends SQLiteOpenHelper {
                     base64Encoder.encodeToString(preKeyRecord.serialize()));
             contentValues.put(PreKeyRecordStoreEntity.COLUMN_CREATED_AT,
                     dateTimeFormatter.format(Instant.now()));
-            getWritableDatabase(Constants.password)
+            getWritableDatabase(p())
                     .insert(PreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
         }
     }
@@ -178,7 +216,7 @@ public class DbHelper extends SQLiteOpenHelper {
     public void markKyberPreKeyUsed(int kyberPreKeyId) {
         ContentValues contentValues = new ContentValues();
         contentValues.put(KyberPreKeyRecordsEntity.COLUMN_USED, 1);
-        getWritableDatabase(Constants.password).update(KyberPreKeyRecordsEntity.TABLE_NAME, SQLiteDatabase.CONFLICT_REPLACE,
+        getWritableDatabase(p()).update(KyberPreKeyRecordsEntity.TABLE_NAME, SQLiteDatabase.CONFLICT_REPLACE,
                 contentValues, KyberPreKeyRecordsEntity.COLUMN_PREKEY_ID + "=?", new Object[]{kyberPreKeyId});
     }
 
@@ -190,25 +228,25 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(KyberPreKeyRecordsEntity.COLUMN_USED, 0);
         contentValues.put(KyberPreKeyRecordsEntity.COLUMN_CREATED_AT,
                 dateTimeFormatter.format(Instant.now()));
-        getWritableDatabase(Constants.password)
+        getWritableDatabase(p())
                 .insert(KyberPreKeyRecordsEntity.TABLE_NAME, null, contentValues);
     }
 
     public void storeAuthState(String authState) {
         ContentValues values = new ContentValues();
         values.put(AuthStateStoreEntity.COLUMN_AUTH_STATE, authState);
-        getWritableDatabase(Constants.password).delete(AuthStateStoreEntity.TABLE_NAME, null, null);
-        getWritableDatabase(Constants.password)
+        getWritableDatabase(p()).delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+        getWritableDatabase(p())
                 .insert(AuthStateStoreEntity.TABLE_NAME, null, values);
     }
 
     public void removeAuthState() {
-        getWritableDatabase(Constants.password).delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+        getWritableDatabase(p()).delete(AuthStateStoreEntity.TABLE_NAME, null, null);
     }
 
     @SuppressLint("Range")
     public AuthState getAuthState() {
-        try (Cursor result = getReadableDatabase(Constants.password)
+        try (Cursor result = getReadableDatabase(p())
                 .query(AuthStateStoreEntity.TABLE_NAME,
                         new String[]{AuthStateStoreEntity.COLUMN_AUTH_STATE},
                         null, null, null, null, null)) {
@@ -225,7 +263,6 @@ public class DbHelper extends SQLiteOpenHelper {
 
 
     public void storeDecryptedMessage(String sender, String message) {
-        JWT jwt = new JWT(getAuthState().getIdToken());
         String username = getUserNameFromJwt();
         ContentValues values = new ContentValues();
         values.put(MessageStoreEntity.COLUMN_SENDER, sender);
@@ -233,14 +270,14 @@ public class DbHelper extends SQLiteOpenHelper {
         values.put(MessageStoreEntity.COLUMN_USERNAME, username);
         values.put(MessageStoreEntity.COLUMN_CREATED_AT,
                 dateTimeFormatter.format(Instant.now()));
-        getWritableDatabase(Constants.password).insert(MessageStoreEntity.TABLE_NAME,
+        getWritableDatabase(p()).insert(MessageStoreEntity.TABLE_NAME,
                 null, values);
     }
 
     public List<MessageBriefDto> getMessageBriefs() {
         List<MessageBriefDto> resultArray;
 
-        try (Cursor resultCursor = getReadableDatabase(Constants.password)
+        try (Cursor resultCursor = getReadableDatabase(p())
                 .query(MessageStoreEntity.TABLE_NAME,
                         new String[]{MessageStoreEntity.COLUMN_SENDER,
                                 "COUNT(" + MessageStoreEntity.COLUMN_SENDER + ") AS count"},
@@ -269,7 +306,7 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(SenderKeyEntity.COLUMN_ADDRESS_DEVICE_ID, sender.getDeviceId());
         contentValues.put(SenderKeyEntity.COLUMN_DISTRIBUTION_UUID, distributionId.toString());
         contentValues.put(SenderKeyEntity.COLUMN_SENDER_KEY_RECORD, base64Encoder.encodeToString(record.serialize()));
-        getWritableDatabase(Constants.password)
+        getWritableDatabase(p())
                 .insert(SenderKeyEntity.TABLE_NAME, null, contentValues);
     }
 
@@ -283,13 +320,13 @@ public class DbHelper extends SQLiteOpenHelper {
         }
         contentValues.put(SessionStoreEntity.COLUMN_SESSION,
                 base64Encoder.encodeToString(sessionRecord.serialize()));
-        getWritableDatabase(Constants.password)
+        getWritableDatabase(p())
                 .insert(SessionStoreEntity.TABLE_NAME, null, contentValues);
     }
 
     @SuppressLint("Range")
     public void loadKyberPreKeys(SekretessSignalProtocolStore signalProtocolStore) throws InvalidMessageException {
-        try (Cursor result = getReadableDatabase(Constants.password)
+        try (Cursor result = getReadableDatabase(p())
                 .query(KyberPreKeyRecordsEntity.TABLE_NAME, new String[]{
                                 KyberPreKeyRecordsEntity.COLUMN_PREKEY_ID, KyberPreKeyRecordsEntity.COLUMN_KPK_RECORD,
                                 KyberPreKeyRecordsEntity.COLUMN_USED},
@@ -307,10 +344,31 @@ public class DbHelper extends SQLiteOpenHelper {
         }
     }
 
+    public List<MessageRecordDto> loadMessages(String from) {
+        android.database.Cursor resultCursor = getReadableDatabase(p())
+                .query(MessageStoreEntity.TABLE_NAME, new String[]{MessageStoreEntity.COLUMN_SENDER,
+                                MessageStoreEntity.COLUMN_MESSAGE_BODY,
+                                MessageStoreEntity.COLUMN_CREATED_AT
+                        },
+                        "sender=?",
+                        new String[]{from}, null, null, null);
+        List<MessageRecordDto> resultArray = new ArrayList<>();
+
+        while (resultCursor.moveToNext()) {
+            String sender = resultCursor.getString(0);
+            String messageBody = resultCursor.getString(1);
+            String createdAt = resultCursor.getString(2);
+
+            resultArray.add(new MessageRecordDto(sender, messageBody, createdAt));
+        }
+
+        return resultArray;
+    }
+
     @SuppressLint("Range")
     public void loadSessions(SignalProtocolStore signalProtocolStore) {
 
-        try (Cursor result = getReadableDatabase(Constants.password)
+        try (Cursor result = getReadableDatabase(p())
                 .query(SessionStoreEntity.TABLE_NAME, new String[]{SessionStoreEntity.COLUMN_SESSION,
                                 SessionStoreEntity.COLUMN_SERVICE_ID, SessionStoreEntity.COLUMN_ADDRESS_NAME,
                                 SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID}, null, null,
@@ -333,11 +391,34 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
     public void removeSession(SignalProtocolAddress address) {
-        getWritableDatabase(Constants.password)
+        getWritableDatabase(p())
                 .delete(SessionStoreEntity.TABLE_NAME,
                         SessionStoreEntity.COLUMN_ADDRESS_NAME + "=? AND"
                                 + SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID + " = ?",
                         new Object[]{address.getName(), address.getDeviceId()});
+    }
+
+    private String cp() {
+        SharedPreferences encryptedSharedPreferences =
+                mContext.getSharedPreferences("secret_shared_prefs", Context.MODE_PRIVATE);
+
+        String p = RandomStringUtils.randomAlphanumeric(15);
+        encryptedSharedPreferences.edit().putString("801d0837-c9c3-4a4c-bfcc-67197551d030", p)
+                .apply();
+        Log.i("DBHelper", "Create password " + p);
+        return p;
+    }
+
+    private String p() {
+
+        SharedPreferences encryptedSharedPreferences =
+                mContext.getSharedPreferences("secret_shared_prefs", Context.MODE_PRIVATE);
+
+
+        String p = encryptedSharedPreferences
+                .getString("801d0837-c9c3-4a4c-bfcc-67197551d030", "");
+        Log.i("DBHelper", "Get database passwords " + p);
+        return p;
     }
 
     @Override

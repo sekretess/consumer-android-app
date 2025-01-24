@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private Optional<AuthState> restoreState() {
-        DbHelper dbHelper = new DbHelper(getApplicationContext());
+        DbHelper dbHelper =  DbHelper.getInstance(getApplicationContext());
         AuthState authState = dbHelper.getAuthState();
         if (authState == null) {
             return Optional.empty();
