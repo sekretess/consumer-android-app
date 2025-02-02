@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - main
+  
 jobs:
   release:
     if: contains(github.event.head_commit.message, 'release-please--branches')|| startsWith(github.event.head_commit.message, 'bump')
@@ -27,8 +28,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: 12266719
+        #with:
+          #cmdline-tools-version: 12266719
       - name: Build App
         run: |
           gradle app:assembleRelease
