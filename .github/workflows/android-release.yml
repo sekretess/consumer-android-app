@@ -34,7 +34,7 @@ jobs:
           gradle app:bundleRelease
       - name: List Build APK directory
         run: |
-          ls ~/work/consumer-android-app/consumer-android-app/app/build/outputs/apk/release/
+          ls ~/consumer-android-app/consumer-android-app/app/build/outputs/apk/release/
       - name: Sign app APK
         uses: r0adkll/sign-android-release@v1
         id: sign_app
