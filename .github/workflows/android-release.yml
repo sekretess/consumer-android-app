@@ -28,17 +28,17 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        #with:
-          #cmdline-tools-version: 12266719
       - name: Build App
         run: |
           gradle app:assembleRelease
           gradle app:bundleRelease
+          mkdir -p /app/build/outputs/apk/release
+          cp -R ~/work/consumer-android-app/consumer-android-app/build/outputs/apk/release /app/build/outputs/apk/
       - name: Sign app APK
         uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
-          releaseDir: app/build/outputs/apk/release
+          releaseDir: /app/build/outputs/apk/release
           signingKey: ${{ secrets.ANDROID_SIGNING_KEY }}
           keyAlias: ${{ secrets.ANDROID_KEY_ALIAS }}
           keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
