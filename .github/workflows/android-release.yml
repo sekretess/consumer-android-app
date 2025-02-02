@@ -32,13 +32,11 @@ jobs:
         run: |
           gradle app:assembleRelease
           gradle app:bundleRelease
-          mkdir -p /app/build/outputs/apk/release
-          cp -R ~/work/consumer-android-app/consumer-android-app/build/outputs/apk/release /app/build/outputs/apk/
       - name: Sign app APK
         uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
-          releaseDir: /app/build/outputs/apk/release
+          releaseDir: ~/work/${{github.event.repository.name}}/${{ github.event.repository.name }}/build/outputs/apk/release
           signingKey: ${{ secrets.ANDROID_SIGNING_KEY }}
           keyAlias: ${{ secrets.ANDROID_KEY_ALIAS }}
           keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
