@@ -35,7 +35,7 @@ jobs:
           gradle app:assembleRelease
           gradle app:bundleRelease
       - name: Sign app APK
-        uses: ilharp/sign-android-release@v1
+        uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
           releaseDir: app/build/outputs/apk/release
