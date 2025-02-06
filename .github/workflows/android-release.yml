@@ -37,6 +37,6 @@ jobs:
           ls ~/work/consumer-android-app/consumer-android-app/app/build/outputs/apk/release/
       - name: Sign app APK
         run: |
-          base64 -d << "$ANDROID_KEYSTORE_BASE64" > sekretess-keystore.jks
+          base64 -d << $ANDROID_KEYSTORE_BASE64 > sekretess-keystore.jks
           $ANDROID_HOME/build-tools/35.0.1/apksigner sign --ks sekretess-keystore.jks --ks-pass pass:$ANDROID_KEYSTORE_PASSWORD ~/work/consumer-android-app/consumer-android-app/app/build/outputs/apk/release/app-release-unsigned.apk
           ls
