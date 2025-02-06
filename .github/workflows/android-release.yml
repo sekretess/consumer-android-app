@@ -18,6 +18,6 @@ jobs:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          base64 -w 0 -d << $ANDROID_KEYSTORE_BASE64 > sekretess-keystore.jks
+          echo $ANDROID_KEYSTORE_BASE64 | base64 --decode > sekretess-keystore.jks
           $ANDROID_HOME/build-tools/35.0.1/apksigner sign --ks sekretess-keystore.jks --ks-pass pass:$ANDROID_KEYSTORE_PASSWORD ~/work/consumer-android-app/consumer-android-app/app/build/outputs/apk/release/app-release-unsigned.apk
           ls
