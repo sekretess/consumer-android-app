@@ -32,9 +32,6 @@ jobs:
         run: |
           gradle app:assembleRelease
           gradle app:bundleRelease
-      - name: List Build APK directory
-        run: |
-          ls ~/work/consumer-android-app/consumer-android-app/app/build/outputs/apk/release/
       - name: Sign app APK
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -42,4 +39,16 @@ jobs:
         run: |
           echo $ANDROID_KEYSTORE_BASE64 | base64 --decode > sekretess-keystore.jks
           $ANDROID_HOME/build-tools/35.0.1/apksigner sign --ks sekretess-keystore.jks --ks-pass pass:$ANDROID_KEYSTORE_PASSWORD ~/work/consumer-android-app/consumer-android-app/app/build/outputs/apk/release/app-release-unsigned.apk
-          ls
+          mv ~/work/consumer-android-app/consumer-android-app/app/build/outputs/apk/release/app-release-unsigned.apk ~/work/consumer-android-app/consumer-android-app/app/build/outputs/apk/release/app-release-signed.apk
+      - name: Generate a token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PEM }}          
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: "${{ steps.generate_token.outputs.token }}"
+          manifest-file: .release-please-manifest.json
+          config-file: release-please-config.json
