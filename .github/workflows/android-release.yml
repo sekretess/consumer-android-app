@@ -42,7 +42,7 @@ jobs:
           mv ~/work/consumer-android-app/consumer-android-app/app/build/outputs/apk/release/app-release-unsigned.apk ~/work/consumer-android-app/consumer-android-app/app/build/outputs/apk/release/app-release-signed.apk
       - name: Generate a token
         id: generate_token
-        uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PEM }}          
