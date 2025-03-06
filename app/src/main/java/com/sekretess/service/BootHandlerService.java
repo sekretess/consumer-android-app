@@ -9,8 +9,8 @@ public class BootHandlerService extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         if (intent.getAction().equals(Intent.ACTION_BOOT_COMPLETED)) {
             context.startForegroundService(new Intent(context, SignalProtocolService.class));
-            context.startForegroundService(new Intent(context, SekretessRabbitMqService.class));
             context.startForegroundService(new Intent(context, RefreshTokenService.class));
+            context.startForegroundService(new Intent(context, SekretessRabbitMqService.class));
         }
     }
 }
