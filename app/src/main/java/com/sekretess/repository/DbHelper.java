@@ -2,6 +2,7 @@ package com.sekretess.repository;
 
 import android.adservices.measurement.MeasurementManager;
 import android.annotation.SuppressLint;
+import android.app.Application;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -415,10 +416,9 @@ public class DbHelper extends SQLiteOpenHelper {
                 mContext.getSharedPreferences("secret_shared_prefs", Context.MODE_PRIVATE);
 
 
-        String p = encryptedSharedPreferences
+        return encryptedSharedPreferences
                 .getString("801d0837-c9c3-4a4c-bfcc-67197551d030", "");
-        Log.i("DBHelper", "Get database passwords " + p);
-        return p;
+//        Log.i("DBHelper", "Get database passwords " + p);
     }
 
     @Override

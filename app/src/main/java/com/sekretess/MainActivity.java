@@ -1,86 +1,46 @@
 package com.sekretess;
 
-import android.app.ActivityManager;
-import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.Menu;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 
-import com.auth0.android.jwt.JWT;
-import com.sekretess.repository.DbHelper;
-import com.sekretess.service.RefreshTokenService;
-import com.sekretess.service.SekretessRabbitMqService;
-import com.sekretess.service.SignalProtocolService;
-import com.sekretess.ui.ChatsActivity;
-import com.sekretess.ui.LoginActivity;
-
-import net.openid.appauth.AuthState;
-
-import java.util.Optional;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.sekretess.databinding.ActivityMainBinding;
+import com.sekretess.ui.ChatsFragment;
+import com.sekretess.ui.BusinessesFragment;
+import com.sekretess.ui.HomeFragment;
 
 public class MainActivity extends AppCompatActivity {
-    public MainActivity() {
 
-    }
-
-    private boolean isServiceRunning(Class<?> serviceClass) {
-        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (serviceClass.getName().equals(service.service.getClassName())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
+    private ActivityMainBinding binding;
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (!isServiceRunning(SignalProtocolService.class)) {
-            startForegroundService(new Intent(this, SignalProtocolService.class));
-        }
-        if (!isServiceRunning(SekretessRabbitMqService.class)) {
-            startForegroundService(new Intent(this, SekretessRabbitMqService.class));
-        }
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(R.layout.activity_main);
+        BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
 
-        if (!isServiceRunning(RefreshTokenService.class)) {
-            startForegroundService(new Intent(this, RefreshTokenService.class));
-        }
-
-        Optional<AuthState> authState = restoreState();
-
-        authState.ifPresentOrElse(state -> {
-            startActivity(new Intent(this, ChatsActivity.class));
-            String username = new JWT(state.getAccessToken()).getClaim(Constants.USERNAME_CLAIM).asString();
-            broadcastSuccessfulLogin(username);
-        }, () -> startActivity(new Intent(this, LoginActivity.class)));
+        bottomNavigationView.setOnItemSelectedListener(item -> {
+            if(item.getItemId() == R.id.menu_item_business){
+                replaceFragment(new BusinessesFragment());
+            }else if(item.getItemId() == R.id.menu_item_messages){
+                replaceFragment(new ChatsFragment());
+            }else if(item.getItemId() == R.id.menu_item_home){
+                replaceFragment(new HomeFragment());
+            }
+            return true;
+        });
     }
 
-    private Optional<AuthState> restoreState() {
-        DbHelper dbHelper =  DbHelper.getInstance(getApplicationContext());
-        AuthState authState = dbHelper.getAuthState();
-        if (authState == null) {
-            return Optional.empty();
-        }
-
-        return Optional.ofNullable(authState);
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
-
-
-    private void broadcastSuccessfulLogin(String queueName) {
-        Intent intent = new Intent(Constants.EVENT_LOGIN);
-        intent.putExtra("queueName", queueName);
-        sendBroadcast(intent);
+    private void replaceFragment(Fragment fragment){
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.replace(R.id.frame_layout, fragment);
+        fragmentTransaction.commit();
     }
 }
