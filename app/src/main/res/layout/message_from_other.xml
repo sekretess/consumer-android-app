@@ -4,7 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginEnd="8dp"
-    android:layout_marginTop="16dp">
+    android:layout_marginTop="16dp"
+    android:background="#11191f">
     <TextView
         android:id="@+id/text_gchat_date_me"
         android:layout_width="wrap_content"

@@ -25,22 +25,22 @@
 <!--            android:exported="false" />-->
 
         <activity
-            android:name=".ui.MessagesFromSenderActivity"
+            android:name="io.sekretess.ui.MessagesFromSenderActivity"
             android:exported="false" />
 <!--        <activity-->
 <!--            android:name=".ui.ChatsActivity"-->
 <!--            android:exported="false" />-->
         <activity
-            android:name=".ui.SignupActivity"
+            android:name="io.sekretess.ui.SignupActivity"
             android:exported="false"
             />
         <activity
-            android:name=".ui.LoginActivity"
+            android:name="io.sekretess.ui.LoginActivity"
             android:exported="false"
            />
 
         <activity
-            android:name=".StartupActivity"
+            android:name="io.sekretess.StartupActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -51,7 +51,7 @@
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
-        <activity android:name=".MainActivity"/>
+        <activity android:name="io.sekretess.MainActivity"/>
 
         <activity android:name="net.openid.appauth.RedirectUriReceiverActivity" android:exported="true"
             tools:node="replace">
@@ -59,29 +59,29 @@
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="com.sekretess"
+                <data android:scheme="io.sekretess"
                     android:path="/oauth2redirect"/>
             </intent-filter>
         </activity>
 
         <service
-            android:name=".service.SekretessRabbitMqService"
+            android:name="io.sekretess.service.SekretessRabbitMqService"
             android:foregroundServiceType="remoteMessaging"
             android:process=":remote"
             android:stopWithTask="false" />
         <service
-            android:name=".service.RefreshTokenService"
+            android:name="io.sekretess.service.RefreshTokenService"
             android:foregroundServiceType="remoteMessaging"
             android:process=":remote"
             android:stopWithTask="false" />
         <service
-            android:name=".service.SignalProtocolService"
+            android:name="io.sekretess.service.SignalProtocolService"
             android:foregroundServiceType="remoteMessaging"
             android:process=":remote"
             android:stopWithTask="false" />
 
         <receiver
-            android:name=".service.BootHandlerService"
+            android:name="io.sekretess.service.BootHandlerService"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

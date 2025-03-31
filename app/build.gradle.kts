@@ -3,15 +3,15 @@ plugins {
 }
 
 android {
-    namespace = "com.sekretess"
+    namespace = "io.sekretess"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.sekretess"
-        minSdk = 33
-        targetSdk = 33
-        versionCode = 1
-        versionName = "1.0.0"
+        applicationId = "io.sekretess"
+        minSdk = 34
+        targetSdk = 34
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 //        manifestPlaceholders["appAuthRedirectScheme"] = "com.sekretess"
@@ -33,7 +33,7 @@ android {
     buildFeatures {
         viewBinding = true
     }
-    buildToolsVersion = "34.0.0"
+    buildToolsVersion = "35.0.0"
 }
 
 dependencies {
