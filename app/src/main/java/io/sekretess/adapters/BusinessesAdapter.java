@@ -60,7 +60,7 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
 
     @Override
     public int getItemCount() {
-        return mBusinessDtos.size();
+        return mBusinessDtos == null ? 0 : mBusinessDtos.size();
     }
 
 

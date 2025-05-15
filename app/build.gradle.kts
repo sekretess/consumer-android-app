@@ -8,10 +8,10 @@ android {
 
     defaultConfig {
         applicationId = "io.sekretess"
-        minSdk = 34
+        minSdk = 30
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 6
+        versionName = "1.0.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 //        manifestPlaceholders["appAuthRedirectScheme"] = "com.sekretess"

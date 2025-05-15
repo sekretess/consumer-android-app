@@ -19,10 +19,8 @@ public interface Constants {
     String EVENT_SIGNUP_FAILED = "signup-failed-event";
     String RABBIT_MQ_CONSUMER_QUEUE_SUFFIX = "_consumer";
 
-    String CONSUMER_API_URL = "http://consumer.sekretess.io:8081/api/v1/consumers";
-    String BUSINESS_API_URL = "http://business.sekretess.net:8082/api/v1/businesses";
-
-    Uri KEYCLOAK_OPENID_CONFIGURATION_URL = Uri.parse("https://auth.sekretess.io:8443/realms/consumer/.well-known/openid-configuration");
+    String CONSUMER_API_URL = "https://consumer.sekretess.io/api/v1/consumers";
+    String BUSINESS_API_URL = "https://business.sekretess.net/api/v1/businesses";
 
 
     Uri AUTH_REDIRECT_URL = Uri.parse("io.sekretess:/oauth2redirect");

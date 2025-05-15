@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,22 +24,19 @@ import io.sekretess.ui.ProfileFragment;
 
 public class MainActivity extends AppCompatActivity {
 
-
-    private final BroadcastReceiver refreshTokenFailedBroadcastReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver tokenRefreshBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.i("ChatActivity", "Refresh token failed event received");
-            startActivity(new Intent(getApplicationContext(), LoginActivity.class));
-            finish();
+            Log.i("MainActivity", "Refresh token failed");
+            startActivity(new Intent(MainActivity.this, LoginActivity.class));
         }
     };
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-       getApplicationContext().registerReceiver(refreshTokenFailedBroadcastReceiver,
-                        new IntentFilter(Constants.EVENT_REFRESH_TOKEN_FAILED),RECEIVER_EXPORTED);
+        registerReceiver(tokenRefreshBroadcastReceiver,
+                new IntentFilter(Constants.EVENT_REFRESH_TOKEN_FAILED), RECEIVER_EXPORTED);
 
         setContentView(R.layout.activity_main);
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);

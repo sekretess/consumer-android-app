@@ -99,6 +99,17 @@
             android:layout_toEndOf="@+id/btn_appearance"
             android:text="Privacy" />
 
+        <TextView
+            android:id="@+id/textView4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_marginStart="22dp"
+            android:layout_marginTop="206dp"
+            android:layout_toEndOf="@+id/btn_appearance"
+            android:text="Logout" />
+
+
         <ImageView
             android:id="@+id/btn_settings"
             android:layout_width="40dp"
@@ -132,6 +143,17 @@
             android:layout_marginTop="150dp"
             android:background="#1f303d"
             android:src="@drawable/ic_privacy" />
+
+        <ImageView
+            android:id="@+id/btn_logout"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginStart="13dp"
+            android:layout_marginTop="197dp"
+            android:background="#1f303d"
+            android:src="@drawable/ic_logout" />
     </RelativeLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

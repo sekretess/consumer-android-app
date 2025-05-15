@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -26,6 +27,11 @@ public class ProfileFragment extends Fragment {
                 .getSharedPreferences("global-variables", 0);
         String username = globalVariables.getString("username", "N/A");
         txtUserName.setText(username);
+
+//        Button btnLogout = view.findViewById(R.id.btn_logout);
+//        btnLogout.setOnClickListener(v -> {
+//
+//        });
         return view;
     }
 }

@@ -1,6 +1,7 @@
 package io.sekretess.ui;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -10,6 +11,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.auth0.android.jwt.JWT;
+
 import io.sekretess.Constants;
 import io.sekretess.MainActivity;
 import io.sekretess.R;
@@ -42,8 +44,8 @@ public class LoginActivity extends AppCompatActivity {
     int RC_AUTH = 1717275371;
 
     private void authorizeUser() {
-
-        AuthorizationServiceConfiguration.fetchFromUrl(Constants.KEYCLOAK_OPENID_CONFIGURATION_URL,
+        String authUrl = getString(R.string.auth_url);
+        AuthorizationServiceConfiguration.fetchFromUrl(Uri.parse(authUrl),
                 (serviceConfiguration, ex) -> {
                     AuthorizationRequest authorizationRequest =
                             new AuthorizationRequest.Builder(serviceConfiguration, "consumer_client",
@@ -77,7 +79,7 @@ public class LoginActivity extends AppCompatActivity {
                             }
                         }}, new SecureRandom());
                         httpsURLConnection.setSSLSocketFactory(sslContext.getSocketFactory());
-                    }catch (Exception e){
+                    } catch (Exception e) {
 
                     }
                     return httpsURLConnection;
@@ -116,7 +118,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        dbHelper =  DbHelper.getInstance(getApplicationContext());
+        dbHelper = DbHelper.getInstance(getApplicationContext());
         setContentView(R.layout.activity_login);
         Button btnSignup = findViewById(R.id.btnSignup);
         Button btnLogin = findViewById(R.id.btnLogin);

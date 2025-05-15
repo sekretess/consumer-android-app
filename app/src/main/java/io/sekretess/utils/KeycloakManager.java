@@ -1,10 +1,13 @@
 package io.sekretess.utils;
 
 import android.util.Log;
+import android.widget.Toast;
 
 import com.auth0.android.jwt.JWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sekretess.Constants;
+import io.sekretess.MainActivity;
 import io.sekretess.dto.KeyMaterial;
 import io.sekretess.dto.UserDto;
 
@@ -112,8 +115,8 @@ public class KeycloakManager {
         }
     }
 
-    public boolean createUserInternal(String username, String email, String password,
-                                      KeyMaterial keyMaterial) {
+    private boolean createUserInternal(String username, String email, String password,
+                                       KeyMaterial keyMaterial) {
         HttpURLConnection httpURLConnection = null;
         Base64.Encoder base64Encoder = Base64.getEncoder();
         try {
@@ -144,19 +147,32 @@ public class KeycloakManager {
             userDto.setPqspkid(String.valueOf(keyMaterial.getLastResortKyberPreKeyId()));
             userDto.setPassword(password);
             String jsonObject = objectMapper.writeValueAsString(userDto);
+
+            largeLog("KeycloakService", jsonObject);
             outputStream.write(jsonObject.getBytes(StandardCharsets.UTF_8));
             outputStream.flush();
             outputStream.close();
-            String response = httpURLConnection.getResponseMessage();
             int responseCode = httpURLConnection.getResponseCode();
-            Log.i("KeycloakManager", response);
             return responseCode >= 200 && responseCode <= 299;
         } catch (Exception e) {
-            Log.e("KeycloakService", "Error occurred during initialize new user", e);
+
+            Log.e("KeycloakService", "Error occurred during initialize new user {0}", e);
         } finally {
             if (httpURLConnection != null)
                 httpURLConnection.disconnect();
         }
         return false;
+    }
+
+    private static void largeLog(String tag, String content) {
+        final int SEG_LENGTH = 4000;
+        do {
+            if (content.length() <= SEG_LENGTH) {
+                Log.d(tag, content);
+                break;
+            }
+            Log.d(tag, content.substring(0, SEG_LENGTH));
+            content = content.substring(SEG_LENGTH);
+        } while (!content.isEmpty());
     }
 }

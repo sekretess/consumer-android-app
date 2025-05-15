@@ -118,16 +118,7 @@ public class SignalProtocolService extends SekretessBackgroundService {
                         }
                     } else {
                         Log.w("SignalProtocolService", "Cryptographic keys found. Loading from database...");
-                        RegistrationAndDeviceId registrationId = dbHelper.getRegistrationId();
-                        signalProtocolStore = new SekretessSignalProtocolStore(context, identityKeyPair, registrationId.getRegistrationId());
-                        SignedPreKeyRecord signedPreKeyRecord = dbHelper.getSignedPreKeyRecord();
-                        Log.i("SignalProtocolService", "SignedPrekeyRecordLoaded. Id:" + signedPreKeyRecord.getId());
-                        signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
-                        deviceId = registrationId.getDeviceId();
-
-                        dbHelper.loadPreKeyRecords(signalProtocolStore);
-                        dbHelper.loadSessions(signalProtocolStore);
-                        dbHelper.loadKyberPreKeys(signalProtocolStore);
+                        loadCryptoKeysFromDb(context);
                     }
                 } else {
                     for (SignedPreKeyRecord signedPreKeyRecord : signalProtocolStore.loadSignedPreKeys()) {
@@ -141,6 +132,20 @@ public class SignalProtocolService extends SekretessBackgroundService {
             }
         }
     };
+
+    private void loadCryptoKeysFromDb(Context context) throws InvalidMessageException {
+        RegistrationAndDeviceId registrationId = dbHelper.getRegistrationId();
+        IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
+        signalProtocolStore = new SekretessSignalProtocolStore(context, identityKeyPair, registrationId.getRegistrationId());
+        SignedPreKeyRecord signedPreKeyRecord = dbHelper.getSignedPreKeyRecord();
+        Log.i("SignalProtocolService", "SignedPrekeyRecordLoaded. Id:" + signedPreKeyRecord.getId());
+        signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
+        deviceId = registrationId.getDeviceId();
+
+        dbHelper.loadPreKeyRecords(signalProtocolStore);
+        dbHelper.loadSessions(signalProtocolStore);
+        dbHelper.loadKyberPreKeys(signalProtocolStore);
+    }
 
     private final BroadcastReceiver initializeKeyBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -158,11 +163,11 @@ public class SignalProtocolService extends SekretessBackgroundService {
                         .createUser(username, email, password, keyMaterial)) {
                     startLoginActivity();
                 } else {
-                    broadcastSignupFailed();
+                    broadcastSignupFailed("");
                 }
             } catch (Exception e) {
                 Log.e("SignalProtocolService", "Error occurred during initialize user", e);
-                broadcastSignupFailed();
+                broadcastSignupFailed(e.getMessage());
             }
         }
     };
@@ -202,13 +207,26 @@ public class SignalProtocolService extends SekretessBackgroundService {
         getApplicationContext().registerReceiver(updateOpkBroadcastReceiver, new IntentFilter(Constants.EVENT_UPDATE_KEY), RECEIVER_EXPORTED);
         getApplicationContext().registerReceiver(loginEventBroadcastReceiver, new IntentFilter(Constants.EVENT_LOGIN), RECEIVER_EXPORTED);
 
+        dbHelper = DbHelper.getInstance(this);
+
         Log.i("SignalProtocolService", "All broadcast receivers registered");
         Log.i("SignalProtocolService", "signalProtocolStore = " + signalProtocolStore);
         if (signalProtocolStore == null) {
-            Log.i("SignalProtocolService", "SignalProtocolStore is null. Starting logging in process");
-            startLoginActivity();
+            if (dbHelper.getIdentityKeyPair() != null) {
+                Log.i("SignalProtocolService", "SignalProtocolStore is null. Loading data from db");
+                try {
+                    loadCryptoKeysFromDb(this);
+                } catch (Exception e) {
+                    Log.e("SignalProtocolService", "SignalProtocolStore is null. Error on load from DB.", e);
+                    startLoginActivity();
+                }
+            } else {
+                Log.i("SignalProtocolService", "SignalProtocolStore is null. Starting logging in process");
+                startLoginActivity();
+            }
         }
-        dbHelper = DbHelper.getInstance(this);
+
+
     }
 
     @Override
@@ -452,9 +470,10 @@ public class SignalProtocolService extends SekretessBackgroundService {
         sendBroadcast(intent);
     }
 
-    private void broadcastSignupFailed() {
+    private void broadcastSignupFailed(String message) {
         Log.i("SignalProtocolService", "Sending signup-failed event");
         Intent intent = new Intent(Constants.EVENT_SIGNUP_FAILED);
+        intent.putExtra("message", message);
         intent.setAction(Constants.EVENT_SIGNUP_FAILED);
         sendBroadcast(intent);
     }

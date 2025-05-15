@@ -26,22 +26,26 @@
 
         <activity
             android:name="io.sekretess.ui.MessagesFromSenderActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:noHistory="true"/>
 <!--        <activity-->
 <!--            android:name=".ui.ChatsActivity"-->
 <!--            android:exported="false" />-->
         <activity
             android:name="io.sekretess.ui.SignupActivity"
             android:exported="false"
+            android:noHistory="true"
             />
         <activity
             android:name="io.sekretess.ui.LoginActivity"
             android:exported="false"
+            android:noHistory="true"
            />
 
         <activity
             android:name="io.sekretess.StartupActivity"
-            android:exported="true">
+            android:exported="true"
+            android:noHistory="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -51,10 +55,12 @@
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
-        <activity android:name="io.sekretess.MainActivity"/>
+        <activity android:name="io.sekretess.MainActivity"
+            android:noHistory="true"/>
 
         <activity android:name="net.openid.appauth.RedirectUriReceiverActivity" android:exported="true"
-            tools:node="replace">
+            tools:node="replace"
+            android:noHistory="true">
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>

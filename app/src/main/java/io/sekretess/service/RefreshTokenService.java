@@ -27,7 +27,6 @@ public class RefreshTokenService extends SekretessBackgroundService {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.i("RefreshTokenService", "Login event received");
-            countDownTimer.start();
         }
     };
     private CountDownTimer countDownTimer = new CountDownTimer(Long.MAX_VALUE, 10000) {
@@ -54,7 +53,6 @@ public class RefreshTokenService extends SekretessBackgroundService {
             } else {
                 Log.e("RefreshTokenService", "Error occurred during refresh token. AuthState is null");
                 sendBroadcast(new Intent(Constants.EVENT_REFRESH_TOKEN_FAILED));
-                countDownTimer.cancel();
             }
         }
 
@@ -69,8 +67,7 @@ public class RefreshTokenService extends SekretessBackgroundService {
         serviceInstances.getAndSet(1);
         this.dbHelper = DbHelper.getInstance(getApplicationContext());
 
-        registerReceiver(loggedInEventReceiver, new IntentFilter(Constants.EVENT_LOGIN),
-                RECEIVER_EXPORTED);
+        countDownTimer.start();
         Log.i("RefreshTokenService", "Service Started");
     }
 

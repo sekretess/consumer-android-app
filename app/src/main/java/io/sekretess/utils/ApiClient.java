@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sekretess.Constants;
 import io.sekretess.dto.BusinessDto;
 
@@ -46,6 +47,7 @@ public class ApiClient {
             urlConnection.setUseCaches(false);
             urlConnection.connect();
             urlConnection.getInputStream().read();
+            Log.i("ApiClient", "Subscribe to business resultcode "+ urlConnection.getResponseCode());
             return urlConnection.getResponseCode() >= 200 && urlConnection.getResponseCode() <= 299;
         } catch (Exception e) {
             Log.e("ApiClient"
@@ -143,6 +145,10 @@ public class ApiClient {
             urlConnection.setDoOutput(false);
             urlConnection.setDoInput(true);
             urlConnection.connect();
+            if (urlConnection.getResponseCode() > 299) {
+                Log.e("ApiClient", "HTTP error " + urlConnection.getResponseCode() + " URL: " +Constants.BUSINESS_API_URL);
+                return Collections.EMPTY_LIST;
+            }
             StringBuilder response = new StringBuilder();
             BufferedReader bufferedReader =
                     new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
@@ -183,6 +189,10 @@ public class ApiClient {
             urlConnection.setDoOutput(false);
             urlConnection.setDoInput(true);
             urlConnection.connect();
+            if (urlConnection.getResponseCode() > 299) {
+                Log.e("ApiClient", "HTTP error " + urlConnection.getResponseCode() + " URL: " +urlConnection.getURL().toString());
+                return Collections.EMPTY_LIST;
+            }
             StringBuilder response = new StringBuilder();
             BufferedReader bufferedReader =
                     new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));

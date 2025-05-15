@@ -53,7 +53,7 @@ public class DbHelper extends SQLiteOpenHelper {
             = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.systemDefault());
 
     public static final int DATABASE_VERSION = 13;
-    public static final String DATABASE_NAME = "sekretess_enc_db.db";
+    public static final String DATABASE_NAME = "io.sekretess_enc_db.db";
     private static final Base64.Encoder base64Encoder = Base64.getEncoder();
     private static final Base64.Decoder base64Decoder = Base64.getDecoder();
     private Context mContext;
