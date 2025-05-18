@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.sql.Time;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -21,6 +22,46 @@ import java.util.concurrent.TimeUnit;
 public class ApiClient {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
+
+
+    public static boolean deleteUser(String jwt) {
+        try {
+            Future<Boolean> future = Executors.newSingleThreadExecutor()
+                    .submit(() -> deleteUserInternal(jwt));
+            return future.get(20, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            Log.e("ApiClient", "Error occurred during wait subscribe to business api result", e);
+            return false;
+        }
+    }
+
+    private static boolean deleteUserInternal(String jwt) {
+        HttpURLConnection urlConnection = null;
+        try {
+            URL consumerApiUrl = new URL(Constants.CONSUMER_API_URL);
+            urlConnection = (HttpURLConnection) consumerApiUrl.openConnection();
+            urlConnection.setRequestMethod("DELETE");
+            urlConnection.addRequestProperty("Content-Type", "application/json");
+            urlConnection.addRequestProperty("Authorization", "Bearer " + jwt);
+            urlConnection.setDoInput(true);
+            urlConnection.setDoOutput(true);
+            urlConnection.setUseCaches(false);
+            urlConnection.connect();
+            urlConnection.getInputStream().read();
+            Log.i("ApiClient", "Delete consumer API " + urlConnection.getResponseCode());
+            return urlConnection.getResponseCode() >= 200 && urlConnection.getResponseCode() <= 299;
+        } catch (Exception e) {
+            Log.e("ApiClient"
+                    , "Error occurred during delete consumer ", e);
+            return false;
+        } finally {
+            if (urlConnection != null) {
+                urlConnection.disconnect();
+            }
+        }
+
+
+    }
 
     public static boolean subscribeToBusiness(String business, String jwt) {
         try {
@@ -47,7 +88,7 @@ public class ApiClient {
             urlConnection.setUseCaches(false);
             urlConnection.connect();
             urlConnection.getInputStream().read();
-            Log.i("ApiClient", "Subscribe to business resultcode "+ urlConnection.getResponseCode());
+            Log.i("ApiClient", "Subscribe to business resultcode " + urlConnection.getResponseCode());
             return urlConnection.getResponseCode() >= 200 && urlConnection.getResponseCode() <= 299;
         } catch (Exception e) {
             Log.e("ApiClient"
@@ -146,7 +187,7 @@ public class ApiClient {
             urlConnection.setDoInput(true);
             urlConnection.connect();
             if (urlConnection.getResponseCode() > 299) {
-                Log.e("ApiClient", "HTTP error " + urlConnection.getResponseCode() + " URL: " +Constants.BUSINESS_API_URL);
+                Log.e("ApiClient", "HTTP error " + urlConnection.getResponseCode() + " URL: " + Constants.BUSINESS_API_URL);
                 return Collections.EMPTY_LIST;
             }
             StringBuilder response = new StringBuilder();
@@ -190,7 +231,7 @@ public class ApiClient {
             urlConnection.setDoInput(true);
             urlConnection.connect();
             if (urlConnection.getResponseCode() > 299) {
-                Log.e("ApiClient", "HTTP error " + urlConnection.getResponseCode() + " URL: " +urlConnection.getURL().toString());
+                Log.e("ApiClient", "HTTP error " + urlConnection.getResponseCode() + " URL: " + urlConnection.getURL().toString());
                 return Collections.EMPTY_LIST;
             }
             StringBuilder response = new StringBuilder();

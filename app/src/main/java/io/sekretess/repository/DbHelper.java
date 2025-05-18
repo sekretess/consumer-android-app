@@ -8,6 +8,7 @@ import android.util.Log;
 
 
 import com.auth0.android.jwt.JWT;
+
 import io.sekretess.Constants;
 import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.MessageRecordDto;
@@ -165,6 +166,32 @@ public class DbHelper extends SQLiteOpenHelper {
         try (SQLiteDatabase db = getWritableDatabase(p())) {
             db.insert(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
         }
+    }
+
+
+    public boolean clearUserData() {
+        SQLiteDatabase db = getWritableDatabase(p());
+        try {
+            db.beginTransaction();
+            db.delete(MessageStoreEntity.TABLE_NAME, null, null);
+            db.delete(IdentityKeyPairStoreEntity.TABLE_NAME, null, null);
+            db.delete(RegistrationIdStoreEntity.TABLE_NAME, null, null);
+            db.delete(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, null);
+            db.delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
+            db.delete(JwtStoreEntity.TABLE_NAME, null, null);
+            db.delete(SessionStoreEntity.TABLE_NAME, null, null);
+            db.delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+            db.delete(KyberPreKeyRecordsEntity.TABLE_NAME, null, null);
+            db.delete(SenderKeyEntity.TABLE_NAME, null, null);
+            db.setTransactionSuccessful();
+            return true;
+        } catch (Exception e) {
+            return false;
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
+
     }
 
     @SuppressLint("Range")
@@ -465,6 +492,5 @@ public class DbHelper extends SQLiteOpenHelper {
     public String getUserNameFromJwt() {
         return new JWT(getAuthState().getIdToken()).getClaim(Constants.USERNAME_CLAIM).asString();
     }
-
 
 }
