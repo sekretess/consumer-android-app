@@ -35,12 +35,11 @@ public class ChatsFragment extends Fragment {
         public void onReceive(Context context, Intent intent) {
             Log.i("ChatsActivity", "new-incoming-message event received");
             List<MessageBriefDto> messageBriefs = DbHelper.getInstance(context).getMessageBriefs();
-            sendersAdapter = new SendersAdapter(messageBriefs);
+            sendersAdapter = new SendersAdapter(messageBriefs, getParentFragmentManager());
             recyclerView.setAdapter(sendersAdapter);
             sendersAdapter.notifyItemInserted(messageBriefs.size());
         }
     };
-
 
 
     @Override
@@ -48,16 +47,11 @@ public class ChatsFragment extends Fragment {
         View view = inflater.inflate(R.layout.activity_chats, container, false);
         recyclerView = view.findViewById(R.id.chat);
         List<MessageBriefDto> messageBriefs = DbHelper.getInstance(getContext()).getMessageBriefs();
-//        messageBriefs = List.of(new MessageBriefDto("SwedenBank", 1),
-//                new MessageBriefDto("CoinMarket", 10));
-        sendersAdapter = new SendersAdapter(messageBriefs);
+        sendersAdapter = new SendersAdapter(messageBriefs, getParentFragmentManager());
         recyclerView.setAdapter(sendersAdapter);
         recyclerView.addItemDecoration(new DividerItemDecoration(getContext(),
                 DividerItemDecoration.VERTICAL));
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-
-
-
         return view;
     }
 

@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="io.sekretess.sekretess.ui.BusinessesFragment">
+    tools:context="io.sekretess.ui.BusinessesFragment">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/businessesRecycler"

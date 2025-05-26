@@ -25,20 +25,20 @@
 <!--            android:exported="false" />-->
 
         <activity
-            android:name="io.sekretess.ui.MessagesFromSenderActivity"
-            android:exported="false"
+            android:name="io.sekretess.ui.MessagesFromSenderFragment"
+            android:exported="true"
             android:noHistory="true"/>
 <!--        <activity-->
 <!--            android:name=".ui.ChatsActivity"-->
 <!--            android:exported="false" />-->
         <activity
             android:name="io.sekretess.ui.SignupActivity"
-            android:exported="false"
+            android:exported="true"
             android:noHistory="true"
             />
         <activity
             android:name="io.sekretess.ui.LoginActivity"
-            android:exported="false"
+            android:exported="true"
             android:noHistory="true"
            />
 

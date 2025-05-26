@@ -19,6 +19,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
@@ -93,6 +94,7 @@ public class SignalProtocolService extends SekretessBackgroundService {
     private final BroadcastReceiver loginEventBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            Log.i("SignalProtocolService", "Login event received");
             try {
                 SharedPreferences globalVariables = getApplicationContext()
                         .getSharedPreferences("global-variables", MODE_PRIVATE);
@@ -123,6 +125,7 @@ public class SignalProtocolService extends SekretessBackgroundService {
                 } else {
                     for (SignedPreKeyRecord signedPreKeyRecord : signalProtocolStore.loadSignedPreKeys()) {
                         Log.i("SignalProtocolService", "SignedPrekeyRecordLoaded. Id:" + signedPreKeyRecord.getId());
+                        Log.i("SignalProtocolService", "SignedPrekeyRecordLoaded. Signature:" + base64Encoder.encodeToString(signedPreKeyRecord.getSignature()));
 
                     }
                 }
@@ -139,6 +142,7 @@ public class SignalProtocolService extends SekretessBackgroundService {
         signalProtocolStore = new SekretessSignalProtocolStore(context, identityKeyPair, registrationId.getRegistrationId());
         SignedPreKeyRecord signedPreKeyRecord = dbHelper.getSignedPreKeyRecord();
         Log.i("SignalProtocolService", "SignedPrekeyRecordLoaded. Id:" + signedPreKeyRecord.getId());
+        Log.i("SignalProtocolService", "SignedPrekeyRecordLoaded. Signature:" + base64Encoder.encodeToString(signedPreKeyRecord.getSignature()));
         signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
         deviceId = registrationId.getDeviceId();
 
@@ -202,10 +206,11 @@ public class SignalProtocolService extends SekretessBackgroundService {
     @Override
     public void started(Intent intent) {
         serviceInstances.getAndSet(1);
-        getApplicationContext().registerReceiver(encryptedMessageBroadcastReceiver, new IntentFilter(Constants.EVENT_NEW_INCOMING_ENCRYPTED_MESSAGE), RECEIVER_EXPORTED);
-        getApplicationContext().registerReceiver(initializeKeyBroadcastReceiver, new IntentFilter(Constants.EVENT_INITIALIZE_KEY), RECEIVER_EXPORTED);
-        getApplicationContext().registerReceiver(updateOpkBroadcastReceiver, new IntentFilter(Constants.EVENT_UPDATE_KEY), RECEIVER_EXPORTED);
-        getApplicationContext().registerReceiver(loginEventBroadcastReceiver, new IntentFilter(Constants.EVENT_LOGIN), RECEIVER_EXPORTED);
+        registerReceiver(encryptedMessageBroadcastReceiver, new IntentFilter(Constants.EVENT_NEW_INCOMING_ENCRYPTED_MESSAGE), RECEIVER_EXPORTED);
+        registerReceiver(initializeKeyBroadcastReceiver, new IntentFilter(Constants.EVENT_INITIALIZE_KEY), RECEIVER_EXPORTED);
+        registerReceiver(updateOpkBroadcastReceiver, new IntentFilter(Constants.EVENT_UPDATE_KEY), RECEIVER_EXPORTED);
+        registerReceiver(loginEventBroadcastReceiver,
+                new IntentFilter(Constants.EVENT_LOGIN), RECEIVER_EXPORTED);
 
         dbHelper = DbHelper.getInstance(this);
 
@@ -261,6 +266,7 @@ public class SignalProtocolService extends SekretessBackgroundService {
                 serializeKyberPreKeys(kyberPreKeyRecords.getKyberPreKeyRecords()),
                 base64Encoder.encodeToString(kyberPreKeyRecords.getLastResortKyberPreKeyRecord()
                         .getKeyPair().getPublicKey().serialize()),
+                kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getSignature(),
                 kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId());
     }
 
@@ -276,6 +282,7 @@ public class SignalProtocolService extends SekretessBackgroundService {
         ECKeyPair keyPair = Curve.generateKeyPair();
         byte[] signature = Curve.calculateSignature(identityKeyPair.getPrivateKey(),
                 keyPair.getPublicKey().serialize());
+
         ;
         //Generate one-time prekeys
         PreKeyRecord[] opk = generatePreKeys(15);
@@ -291,6 +298,7 @@ public class SignalProtocolService extends SekretessBackgroundService {
                 identityKeyPair, signature, serializeKyberPreKeys(kyberPreKeyRecords.getKyberPreKeyRecords()),
                 base64Encoder.encodeToString(kyberPreKeyRecords.getLastResortKyberPreKeyRecord()
                         .getKeyPair().getPublicKey().serialize()),
+                kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getSignature(),
                 kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId());
     }
 
@@ -312,7 +320,8 @@ public class SignalProtocolService extends SekretessBackgroundService {
         int kyberSignedPreKeyId = new Random().nextInt(Medium.MAX_VALUE - 1);
         KEMKeyPair kemKeyPair = KEMKeyPair.generate(KEMKeyType.KYBER_1024);
         KyberPreKeyRecord kyberPreKeyRecord = new KyberPreKeyRecord(kyberSignedPreKeyId,
-                System.currentTimeMillis(), kemKeyPair, ecPrivateKey.calculateSignature(kemKeyPair.getPublicKey().serialize()));
+                System.currentTimeMillis(), kemKeyPair,
+                ecPrivateKey.calculateSignature(kemKeyPair.getPublicKey().serialize()));
         signalProtocolStore.storeKyberPreKey(kyberPreKeyRecord.getId(), kyberPreKeyRecord);
         dbHelper.storeKyberPreKey(kyberPreKeyRecord);
         return kyberPreKeyRecord;
@@ -326,6 +335,8 @@ public class SignalProtocolService extends SekretessBackgroundService {
                 System.currentTimeMillis(), keyPair, signature);
         signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
 
+//        Log.i("SignalProtocolService", "SignedPrekeyRecordLoaded. Signature:"
+//                + base64Encoder.encodeToString(signedPreKeyRecord.getSignature()));
         dbHelper.storeSignedPreKeyRecord(signedPreKeyRecord);
         return signedPreKeyRecord;
     }
@@ -427,6 +438,7 @@ public class SignalProtocolService extends SekretessBackgroundService {
         PreKeySignalMessage preKeySignalMessage = new PreKeySignalMessage(base64Decoder.decode(base64Message));
         SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(sender, deviceId);
         SessionCipher sessionCipher = new SessionCipher(signalProtocolStore, signalProtocolAddress);
+        Log.i("SignalProtocolService", "" + signalProtocolStore);
         String message = new String(sessionCipher.decrypt(preKeySignalMessage));
 
         if (messageType.equalsIgnoreCase("key_dist")) {
@@ -465,7 +477,7 @@ public class SignalProtocolService extends SekretessBackgroundService {
 
     private void broadcastNewMessageReceived() {
         Log.i("SignalProtocolService", "Sending new-incoming-message event");
-        Intent intent = new Intent(Constants.EVENT_NEW_INCOMING_MESSAGE);
+        Intent intent = new Intent();
         intent.setAction(Constants.EVENT_NEW_INCOMING_MESSAGE);
         sendBroadcast(intent);
     }

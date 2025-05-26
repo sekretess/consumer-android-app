@@ -133,6 +133,7 @@ public class LoginActivity extends AppCompatActivity {
     private void broadcastSuccessfulLogin(String queueName) {
         Intent intent = new Intent(Constants.EVENT_LOGIN);
         intent.putExtra("queueName", queueName);
+        intent.setFlags(Intent.FLAG_DEBUG_LOG_RESOLUTION);
         sendBroadcast(intent);
     }
 }

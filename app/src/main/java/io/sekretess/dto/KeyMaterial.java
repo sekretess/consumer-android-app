@@ -12,6 +12,7 @@ public class KeyMaterial {
     private byte[] signature;
     private String lastResortKyberPreKey;
     private int lastResortKyberPreKeyId;
+    private byte[] lastResortKeyberPreKeySignature;
 
     public KeyMaterial() {
 
@@ -20,7 +21,7 @@ public class KeyMaterial {
     public KeyMaterial(int registrationId, String[] serializedOnetimePreKeys,
                        SignedPreKeyRecord signedPreKeyRecord, IdentityKeyPair identityKeyPair,
                        byte[] signature, String[] serializedKyberPreKeys, String lastResortKyberPreKey,
-                       int lastResortKyberPreKeyId) {
+                       byte[] lastResortKeyberPreKeySignature, int lastResortKyberPreKeyId) {
         this.registrationId = registrationId;
         this.opk = serializedOnetimePreKeys;
         this.signedPreKeyRecord = signedPreKeyRecord;
@@ -28,6 +29,7 @@ public class KeyMaterial {
         this.signature = signature;
         this.serializedKyberPreKeys = serializedKyberPreKeys;
         this.lastResortKyberPreKey = lastResortKyberPreKey;
+        this.lastResortKeyberPreKeySignature = lastResortKeyberPreKeySignature;
         this.lastResortKyberPreKeyId = lastResortKyberPreKeyId;
     }
 
@@ -65,5 +67,9 @@ public class KeyMaterial {
 
     public int getLastResortKyberPreKeyId() {
         return lastResortKyberPreKeyId;
+    }
+
+    public byte[] getLastResortKeyberPreKeySignature() {
+        return lastResortKeyberPreKeySignature;
     }
 }

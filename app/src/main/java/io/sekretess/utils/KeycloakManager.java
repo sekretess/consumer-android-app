@@ -81,7 +81,7 @@ public class KeycloakManager {
             // Setting PostQuantum keys
             userDto.setPqspkid(String.valueOf(keyMaterial.getLastResortKyberPreKeyId()));
             userDto.setPqspk(keyMaterial.getLastResortKyberPreKey());
-            userDto.setPqspkSignature(encoder.encodeToString(keyMaterial.getSignature()));
+            userDto.setPqspkSignature(encoder.encodeToString(keyMaterial.getLastResortKeyberPreKeySignature()));
 
             String jsonObject = objectMapper.writeValueAsString(userDto);
             outputStream.write(jsonObject.getBytes(StandardCharsets.UTF_8));
@@ -143,7 +143,7 @@ public class KeycloakManager {
             // Setting PostQuantum keys
             userDto.setOpqk(keyMaterial.getSerializedKyberPreKeys());
             userDto.setPqspk(keyMaterial.getLastResortKyberPreKey());
-            userDto.setPqspkSignature(base64Encoder.encodeToString(keyMaterial.getSignature()));
+            userDto.setPqspkSignature(base64Encoder.encodeToString(keyMaterial.getLastResortKeyberPreKeySignature()));
             userDto.setPqspkid(String.valueOf(keyMaterial.getLastResortKyberPreKeyId()));
             userDto.setPassword(password);
             String jsonObject = objectMapper.writeValueAsString(userDto);

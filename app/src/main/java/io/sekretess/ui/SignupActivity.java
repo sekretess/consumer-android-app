@@ -11,6 +11,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
@@ -30,8 +31,8 @@ public class SignupActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        registerReceiver(signupFailedEventBroadcastReceiver,
-                new IntentFilter(Constants.EVENT_SIGNUP_FAILED), RECEIVER_EXPORTED);
+        ContextCompat.registerReceiver(getApplicationContext(), signupFailedEventBroadcastReceiver,
+                new IntentFilter(Constants.EVENT_SIGNUP_FAILED), ContextCompat.RECEIVER_EXPORTED);
     }
 
     @Override

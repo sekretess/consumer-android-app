@@ -3,7 +3,6 @@ package io.sekretess.service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.util.Log;
@@ -23,37 +22,34 @@ public class RefreshTokenService extends SekretessBackgroundService {
     public static final AtomicInteger serviceInstances = new AtomicInteger(0);
     private DbHelper dbHelper;
 
-    private final BroadcastReceiver loggedInEventReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.i("RefreshTokenService", "Login event received");
-        }
-    };
     private CountDownTimer countDownTimer = new CountDownTimer(Long.MAX_VALUE, 10000) {
         @Override
         public void onTick(long millisUntilFinished) {
-            AuthState authState = dbHelper.getAuthState();
-            if (authState != null) {
-                if (authState.getNeedsTokenRefresh()) {
-                    Log.i("RefreshTokenService", "Refreshing token");
-                    authState.performActionWithFreshTokens(new AuthorizationService(getApplicationContext()),
-                            (accessToken, idToken, ex) -> {
-                                if (ex != null) {
-                                    Log.e("RefreshTokenService", "Error occurred during refresh token.", ex);
-                                    dbHelper.removeAuthState();
-                                    sendBroadcast(new Intent(Constants.EVENT_REFRESH_TOKEN_FAILED));
-                                } else {
-                                    Log.i("RefreshTokenService", "Token refreshed");
-                                    dbHelper.storeAuthState(authState.jsonSerializeString());
-                                }
-                            });
+            Thread t = new Thread(() -> {
+                AuthState authState = dbHelper.getAuthState();
+                if (authState != null) {
+                    if (authState.getNeedsTokenRefresh()) {
+                        Log.i("RefreshTokenService", "Refreshing token");
+                        authState.performActionWithFreshTokens(new AuthorizationService(getApplicationContext()),
+                                (accessToken, idToken, ex) -> {
+                                    if (ex != null) {
+                                        Log.e("RefreshTokenService", "Error occurred during refresh token.", ex);
+                                        dbHelper.removeAuthState();
+                                        sendBroadcast(new Intent(Constants.EVENT_REFRESH_TOKEN_FAILED));
+                                    } else {
+                                        Log.i("RefreshTokenService", "Token refreshed");
+                                        dbHelper.storeAuthState(authState.jsonSerializeString());
+                                    }
+                                });
+                    } else {
+                        Log.i("RefreshTokenService", "Token refresh is not requiring:" + authState.getAccessToken());
+                    }
                 } else {
-                    Log.i("RefreshTokenService", "Token refresh is not requiring");
+                    Log.e("RefreshTokenService", "Error occurred during refresh token. AuthState is null");
+                    sendBroadcast(new Intent(Constants.EVENT_REFRESH_TOKEN_FAILED));
                 }
-            } else {
-                Log.e("RefreshTokenService", "Error occurred during refresh token. AuthState is null");
-                sendBroadcast(new Intent(Constants.EVENT_REFRESH_TOKEN_FAILED));
-            }
+            });
+            t.start();
         }
 
         @Override

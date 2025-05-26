@@ -21,7 +21,6 @@ public abstract class SekretessBackgroundService extends Service {
 
     @Override
     public final int onStartCommand(Intent intent, int flags, int startId) {
-
         startForeground(getNotificationId(), notifyUserThatLocationServiceStarted());
         started(intent);
         return START_STICKY;

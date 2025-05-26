@@ -51,7 +51,6 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
 
     @Override
     public void destroyed() {
-        super.onDestroy();
         serviceInstances.getAndSet(0);
         Executors.newSingleThreadExecutor().submit(this::closeRabbitMqConnections);
         future.cancel(true);
@@ -80,9 +79,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     public void started(Intent intent) {
         Log.i("SekretessRabbitMqService", "SekretessRabbitMqService started successfully");
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        getApplicationContext()
-                .registerReceiver(loggedInEventReceiver, new IntentFilter(Constants.EVENT_LOGIN),
-                        RECEIVER_EXPORTED);
+        registerReceiver(loggedInEventReceiver, new IntentFilter(Constants.EVENT_LOGIN), RECEIVER_EXPORTED);
     }
 
     @Nullable
@@ -97,17 +94,17 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         ConnectionFactory connectionFactory = new ConnectionFactory();
         connectionFactory.setVirtualHost("sekretess");
         String amqpConnectionUrl = getString(R.string.rabbit_mq_uri);
-        amqpConnectionUrl = String.format(amqpConnectionUrl, dbHelper.getUserNameFromJwt(), dbHelper.getAuthState().getAccessToken());
-        try {
-            connectionFactory.setUri(amqpConnectionUrl);
-        } catch (Exception e) {
-            Log.e("SekretessRabbitMqService", "URI setting problem", e);
-        }
-        connectionFactory.setAutomaticRecoveryEnabled(false);
+
         while (true) {
 
             try {
                 Thread.sleep(3000);
+                amqpConnectionUrl = String.format(amqpConnectionUrl, dbHelper.getUserNameFromJwt(), dbHelper.getAuthState().getAccessToken());
+                Log.i("SekretessRabbitMqService", "Connecting with URI: " + amqpConnectionUrl);
+                connectionFactory.setUri(amqpConnectionUrl);
+
+                connectionFactory.setAutomaticRecoveryEnabled(false);
+
                 Connection connection = connectionFactory.newConnection();
                 connection.addShutdownListener(cause -> {
                     try {

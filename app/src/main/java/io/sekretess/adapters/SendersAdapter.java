@@ -8,20 +8,25 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.RecyclerView;
 
 import io.sekretess.R;
 import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.view.holders.SenderViewHolder;
-import io.sekretess.ui.MessagesFromSenderActivity;
+import io.sekretess.ui.MessagesFromSenderFragment;
 
 import java.util.List;
 
 public class SendersAdapter extends RecyclerView.Adapter<SenderViewHolder> {
+    private final FragmentManager fragmentManager;
     private final List<MessageBriefDto> mMessageBriefs;
 
-    public SendersAdapter(List<MessageBriefDto> mMessageBriefs) {
+    public SendersAdapter(List<MessageBriefDto> mMessageBriefs, FragmentManager fragmentManager) {
         this.mMessageBriefs = mMessageBriefs;
+        this.fragmentManager = fragmentManager;
     }
 
     @NonNull
@@ -38,11 +43,11 @@ public class SendersAdapter extends RecyclerView.Adapter<SenderViewHolder> {
         MessageBriefDto messageBriefDto = mMessageBriefs.get(position);
         holder.getTxtSenderName().setText(messageBriefDto.getSender());
         holder.getTxtSenderName().setOnClickListener(v -> {
-            Intent intent = new Intent(v.getContext(), MessagesFromSenderActivity.class);
             Bundle bundle = new Bundle();
             bundle.putString("from", holder.getTxtSenderName().getText().toString());
-            intent.putExtras(bundle);
-            v.getContext().startActivity(intent);
+            MessagesFromSenderFragment fragment = new MessagesFromSenderFragment();
+            fragment.setArguments(bundle);
+            replaceFragment(fragment);
         });
         holder.getTxtMessageCount().setText(String.valueOf(messageBriefDto.getCount()));
     }
@@ -50,5 +55,11 @@ public class SendersAdapter extends RecyclerView.Adapter<SenderViewHolder> {
     @Override
     public int getItemCount() {
         return mMessageBriefs.size();
+    }
+
+    private void replaceFragment(Fragment fragment) {
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.replace(R.id.frame_layout, fragment);
+        fragmentTransaction.commit();
     }
 }
