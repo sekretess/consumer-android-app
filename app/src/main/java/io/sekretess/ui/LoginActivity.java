@@ -106,7 +106,6 @@ public class LoginActivity extends AppCompatActivity {
                                 String username = jwt.getClaim(Constants.USERNAME_CLAIM).asString();
                                 Log.i("LoginActivity", "Login successful. Broadcast event.");
                                 dbHelper.storeAuthState(authState.jsonSerializeString());
-                                broadcastSuccessfulLogin(username);
                                 startActivity(new Intent(this, MainActivity.class));
                             }
                         });
@@ -122,6 +121,7 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
         Button btnSignup = findViewById(R.id.btnSignup);
         Button btnLogin = findViewById(R.id.btnLogin);
+
         btnSignup.setOnClickListener(v ->
                 startActivity(new Intent(this, SignupActivity.class)));
 
@@ -130,10 +130,4 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    private void broadcastSuccessfulLogin(String queueName) {
-        Intent intent = new Intent(Constants.EVENT_LOGIN);
-        intent.putExtra("queueName", queueName);
-        intent.setFlags(Intent.FLAG_DEBUG_LOG_RESOLUTION);
-        sendBroadcast(intent);
-    }
 }

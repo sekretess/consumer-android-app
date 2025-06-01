@@ -16,7 +16,7 @@ public class SekretessSignalProtocolStore extends InMemorySignalProtocolStore {
 
     public SekretessSignalProtocolStore(Context context, IdentityKeyPair identityKeyPair, int registrationId) {
         super(identityKeyPair, registrationId);
-        this.dbHelper =  DbHelper.getInstance(context);
+        this.dbHelper = DbHelper.getInstance(context);
     }
 
     @Override
@@ -38,6 +38,9 @@ public class SekretessSignalProtocolStore extends InMemorySignalProtocolStore {
         dbHelper.markKyberPreKeyUsed(kyberPreKeyId);
     }
 
+    public void loadKyberPreKey(int kyberPreKeyId, KyberPreKeyRecord record){
+        super.storeKyberPreKey(kyberPreKeyId, record);
+    }
     @Override
     public void storeKyberPreKey(int kyberPreKeyId, KyberPreKeyRecord record) {
         super.storeKyberPreKey(kyberPreKeyId, record);
@@ -48,7 +51,10 @@ public class SekretessSignalProtocolStore extends InMemorySignalProtocolStore {
     public void storeSession(SignalProtocolAddress address, SessionRecord record) {
         super.storeSession(address, record);
         dbHelper.storeSession(address, record);
+    }
 
+    public void loadSession(SignalProtocolAddress address, SessionRecord record) {
+        super.storeSession(address, record);
     }
 
     @Override

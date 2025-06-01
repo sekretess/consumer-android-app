@@ -1,7 +1,6 @@
 package io.sekretess.adapters;
 
 import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,12 +20,13 @@ import io.sekretess.ui.MessagesFromSenderFragment;
 import java.util.List;
 
 public class SendersAdapter extends RecyclerView.Adapter<SenderViewHolder> {
-    private final FragmentManager fragmentManager;
-    private final List<MessageBriefDto> mMessageBriefs;
 
-    public SendersAdapter(List<MessageBriefDto> mMessageBriefs, FragmentManager fragmentManager) {
+    private final List<MessageBriefDto> mMessageBriefs;
+    private final ItemClickListener listener;
+
+    public SendersAdapter(List<MessageBriefDto> mMessageBriefs, ItemClickListener listener) {
         this.mMessageBriefs = mMessageBriefs;
-        this.fragmentManager = fragmentManager;
+        this.listener = listener;
     }
 
     @NonNull
@@ -38,16 +38,17 @@ public class SendersAdapter extends RecyclerView.Adapter<SenderViewHolder> {
         return new SenderViewHolder(sendersView);
     }
 
+
     @Override
     public void onBindViewHolder(@NonNull SenderViewHolder holder, int position) {
         MessageBriefDto messageBriefDto = mMessageBriefs.get(position);
         holder.getTxtSenderName().setText(messageBriefDto.getSender());
         holder.getTxtSenderName().setOnClickListener(v -> {
-            Bundle bundle = new Bundle();
-            bundle.putString("from", holder.getTxtSenderName().getText().toString());
-            MessagesFromSenderFragment fragment = new MessagesFromSenderFragment();
-            fragment.setArguments(bundle);
-            replaceFragment(fragment);
+            listener.onClick(holder.getTxtSenderName().getText().toString());
+//            Bundle bundle = new Bundle();
+//            bundle.putString("from", holder.getTxtSenderName().getText().toString());
+//            MessagesFromSenderFragment fragment = new MessagesFromSenderFragment();
+//            fragment.setArguments(bundle);
         });
         holder.getTxtMessageCount().setText(String.valueOf(messageBriefDto.getCount()));
     }
@@ -57,9 +58,8 @@ public class SendersAdapter extends RecyclerView.Adapter<SenderViewHolder> {
         return mMessageBriefs.size();
     }
 
-    private void replaceFragment(Fragment fragment) {
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.replace(R.id.frame_layout, fragment);
-        fragmentTransaction.commit();
+
+    public interface ItemClickListener {
+        void onClick(String senderName);
     }
 }

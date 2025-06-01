@@ -5,10 +5,10 @@ import static android.widget.Toast.LENGTH_LONG;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -16,7 +16,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatImageView;
 import androidx.fragment.app.Fragment;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import io.sekretess.Constants;
 import io.sekretess.R;
 import io.sekretess.repository.DbHelper;
 import io.sekretess.utils.ApiClient;
@@ -41,15 +43,27 @@ public class ProfileFragment extends Fragment {
             var idToken = dbHelper.getAuthState().getIdToken();
             boolean deleteSuccess = false;
             if (deleteSuccess = ApiClient.deleteUser(idToken)) {
-                if (deleteSuccess= dbHelper.clearUserData()) {
+                if (deleteSuccess = dbHelper.clearUserData()) {
                     startActivity(new Intent(ProfileFragment.this.getContext(), LoginActivity.class));
                 }
             }
 
-            if(!deleteSuccess){
+            if (!deleteSuccess) {
                 Toast.makeText(getContext(), "Account delete failed", LENGTH_LONG).show();
             }
         });
+
+        AppCompatImageView btnPrivacy = view.findViewById(R.id.btn_privacy);
+        btnPrivacy.setOnClickListener(v -> {
+            broadcastUpdateKeys();
+        });
         return view;
+    }
+
+
+    private void broadcastUpdateKeys() {
+        Intent intent = new Intent(Constants.EVENT_UPDATE_KEY);
+        boolean sendBroadcast = LocalBroadcastManager.getInstance(getContext()).sendBroadcast(intent);
+        Log.i("ProfileFragment", "Sent update_key event broadcast result : " + sendBroadcast);
     }
 }

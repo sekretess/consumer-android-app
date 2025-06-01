@@ -3,6 +3,7 @@ package io.sekretess.service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.util.Log;
@@ -19,13 +20,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class RefreshTokenService extends SekretessBackgroundService {
     public static final int REFRESH_TOKEN_SERVICE_NOTIFICATION = 3;
-    public static final AtomicInteger serviceInstances = new AtomicInteger(0);
-    private DbHelper dbHelper;
 
+    private boolean running;
     private CountDownTimer countDownTimer = new CountDownTimer(Long.MAX_VALUE, 10000) {
         @Override
         public void onTick(long millisUntilFinished) {
-            Thread t = new Thread(() -> {
+            Log.i("RefreshTokenService", "On tick...");
+
+
+            DbHelper dbHelper = DbHelper.getInstance(getApplicationContext());
+            try {
                 AuthState authState = dbHelper.getAuthState();
                 if (authState != null) {
                     if (authState.getNeedsTokenRefresh()) {
@@ -44,13 +48,18 @@ public class RefreshTokenService extends SekretessBackgroundService {
                     } else {
                         Log.i("RefreshTokenService", "Token refresh is not requiring:" + authState.getAccessToken());
                     }
+                    running = true;
                 } else {
                     Log.e("RefreshTokenService", "Error occurred during refresh token. AuthState is null");
+                    running = false;
                     sendBroadcast(new Intent(Constants.EVENT_REFRESH_TOKEN_FAILED));
+                    countDownTimer.cancel();
                 }
-            });
-            t.start();
+            } finally {
+                dbHelper.close();
+            }
         }
+
 
         @Override
         public void onFinish() {
@@ -60,31 +69,31 @@ public class RefreshTokenService extends SekretessBackgroundService {
 
     @Override
     public void started(Intent intent) {
-        serviceInstances.getAndSet(1);
-        this.dbHelper = DbHelper.getInstance(getApplicationContext());
-
-        countDownTimer.start();
         Log.i("RefreshTokenService", "Service Started");
+        registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Log.i("RefreshTokenService", "Login event received");
+                if (!running)
+                    countDownTimer.start();
+            }
+        }, new IntentFilter(Constants.EVENT_LOGIN), RECEIVER_EXPORTED);
     }
 
-
-    private void startRefreshTokenService() {
-        countDownTimer.start();
-    }
 
     @Override
     public void destroyed() {
-        serviceInstances.getAndSet(0);
+        countDownTimer.cancel();
     }
 
     @Override
     public int getNotificationId() {
-        return REFRESH_TOKEN_SERVICE_NOTIFICATION;
+        return REFRESH_TOKEN_SERVICE_NOTIFICATION + 10;
     }
 
     @Override
     public String getChannelId() {
-        return "sekretess:refresh-token-service-channel";
+        return "sekretess:refresh-token-service-channel-1";
     }
 
     @Nullable

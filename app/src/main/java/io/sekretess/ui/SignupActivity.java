@@ -38,30 +38,24 @@ public class SignupActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_signup);
         Button btnSignup = findViewById(R.id.btnSignUp);
-        btnSignup.setOnClickListener(v -> initializeNewUser());
+        btnSignup.setOnClickListener(v -> broadcastSignup());
     }
 
-    private void initializeNewUser() {
-        try {
-            String email = ((EditText) findViewById(R.id.txtSignupEmail)).getText().toString();
-            String username = ((EditText) findViewById(R.id.txtSignupUsername)).getText().toString();
-            String password = ((EditText) findViewById(R.id.txtSignupPassword)).getText().toString();
+    private void broadcastSignup() {
 
-            broadcastInitializeKeys(email, username, password);
+        String email = ((EditText) findViewById(R.id.txtSignupEmail)).getText().toString();
+        String username = ((EditText) findViewById(R.id.txtSignupUsername)).getText().toString();
+        String password = ((EditText) findViewById(R.id.txtSignupPassword)).getText().toString();
 
-        } catch (Exception e) {
-            Log.e("SignupActivity", "Error occurred during initialize new user", e);
-        }
-    }
-
-    private void broadcastInitializeKeys(String email, String username, String password) {
         Intent intent = new Intent(Constants.EVENT_INITIALIZE_KEY);
         intent.putExtra("email", email);
         intent.putExtra("username", username);
         intent.putExtra("password", password);
         sendBroadcast(intent);
     }
+
 
 }

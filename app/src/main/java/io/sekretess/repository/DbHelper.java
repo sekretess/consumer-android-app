@@ -168,6 +168,24 @@ public class DbHelper extends SQLiteOpenHelper {
         }
     }
 
+    public boolean clearKeyData() {
+        SQLiteDatabase db = getWritableDatabase(p());
+        try {
+            db.beginTransaction();
+            db.delete(IdentityKeyPairStoreEntity.TABLE_NAME, null, null);
+            db.delete(RegistrationIdStoreEntity.TABLE_NAME, null, null);
+            db.delete(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, null);
+            db.delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
+            db.delete(KyberPreKeyRecordsEntity.TABLE_NAME, null, null);
+            db.setTransactionSuccessful();
+            return true;
+        } catch (Exception e) {
+            return false;
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
+    }
 
     public boolean clearUserData() {
         SQLiteDatabase db = getWritableDatabase(p());
@@ -216,14 +234,14 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
     public void storePreKeyRecords(PreKeyRecord[] preKeyRecords) {
-        for (PreKeyRecord preKeyRecord : preKeyRecords) {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put(PreKeyRecordStoreEntity.COLUMN_PREKEY_ID, preKeyRecord.getId());
-            contentValues.put(PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD,
-                    base64Encoder.encodeToString(preKeyRecord.serialize()));
-            contentValues.put(PreKeyRecordStoreEntity.COLUMN_CREATED_AT,
-                    dateTimeFormatter.format(Instant.now()));
-            try (SQLiteDatabase db = getWritableDatabase(p())) {
+        try (SQLiteDatabase db = getWritableDatabase(p())) {
+            for (PreKeyRecord preKeyRecord : preKeyRecords) {
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(PreKeyRecordStoreEntity.COLUMN_PREKEY_ID, preKeyRecord.getId());
+                contentValues.put(PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD,
+                        base64Encoder.encodeToString(preKeyRecord.serialize()));
+                contentValues.put(PreKeyRecordStoreEntity.COLUMN_CREATED_AT,
+                        dateTimeFormatter.format(Instant.now()));
                 db.insert(PreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
             }
         }
@@ -270,7 +288,7 @@ public class DbHelper extends SQLiteOpenHelper {
     public AuthState getAuthState() {
         try (Cursor result = getReadableDatabase(p())
                 .query(AuthStateStoreEntity.TABLE_NAME,
-                        new String[]{AuthStateStoreEntity.COLUMN_AUTH_STATE},
+                        null,
                         null, null, null, null, null)) {
             if (result.moveToNext()) {
                 return AuthState.jsonDeserialize(result
@@ -362,7 +380,7 @@ public class DbHelper extends SQLiteOpenHelper {
                 String kpkRecordBase64 = result.getString(result.getColumnIndex(KyberPreKeyRecordsEntity.COLUMN_KPK_RECORD));
                 int used = result.getInt(result.getColumnIndex(KyberPreKeyRecordsEntity.COLUMN_USED));
 
-                signalProtocolStore.storeKyberPreKey(prekeyId, new KyberPreKeyRecord(base64Decoder.decode(kpkRecordBase64)));
+                signalProtocolStore.loadKyberPreKey(prekeyId, new KyberPreKeyRecord(base64Decoder.decode(kpkRecordBase64)));
                 if (used == 1) {
                     signalProtocolStore.markKyberPreKeyUsed(prekeyId);
                 }
@@ -393,7 +411,7 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
     @SuppressLint("Range")
-    public void loadSessions(SignalProtocolStore signalProtocolStore) {
+    public void loadSessions(SekretessSignalProtocolStore signalProtocolStore) {
 
         try (Cursor result = getReadableDatabase(p())
                 .query(SessionStoreEntity.TABLE_NAME, new String[]{SessionStoreEntity.COLUMN_SESSION,
@@ -407,7 +425,7 @@ public class DbHelper extends SQLiteOpenHelper {
                 byte[] sessionRecord = base64Decoder
                         .decode(result.getString(result.getColumnIndex(SessionStoreEntity.COLUMN_SESSION)));
                 try {
-                    signalProtocolStore.storeSession(new SignalProtocolAddress(name, deviceId),
+                    signalProtocolStore.loadSession(new SignalProtocolAddress(name, deviceId),
                             new SessionRecord(sessionRecord));
                 } catch (Exception e) {
                     Log.e("DbHelper", "Error occurred during load session. " +

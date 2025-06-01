@@ -1,12 +1,13 @@
 package io.sekretess;
 
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,8 +15,15 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import com.auth0.android.jwt.JWT;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
+import net.openid.appauth.AuthState;
+
+import java.util.List;
+import java.util.Optional;
+
+import io.sekretess.repository.DbHelper;
 import io.sekretess.ui.ChatsFragment;
 import io.sekretess.ui.BusinessesFragment;
 import io.sekretess.ui.HomeFragment;
@@ -33,26 +41,61 @@ public class MainActivity extends AppCompatActivity {
     };
 
     @Override
+    public void onPostCreate(@Nullable Bundle savedInstanceState, @Nullable PersistableBundle persistentState) {
+
+    }
+
+    @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        registerReceiver(tokenRefreshBroadcastReceiver,
-                new IntentFilter(Constants.EVENT_REFRESH_TOKEN_FAILED), RECEIVER_EXPORTED);
 
-        setContentView(R.layout.activity_main);
-        BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
+        ActivityManager activityManager = getSystemService(ActivityManager.class);
+        List<ActivityManager.RunningAppProcessInfo> runningAppProcesses = activityManager.getRunningAppProcesses();
+        for (ActivityManager.RunningAppProcessInfo runningAppProcessInfo : runningAppProcesses) {
+            Log.i("MainActivity", runningAppProcessInfo.processName);
+        }
 
-        bottomNavigationView.setOnItemSelectedListener(item -> {
-            if (item.getItemId() == R.id.menu_item_business) {
-                replaceFragment(new BusinessesFragment());
-            } else if (item.getItemId() == R.id.menu_item_messages) {
-                replaceFragment(new ChatsFragment());
-            } else if (item.getItemId() == R.id.menu_item_home) {
-                replaceFragment(new HomeFragment());
-            } else if (item.getItemId() == R.id.menu_item_profile) {
-                replaceFragment(new ProfileFragment());
+        Log.i("MainActivity", "OnCreate");
+
+        Optional<AuthState> authState = restoreState();
+        if (authState.isPresent()) {
+            String username = new JWT(authState.get().getAccessToken()).getClaim(Constants.USERNAME_CLAIM).asString();
+
+            registerReceiver(tokenRefreshBroadcastReceiver,
+                    new IntentFilter(Constants.EVENT_REFRESH_TOKEN_FAILED), RECEIVER_EXPORTED);
+
+            setContentView(R.layout.activity_main);
+            BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
+
+            try {
+//                Thread.sleep(10000);
+            } catch (Exception e) {
+
             }
-            return true;
-        });
+
+            Log.i("MainActivity", "Notify login...");
+
+            broadcastLoginEvent(username);
+            bottomNavigationView.setOnItemSelectedListener(item -> {
+                if (item.getItemId() == R.id.menu_item_business) {
+                    replaceFragment(new BusinessesFragment());
+                } else if (item.getItemId() == R.id.menu_item_messages) {
+                    replaceFragment(new ChatsFragment());
+                } else if (item.getItemId() == R.id.menu_item_home) {
+                    replaceFragment(new HomeFragment());
+                } else if (item.getItemId() == R.id.menu_item_profile) {
+                    replaceFragment(new ProfileFragment());
+                }
+                return true;
+            });
+        } else {
+            startLoginActivity();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
     }
 
     private void replaceFragment(Fragment fragment) {
@@ -61,4 +104,27 @@ public class MainActivity extends AppCompatActivity {
         fragmentTransaction.replace(R.id.frame_layout, fragment);
         fragmentTransaction.commit();
     }
+
+    private void startLoginActivity() {
+        startActivity(new Intent(this, LoginActivity.class));
+    }
+
+    private Optional<AuthState> restoreState() {
+        Log.i("StartupActivity", "Restoring state...");
+        DbHelper dbHelper = DbHelper.getInstance(getApplicationContext());
+        AuthState authState = dbHelper.getAuthState();
+        if (authState == null) {
+            return Optional.empty();
+        }
+        Log.i("StartupActivity", "State restored.");
+        return Optional.ofNullable(authState);
+    }
+
+
+    private void broadcastLoginEvent(String userName) {
+        Intent intent = new Intent(Constants.EVENT_LOGIN);
+        intent.putExtra("userName", userName);
+        sendBroadcast(intent);
+    }
+
 }

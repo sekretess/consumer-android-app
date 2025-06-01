@@ -1,5 +1,7 @@
 package io.sekretess.service;
 
+import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING;
+
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -7,6 +9,9 @@ import android.app.Service;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.PowerManager;
+import android.util.Log;
+
+import androidx.core.app.NotificationCompat;
 
 import io.sekretess.R;
 
@@ -16,12 +21,14 @@ public abstract class SekretessBackgroundService extends Service {
 
     @Override
     public final void onCreate() {
-        super.onCreate();
+        Log.i("SekretessBackgroundService","onCreate" + getChannelId());
+        startForeground(getNotificationId(), notifyUserThatLocationServiceStarted());
+        Log.i("SekretessBackgroundService","foreground service started:" +getChannelId());
     }
 
     @Override
     public final int onStartCommand(Intent intent, int flags, int startId) {
-        startForeground(getNotificationId(), notifyUserThatLocationServiceStarted());
+        Log.i("SekretessBackgroundService","onStartCommand" + getChannelId());
         started(intent);
         return START_STICKY;
 
@@ -53,6 +60,7 @@ public abstract class SekretessBackgroundService extends Service {
                 .setSmallIcon(R.drawable.ic_notif_sekretess)
                 .setContentTitle("Sekretess")
                 .setContentText("Sekretess")
+                .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
                 .setWhen(System.currentTimeMillis());
         return builder.build();
     }
