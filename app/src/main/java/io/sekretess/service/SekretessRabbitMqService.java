@@ -206,7 +206,8 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                                                        AMQP.BasicProperties properties, byte[] body) {
                                 try {
                                     String exchangeName = envelope.getExchange();
-                                    Log.i("SekretessRabbitMqService", "Received payload:" + new String(body));
+                                    Log.i("SekretessRabbitMqService", "Received payload:" + new String(body) +
+                                            " ExchangeName :" + exchangeName);
                                     MessageDto message = objectMapper.readValue(body, MessageDto.class);
                                     String encryptedText = message.getText();
                                     String messageType = message.getType();
@@ -221,6 +222,8 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                                             break;
                                         case "private":
                                             exchangeName = message.getConsumerExchange();
+                                            sender = message.getSender();
+                                            Log.i("SekretessRabbitMqService", "Private message received. Sender:" + sender + " Exchange:" + exchangeName);
                                             break;
                                     }
 
@@ -228,8 +231,8 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                                     Log.i("SekretessRabbitMqService", "Encoded message received : " + message);
 //
 
-                                    broadcastIncomingMessage(encryptedText, exchangeName,
-                                            messageType, sender);
+                                    onNewEncryptedMessage(encryptedText, exchangeName, messageType, sender);
+
 
                                 } catch (Exception e) {
                                     Log.e(TAG, e.getMessage(), e);
@@ -246,16 +249,16 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     }
 
 
-    private void broadcastIncomingMessage(String encryptedText, String exchangeName,
-                                          String messageType, String sender) {
-        Intent intent = new Intent(Constants.EVENT_NEW_INCOMING_ENCRYPTED_MESSAGE);
-        intent.putExtra("encryptedText", encryptedText);
-        intent.putExtra("exchangeName", exchangeName);
-        intent.putExtra("messageType", messageType);
-        intent.putExtra("sender", sender);
-        sendStickyBroadcast(intent);
-
-    }
+//    private void broadcastIncomingMessage(String encryptedText, String exchangeName,
+//                                          String messageType, String sender) {
+//        Intent intent = new Intent(Constants.EVENT_NEW_INCOMING_ENCRYPTED_MESSAGE);
+//        intent.putExtra("encryptedText", encryptedText);
+//        intent.putExtra("exchangeName", exchangeName);
+//        intent.putExtra("messageType", messageType);
+//        intent.putExtra("sender", sender);
+//        sendStickyBroadcast(intent);
+//
+//    }
 
     @Override
     public String getChannelId() {
@@ -368,16 +371,16 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                     }
                 }
             }, new IntentFilter(Constants.EVENT_UPDATE_KEY), RECEIVER_EXPORTED);
-            registerReceiver(new BroadcastReceiver() {
-                @Override
-                public void onReceive(Context context, Intent intent) {
-                    String encryptedText = intent.getStringExtra("encryptedText");
-                    String exchangeName = intent.getStringExtra("exchangeName");
-                    String messageType = intent.getStringExtra("messageType");
-                    String sender = intent.getStringExtra("sender");
-                    onNewEncryptedMessage(encryptedText, exchangeName, messageType, sender);
-                }
-            }, new IntentFilter(Constants.EVENT_NEW_INCOMING_ENCRYPTED_MESSAGE), RECEIVER_EXPORTED);
+//            registerReceiver(new BroadcastReceiver() {
+//                @Override
+//                public void onReceive(Context context, Intent intent) {
+//                    String encryptedText = intent.getStringExtra("encryptedText");
+//                    String exchangeName = intent.getStringExtra("exchangeName");
+//                    String messageType = intent.getStringExtra("messageType");
+//                    String sender = intent.getStringExtra("sender");
+//                    onNewEncryptedMessage(encryptedText, exchangeName, messageType, sender);
+//                }
+//            }, new IntentFilter(Constants.EVENT_NEW_INCOMING_ENCRYPTED_MESSAGE), RECEIVER_EXPORTED);
 
             registerReceiver(new BroadcastReceiver() {
                 @Override
@@ -558,8 +561,10 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             new GroupSessionBuilder(signalProtocolStore)
                     .process(new SignalProtocolAddress(name, deviceId), senderKeyDistributionMessage);
 
+
             GroupCipher groupCipher = new GroupCipher(signalProtocolStore, new SignalProtocolAddress(name, deviceId));
             groupCipherTable.put(name, groupCipher);
+
             Log.i("SignalProtocolService", "Group chat chipper created and stored : " + name);
         } catch (Exception e) {
             Log.e("SignalProtocolService", "Error during decrypt key distribution message", e);
@@ -597,6 +602,9 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             dbHelper.storeDecryptedMessage(sender, message);
             broadcastNewMessageReceived();
             publishNotification(sender, message);
+        } else {
+            Log.i("SignalProtocolService", "No group cipher available : " + exchangeName
+                    + " sender :" + sender);
         }
     }
 
@@ -615,7 +623,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         } else {
             Log.i("SignalProtocolService", "Decrypted private message: " + message);
             DbHelper dbHelper = DbHelper.getInstance(this);
-            dbHelper.storeDecryptedMessage(exchangeName.split("_")[0], message);
+            dbHelper.storeDecryptedMessage(sender, message);
             broadcastNewMessageReceived();
             publishNotification(sender, message);
         }

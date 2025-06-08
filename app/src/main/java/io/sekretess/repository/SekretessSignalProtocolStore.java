@@ -38,9 +38,13 @@ public class SekretessSignalProtocolStore extends InMemorySignalProtocolStore {
         dbHelper.markKyberPreKeyUsed(kyberPreKeyId);
     }
 
-    public void loadKyberPreKey(int kyberPreKeyId, KyberPreKeyRecord record){
+    public void loadKyberPreKey(int kyberPreKeyId, KyberPreKeyRecord record, boolean used) {
         super.storeKyberPreKey(kyberPreKeyId, record);
+        if (used) {
+            super.markKyberPreKeyUsed(kyberPreKeyId);
+        }
     }
+
     @Override
     public void storeKyberPreKey(int kyberPreKeyId, KyberPreKeyRecord record) {
         super.storeKyberPreKey(kyberPreKeyId, record);

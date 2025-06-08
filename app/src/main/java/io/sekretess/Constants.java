@@ -10,7 +10,7 @@ public interface Constants {
     String EVENT_LOGIN = "login-event";
     String EVENT_INITIALIZE_KEY = "initialize-key-event";
     String EVENT_UPDATE_KEY = "update-key-event";
-    String EVENT_NEW_INCOMING_ENCRYPTED_MESSAGE = "new-incoming-encrypted-message-event";
+
 
     String SEKRETESS_NOTIFICATION_CHANNEL_NAME = "sekretess_notif";
     String EVENT_REFRESH_TOKEN_FAILED = "refresh-token-failed-event";

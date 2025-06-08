@@ -380,10 +380,8 @@ public class DbHelper extends SQLiteOpenHelper {
                 String kpkRecordBase64 = result.getString(result.getColumnIndex(KyberPreKeyRecordsEntity.COLUMN_KPK_RECORD));
                 int used = result.getInt(result.getColumnIndex(KyberPreKeyRecordsEntity.COLUMN_USED));
 
-                signalProtocolStore.loadKyberPreKey(prekeyId, new KyberPreKeyRecord(base64Decoder.decode(kpkRecordBase64)));
-                if (used == 1) {
-                    signalProtocolStore.markKyberPreKeyUsed(prekeyId);
-                }
+                signalProtocolStore.loadKyberPreKey(prekeyId, new KyberPreKeyRecord(base64Decoder
+                        .decode(kpkRecordBase64)), used == 1);
             }
         }
     }
