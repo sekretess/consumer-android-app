@@ -50,7 +50,7 @@ public class SignupActivity extends AppCompatActivity {
         String username = ((EditText) findViewById(R.id.txtSignupUsername)).getText().toString();
         String password = ((EditText) findViewById(R.id.txtSignupPassword)).getText().toString();
 
-        Intent intent = new Intent(Constants.EVENT_INITIALIZE_KEY);
+        Intent intent = new Intent(Constants.EVEN_SIGNUP);
         intent.putExtra("email", email);
         intent.putExtra("username", username);
         intent.putExtra("password", password);

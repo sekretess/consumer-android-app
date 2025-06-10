@@ -2,13 +2,11 @@ package io.sekretess;
 
 import android.net.Uri;
 
-import java.net.URI;
-
 public interface Constants {
 
     String USERNAME_CLAIM = "preferred_username";
     String EVENT_LOGIN = "login-event";
-    String EVENT_INITIALIZE_KEY = "initialize-key-event";
+    String EVEN_SIGNUP = "signup-event";
     String EVENT_UPDATE_KEY = "update-key-event";
 
 

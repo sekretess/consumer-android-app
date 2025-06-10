@@ -63,7 +63,7 @@ public class ProfileFragment extends Fragment {
 
     private void broadcastUpdateKeys() {
         Intent intent = new Intent(Constants.EVENT_UPDATE_KEY);
-        boolean sendBroadcast = LocalBroadcastManager.getInstance(getContext()).sendBroadcast(intent);
-        Log.i("ProfileFragment", "Sent update_key event broadcast result : " + sendBroadcast);
+        getActivity().sendBroadcast(intent);
+        Log.i("ProfileFragment", "Sent update_key event broadcast result : ");
     }
 }

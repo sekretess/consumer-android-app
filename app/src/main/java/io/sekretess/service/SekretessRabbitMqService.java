@@ -19,7 +19,6 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -193,7 +192,8 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     private void startConsumeQueue(String queueName) {
 
         try {
-            if (rabbitMqChannel == null || !rabbitMqChannel.getConnection().isOpen()) {
+            if (rabbitMqChannel == null || !rabbitMqChannel.getConnection().isOpen()
+                    || rabbitMqChannel.isOpen()) {
                 rabbitMqConnection = createConnection();
                 rabbitMqChannel = createChannel(rabbitMqConnection);
                 rabbitMqChannel.confirmSelect();
@@ -248,17 +248,6 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         }
     }
 
-
-//    private void broadcastIncomingMessage(String encryptedText, String exchangeName,
-//                                          String messageType, String sender) {
-//        Intent intent = new Intent(Constants.EVENT_NEW_INCOMING_ENCRYPTED_MESSAGE);
-//        intent.putExtra("encryptedText", encryptedText);
-//        intent.putExtra("exchangeName", exchangeName);
-//        intent.putExtra("messageType", messageType);
-//        intent.putExtra("sender", sender);
-//        sendStickyBroadcast(intent);
-//
-//    }
 
     @Override
     public String getChannelId() {
@@ -333,12 +322,12 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     }
 
 
-    public void initializeKeys(String username, String email, String password) {
+    public void signup(String username, String email, String password) {
         Log.i("SignalProtocolService", "Initialize event received");
 
 
         try {
-            KeyMaterial keyMaterial = initializeKeys();
+            KeyMaterial keyMaterial = signup();
 
             if (KeycloakManager.getInstance()
                     .createUser(username, email, password, keyMaterial)) {
@@ -371,16 +360,6 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                     }
                 }
             }, new IntentFilter(Constants.EVENT_UPDATE_KEY), RECEIVER_EXPORTED);
-//            registerReceiver(new BroadcastReceiver() {
-//                @Override
-//                public void onReceive(Context context, Intent intent) {
-//                    String encryptedText = intent.getStringExtra("encryptedText");
-//                    String exchangeName = intent.getStringExtra("exchangeName");
-//                    String messageType = intent.getStringExtra("messageType");
-//                    String sender = intent.getStringExtra("sender");
-//                    onNewEncryptedMessage(encryptedText, exchangeName, messageType, sender);
-//                }
-//            }, new IntentFilter(Constants.EVENT_NEW_INCOMING_ENCRYPTED_MESSAGE), RECEIVER_EXPORTED);
 
             registerReceiver(new BroadcastReceiver() {
                 @Override
@@ -399,9 +378,9 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                     String email = intent.getStringExtra("email");
                     String username = intent.getStringExtra("username");
                     String password = intent.getStringExtra("password");
-                    initializeKeys(username, email, password);
+                    signup(username, email, password);
                 }
-            }, new IntentFilter(Constants.EVENT_INITIALIZE_KEY), RECEIVER_EXPORTED);
+            }, new IntentFilter(Constants.EVEN_SIGNUP), RECEIVER_EXPORTED);
         } catch (Throwable t) {
             Log.i("SekretessRabbitMqService", "Error while register broadcastreceiver", t);
         }
@@ -429,7 +408,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
 
     public void updateOneTimeKeys() throws InvalidKeyException {
         DbHelper dbHelper = DbHelper.getInstance(this);
-        KeyMaterial keyMaterial = initializeKeys();
+        KeyMaterial keyMaterial = signup();
         if (KeycloakManager.getInstance().updateKeys(dbHelper.getAuthState(), keyMaterial)) {
             Toast.makeText(getApplicationContext(), "One time keys updated", Toast.LENGTH_LONG).show();
         } else {
@@ -437,7 +416,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         }
     }
 
-    private KeyMaterial initializeKeys() throws InvalidKeyException {
+    private KeyMaterial signup() throws InvalidKeyException {
 
         ECKeyPair ecKeyPair = Curve.generateKeyPair();
         IdentityKey identityKey = new IdentityKey(ecKeyPair.getPublicKey());
