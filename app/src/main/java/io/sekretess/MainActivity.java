@@ -11,6 +11,7 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -24,6 +25,8 @@ import java.util.List;
 import java.util.Optional;
 
 import io.sekretess.repository.DbHelper;
+import io.sekretess.service.RefreshTokenService;
+import io.sekretess.service.SekretessRabbitMqService;
 import io.sekretess.ui.ChatsFragment;
 import io.sekretess.ui.BusinessesFragment;
 import io.sekretess.ui.HomeFragment;
@@ -48,12 +51,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        ActivityManager activityManager = getSystemService(ActivityManager.class);
-        List<ActivityManager.RunningAppProcessInfo> runningAppProcesses = activityManager.getRunningAppProcesses();
-        for (ActivityManager.RunningAppProcessInfo runningAppProcessInfo : runningAppProcesses) {
-            Log.i("MainActivity", runningAppProcessInfo.processName);
-        }
+        checkForegroundServices();
 
         Log.i("MainActivity", "OnCreate");
 
@@ -66,12 +64,6 @@ public class MainActivity extends AppCompatActivity {
 
             setContentView(R.layout.activity_main);
             BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
-
-            try {
-//                Thread.sleep(10000);
-            } catch (Exception e) {
-
-            }
 
             Log.i("MainActivity", "Notify login...");
 
@@ -90,6 +82,34 @@ public class MainActivity extends AppCompatActivity {
             });
         } else {
             startLoginActivity();
+        }
+    }
+
+    private void checkForegroundServices() {
+        boolean isRabbitMqServiceRunning = false;
+        boolean isTokenRefreshServiceRunning = false;
+
+        ActivityManager activityManager = getSystemService(ActivityManager.class);
+        List<ActivityManager.RunningAppProcessInfo> runningAppProcesses = activityManager.getRunningAppProcesses();
+        for (ActivityManager.RunningAppProcessInfo runningAppProcessInfo : runningAppProcesses) {
+            if (runningAppProcessInfo.processName.equalsIgnoreCase("io.sekretess:remoterefreshtoken")) {
+                isTokenRefreshServiceRunning = true;
+            } else if (runningAppProcessInfo.processName.equalsIgnoreCase("io.sekretess:remoterabbitmq")) {
+                isRabbitMqServiceRunning = true;
+            }
+
+            Log.i("MainActivity", "Running service " + runningAppProcessInfo.processName);
+        }
+
+        if (!isRabbitMqServiceRunning) {
+            Log.i("MainActivity", "Starting sekrtess SekretessRabbitMqService...");
+            ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), SekretessRabbitMqService.class));
+            Log.i("MainActivity", "Started sekrtess SekretessRabbitMqService.");
+        }
+        if (!isTokenRefreshServiceRunning) {
+            Log.i("MainActivity", "Starting sekrtess RefreshTokenService...");
+            ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), RefreshTokenService.class));
+            Log.i("MainActivity", "Started sekrtess RefreshTokenService.");
         }
     }
 

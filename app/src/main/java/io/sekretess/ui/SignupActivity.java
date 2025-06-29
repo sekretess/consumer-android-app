@@ -1,39 +1,17 @@
 package io.sekretess.ui;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
 
 public class SignupActivity extends AppCompatActivity {
 
-    private final BroadcastReceiver signupFailedEventBroadcastReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.i("SignupActivity", "signup-failed");
-            Toast.makeText(getApplicationContext(), "User creation failed",
-                            Toast.LENGTH_LONG)
-                    .show();
-        }
-    };
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        ContextCompat.registerReceiver(getApplicationContext(), signupFailedEventBroadcastReceiver,
-                new IntentFilter(Constants.EVENT_SIGNUP_FAILED), ContextCompat.RECEIVER_EXPORTED);
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,14 +25,68 @@ public class SignupActivity extends AppCompatActivity {
     private void broadcastSignup() {
 
         String email = ((EditText) findViewById(R.id.txtSignupEmail)).getText().toString();
-        String username = ((EditText) findViewById(R.id.txtSignupUsername)).getText().toString();
-        String password = ((EditText) findViewById(R.id.txtSignupPassword)).getText().toString();
 
-        Intent intent = new Intent(Constants.EVEN_SIGNUP);
+        EditText userNameEdit = findViewById(R.id.txtSignupUsername);
+        EditText passwordEdit = findViewById(R.id.txtSignupPassword);
+        EditText confirmPasswordEdit = findViewById(R.id.txtPasswordVerify);
+
+
+        String username = userNameEdit.getText().toString();
+        String password = passwordEdit.getText().toString();
+
+        if (!(validateUserName(userNameEdit)) || !validatePassword(passwordEdit)) {
+            return;
+        }
+
+        if (!confirmPasswordEdit.getText().toString().equals(passwordEdit.getText().toString())){
+            confirmPasswordEdit.setError("Not matched with password");
+            return;
+        }
+
+            Intent intent = new Intent(Constants.EVENT_SIGNUP);
         intent.putExtra("email", email);
         intent.putExtra("username", username);
         intent.putExtra("password", password);
         sendBroadcast(intent);
+    }
+
+    private boolean validateUserName(EditText usernameEdit) {
+        String username = usernameEdit.getText().toString();
+        if (username.length() <= 4) {
+            usernameEdit.setError("Username length should be more than 4");
+            return false;
+        }
+        return true;
+    }
+
+    private boolean validatePassword(EditText passwordEdit) {
+        String password = passwordEdit.getText().toString();
+        if (password.length() < 8) {
+            passwordEdit.setError("Password should be at least 8 characters long");
+            return false;
+        }
+
+        if (!password.matches("(.*)[A-Z]+(.*)")) {
+            passwordEdit.setError("Password must contain at least one capital letter");
+            return false;
+        }
+
+        if (!password.matches("(.*)[a-z]+(.*)")) {
+            passwordEdit.setError("Password must contain at least one lowercase letter");
+            return false;
+        }
+
+        if (!password.matches("(.*)[!@#$%^&*()]+(.*)")) {
+            passwordEdit.setError("Password must contain at least one special character !@#$%^&*()");
+            return false;
+        }
+
+        if (!password.matches("(.*)[0-9]+(.*)")) {
+            passwordEdit.setError("Password must contain at least one number");
+            return false;
+        }
+
+        return true;
     }
 
 

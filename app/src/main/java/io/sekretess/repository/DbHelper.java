@@ -10,10 +10,12 @@ import android.util.Log;
 import com.auth0.android.jwt.JWT;
 
 import io.sekretess.Constants;
+import io.sekretess.dto.GroupChatDto;
 import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.MessageRecordDto;
 import io.sekretess.dto.RegistrationAndDeviceId;
 import io.sekretess.model.AuthStateStoreEntity;
+import io.sekretess.model.GroupChatEntity;
 import io.sekretess.model.IdentityKeyPairStoreEntity;
 import io.sekretess.model.JwtStoreEntity;
 import io.sekretess.model.KyberPreKeyRecordsEntity;
@@ -53,7 +55,7 @@ public class DbHelper extends SQLiteOpenHelper {
     private final DateTimeFormatter dateTimeFormatter
             = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.systemDefault());
 
-    public static final int DATABASE_VERSION = 13;
+    public static final int DATABASE_VERSION = 14;
     public static final String DATABASE_NAME = "io.sekretess_enc_db.db";
     private static final Base64.Encoder base64Encoder = Base64.getEncoder();
     private static final Base64.Decoder base64Decoder = Base64.getDecoder();
@@ -223,7 +225,6 @@ public class DbHelper extends SQLiteOpenHelper {
                 signalProtocolStore.storePreKey(preKeyRecord.getId(), preKeyRecord);
             }
         }
-
     }
 
     public void removePreKeyRecord(int prekeyId) {
@@ -384,6 +385,30 @@ public class DbHelper extends SQLiteOpenHelper {
                         .decode(kpkRecordBase64)), used == 1);
             }
         }
+    }
+
+    public void storeGroupChatInfo(String distributionKey, String sender) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(GroupChatEntity.COLUMN_SENDER, sender);
+        contentValues.put(GroupChatEntity.COLUMN_DISTRIBUTION_KEY, distributionKey);
+        try (SQLiteDatabase db = getWritableDatabase(p())) {
+            db.replace(GroupChatEntity.TABLE_NAME, null, contentValues);
+        }
+    }
+
+    public List<GroupChatDto> getGroupChatsInfo() {
+        List<GroupChatDto> groupChatsInfo = new ArrayList<>();
+        try (Cursor resultCursor = getReadableDatabase(p())
+                .query(GroupChatEntity.SQL_CREATE_TABLE, new String[]{
+                        GroupChatEntity.COLUMN_SENDER, GroupChatEntity.COLUMN_DISTRIBUTION_KEY
+                }, null, null, null, null, null)) {
+            while (resultCursor.moveToNext()) {
+                String sender = resultCursor.getString(0);
+                String distributionKey = resultCursor.getString(1);
+                groupChatsInfo.add(new GroupChatDto(sender, distributionKey));
+            }
+        }
+        return groupChatsInfo;
     }
 
     public List<MessageRecordDto> loadMessages(String from) {

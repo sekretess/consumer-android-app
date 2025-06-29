@@ -6,7 +6,7 @@ public interface Constants {
 
     String USERNAME_CLAIM = "preferred_username";
     String EVENT_LOGIN = "login-event";
-    String EVEN_SIGNUP = "signup-event";
+    String EVENT_SIGNUP = "signup-event";
     String EVENT_UPDATE_KEY = "update-key-event";
 
 
@@ -14,7 +14,6 @@ public interface Constants {
     String EVENT_REFRESH_TOKEN_FAILED = "refresh-token-failed-event";
 
     String EVENT_NEW_INCOMING_MESSAGE = "new-incoming-mesage-event";
-    String EVENT_SIGNUP_FAILED = "signup-failed-event";
     String RABBIT_MQ_CONSUMER_QUEUE_SUFFIX = "_consumer";
 
     String CONSUMER_API_URL = "https://consumer.sekretess.io/api/v1/consumers";

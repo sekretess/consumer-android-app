@@ -16,10 +16,10 @@ import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.WorkerThread;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +29,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.impl.CredentialsProvider;
 
 import org.signal.libsignal.protocol.DuplicateMessageException;
 import org.signal.libsignal.protocol.IdentityKey;
@@ -59,10 +60,12 @@ import org.signal.libsignal.protocol.util.Medium;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
+import io.sekretess.dto.GroupChatDto;
 import io.sekretess.dto.KeyMaterial;
 import io.sekretess.dto.KyberPreKeyRecords;
 import io.sekretess.dto.MessageDto;
 import io.sekretess.dto.RegistrationAndDeviceId;
+import io.sekretess.enums.MessageType;
 import io.sekretess.repository.DbHelper;
 import io.sekretess.repository.SekretessSignalProtocolStore;
 import io.sekretess.ui.LoginActivity;
@@ -73,10 +76,15 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -94,6 +102,8 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     public static final AtomicInteger serviceInstances = new AtomicInteger(0);
     private Thread rabbitMqConnectorThread;
+    private String userName;
+    private ScheduledExecutorService rabbitMqConnectionGuard;
 
 
     private void closeRabbitMqConnections() {
@@ -120,8 +130,17 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         Log.i(this.getClass().getName(), "Destroyed");
         serviceInstances.getAndSet(0);
         Executors.newSingleThreadExecutor().submit(this::closeRabbitMqConnections);
+        if (rabbitMqConnection != null)
+            try {
+                rabbitMqConnection.close();
+                rabbitMqConnectorThread.interrupt();
+            } catch (Exception e) {
+
+            }
         if (rabbitMqConnectorThread != null)
             rabbitMqConnectorThread.interrupt();
+        if (rabbitMqConnectionGuard != null)
+            rabbitMqConnectionGuard.shutdownNow();
     }
 
     @Override
@@ -129,6 +148,16 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         Log.i("SekretessRabbitMqService", "SekretessRabbitMqService started successfully");
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         registerBroadcastReceivers();
+        if (rabbitMqConnectionGuard != null && !rabbitMqConnectionGuard.isShutdown())
+            rabbitMqConnectionGuard.shutdownNow();
+        rabbitMqConnectionGuard = Executors.newScheduledThreadPool(1);
+        rabbitMqConnectionGuard.scheduleWithFixedDelay(() -> {
+            Log.i("SekretessRabbitMqService", "rabbitMqConnectionGuard...");
+            if (rabbitMqConnection == null) {
+                Log.i("SekretessRabbitMqService", "rabbitMqConnectionGuard - RabbitMq connection not established connecting...");
+                startRabbitMqConnection();
+            }
+        }, 20, 20, TimeUnit.SECONDS);
         initSignalProtocol();
     }
 
@@ -139,113 +168,81 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     }
 
 
-    private Connection createConnection() {
-
+    private void startRabbitMqConnection() {
         ConnectionFactory connectionFactory = new ConnectionFactory();
         connectionFactory.setVirtualHost("sekretess");
-
-
-        while (true) {
-
-            try {
-                Thread.sleep(3000);
-                DbHelper dbHelper = DbHelper.getInstance(getApplicationContext());
-                String amqpConnectionUrl = getString(R.string.rabbit_mq_uri);
-                amqpConnectionUrl = String.format(amqpConnectionUrl, dbHelper.getUserNameFromJwt(), dbHelper.getAuthState().getAccessToken());
-                Log.i("SekretessRabbitMqService", "Connecting with URI: " + amqpConnectionUrl);
-                connectionFactory.setUri(amqpConnectionUrl);
-
-                connectionFactory.setAutomaticRecoveryEnabled(false);
-
-                Connection connection = connectionFactory.newConnection();
-                connection.addShutdownListener(cause -> {
-                    try {
-                        Log.e("SekretessRabbitMqService", "AMQP Connection shutdown. Trying reconnect...");
-                        rabbitMqConnection = createConnection();
-                        rabbitMqChannel = rabbitMqConnection.createChannel();
-                    } catch (Exception e) {
-                        Log.e("SekretessRabbitMqService", "AMQP Connection creation establishment failed", e);
-                    }
-                });
-                return connection;
-            } catch (Exception e) {
-                Log.e("SekretessRabbitMqService", "Can not establish connection", e);
-            }
-        }
-    }
-
-    private Channel createChannel(Connection connection) {
-        while (connection.isOpen()) {
-            try {
-                Channel channel = connection.createChannel();
-                channel.addShutdownListener(cause -> {
-                    rabbitMqChannel = createChannel(connection);
-                });
-                return channel;
-            } catch (Exception e) {
-                Log.e("SekretessRabbitMqService", "AMQP channel creation failed", e);
-            }
-        }
-        return null;
-    }
-
-    private void startConsumeQueue(String queueName) {
-
         try {
-            if (rabbitMqChannel == null || !rabbitMqChannel.getConnection().isOpen()
-                    || rabbitMqChannel.isOpen()) {
-                rabbitMqConnection = createConnection();
-                rabbitMqChannel = createChannel(rabbitMqConnection);
-                rabbitMqChannel.confirmSelect();
+            DbHelper dbHelper = DbHelper.getInstance(getApplicationContext());
+            String amqpConnectionUrl = getString(R.string.rabbit_mq_uri);
+            amqpConnectionUrl = String.format(amqpConnectionUrl, dbHelper.getUserNameFromJwt(), dbHelper.getAuthState().getAccessToken());
+            Log.i(TAG, "Connecting with URI: " + amqpConnectionUrl);
+            connectionFactory.setUri(amqpConnectionUrl);
+            connectionFactory.setCredentialsProvider(new CredentialsProvider() {
+                @Override
+                public String getUsername() {
+                    return dbHelper.getUserNameFromJwt();
+                }
 
-                Log.i("SekretessRabbitMqService", "RabbitMq Consumer connection established.");
-                rabbitMqChannel.basicConsume(queueName.concat(Constants.RABBIT_MQ_CONSUMER_QUEUE_SUFFIX),
-                        true, new DefaultConsumer(rabbitMqChannel) {
-                            @Override
-                            public void handleDelivery(String consumerTag, Envelope envelope,
-                                                       AMQP.BasicProperties properties, byte[] body) {
-                                try {
-                                    String exchangeName = envelope.getExchange();
-                                    Log.i("SekretessRabbitMqService", "Received payload:" + new String(body) +
-                                            " ExchangeName :" + exchangeName);
-                                    MessageDto message = objectMapper.readValue(body, MessageDto.class);
-                                    String encryptedText = message.getText();
-                                    String messageType = message.getType();
-                                    String sender = "";
-                                    switch (messageType.toLowerCase()) {
-                                        case "advert":
-                                            exchangeName = message.getBusinessExchange();
-                                            break;
-                                        case "key_dist":
-                                            exchangeName = message.getConsumerExchange();
-                                            sender = message.getSender();
-                                            break;
-                                        case "private":
-                                            exchangeName = message.getConsumerExchange();
-                                            sender = message.getSender();
-                                            Log.i("SekretessRabbitMqService", "Private message received. Sender:" + sender + " Exchange:" + exchangeName);
-                                            break;
-                                    }
+                @Override
+                public String getPassword() {
+                    return dbHelper.getAuthState().getAccessToken();
+                }
+            });
+            connectionFactory.setAutomaticRecoveryEnabled(true);
 
-
-                                    Log.i("SekretessRabbitMqService", "Encoded message received : " + message);
-//
-
-                                    onNewEncryptedMessage(encryptedText, exchangeName, messageType, sender);
-
-
-                                } catch (Exception e) {
-                                    Log.e(TAG, e.getMessage(), e);
-                                }
-                            }
-                        });
-                Log.i("SekretessRabbitMqService", "RabbitMq Consumer started");
-            } else {
-                Log.i("SekretessRabbitMqService", "RabbitMq Consumer already started");
+            rabbitMqConnection = connectionFactory.newConnection();
+            if (rabbitMqConnection == null) {
+                Log.i(TAG, "RabbitMq Consumer connection NOT established.");
+                return;
             }
-        } catch (Exception e) {
-            Log.e(TAG, e.getMessage(), e);
+            rabbitMqChannel = rabbitMqConnection.createChannel();
+            if (rabbitMqChannel == null) {
+                Log.i(TAG, "RabbitMq Consumer connection channel NOT established.");
+                return;
+            }
+            rabbitMqChannel.confirmSelect();
+
+            Log.i(TAG, "RabbitMq Consumer connection established.");
+            rabbitMqChannel.basicConsume(userName.concat(Constants.RABBIT_MQ_CONSUMER_QUEUE_SUFFIX),
+                    true, new DefaultConsumer(rabbitMqChannel) {
+                        @Override
+                        public void handleDelivery(String consumerTag, Envelope envelope,
+                                                   AMQP.BasicProperties properties, byte[] body) {
+                            try {
+                                String exchangeName = envelope.getExchange();
+                                Log.i(TAG, "Received payload:" + new String(body) +
+                                        " ExchangeName :" + exchangeName);
+                                MessageDto message = objectMapper.readValue(body, MessageDto.class);
+                                String encryptedText = message.getText();
+                                MessageType messageType = MessageType.getInstance(message.getType());
+                                String sender = "";
+                                switch (messageType) {
+                                    case ADVERTISEMENT:
+                                        exchangeName = message.getBusinessExchange();
+                                        processAdvertisementMessage(encryptedText, exchangeName);
+                                        break;
+                                    case KEY_DISTRIBUTION:
+                                    case PRIVATE:
+                                        exchangeName = message.getConsumerExchange();
+                                        sender = message.getSender();
+                                        processPrivateMessage(encryptedText, sender, messageType);
+                                        Log.i(TAG, "Private message received. Sender:" + sender + " Exchange:" + exchangeName);
+                                        break;
+                                }
+                                Log.i(TAG, "Encoded message received : " + message);
+                            } catch (Throwable e) {
+                                Log.e(TAG, e.getMessage(), e);
+//                                Toast.makeText(getApplicationContext(),
+//                                        "Error during decrypt message" + e.getMessage(),
+//                                        Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    });
+            Log.i(TAG, "RabbitMq Consumer started");
+        } catch (Throwable e) {
+            Log.e(TAG, "Can not establish connection", e);
         }
+
     }
 
 
@@ -257,12 +254,6 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     @Override
     public int getNotificationId() {
         return RABBIT_MQ_NOTIFICATION;
-    }
-
-
-    public void onNewEncryptedMessage(String encryptedMessage, String exchangeName,
-                                      String messageType, String sender) {
-        decryptMessage(encryptedMessage, sender, exchangeName, messageType);
     }
 
 
@@ -316,29 +307,26 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
         deviceId = registrationId.getDeviceId();
 
+        List<GroupChatDto> groupChatsInfo = dbHelper.getGroupChatsInfo();
+        for (GroupChatDto groupChatDto : groupChatsInfo) {
+            processKeyDistributionMessage(groupChatDto.getSender(), groupChatDto.getDistributionKey());
+        }
+
         dbHelper.loadPreKeyRecords(signalProtocolStore);
         dbHelper.loadSessions(signalProtocolStore);
         dbHelper.loadKyberPreKeys(signalProtocolStore);
     }
 
 
-    public void signup(String username, String email, String password) {
+    public void generateSignalKeys(String username, String email, String password) {
         Log.i("SignalProtocolService", "Initialize event received");
-
-
-        try {
-            KeyMaterial keyMaterial = signup();
-
-            if (KeycloakManager.getInstance()
-                    .createUser(username, email, password, keyMaterial)) {
-                startLoginActivity();
-            } else {
-                broadcastSignupFailed("");
-            }
-        } catch (Exception e) {
-            Log.e("SignalProtocolService", "Error occurred during initialize user", e);
-            broadcastSignupFailed(e.getMessage());
-        }
+        generateSignalKeys()
+                .ifPresent(keyMaterial -> {
+                    if (KeycloakManager.getInstance()
+                            .createUser(username, email, password, keyMaterial)) {
+                        startLoginActivity();
+                    }
+                });
     }
 
     private void startLoginActivity() {
@@ -365,9 +353,11 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                 @Override
                 public void onReceive(Context context, Intent intent) {
                     Log.i("SekretessRabbitMqService", "Login event received");
-                    String userName = intent.getStringExtra("userName");
-                    rabbitMqConnectorThread = new Thread(() -> startConsumeQueue(userName));
-                    rabbitMqConnectorThread.start();
+                    userName = intent.getStringExtra("userName");
+                    if (rabbitMqConnection == null) {
+                        rabbitMqConnectorThread = new Thread(() -> startRabbitMqConnection());
+                        rabbitMqConnectorThread.start();
+                    }
                     initProtocolStorage(userName);
                 }
             }, new IntentFilter(Constants.EVENT_LOGIN), RECEIVER_EXPORTED);
@@ -378,9 +368,9 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                     String email = intent.getStringExtra("email");
                     String username = intent.getStringExtra("username");
                     String password = intent.getStringExtra("password");
-                    signup(username, email, password);
+                    generateSignalKeys(username, email, password);
                 }
-            }, new IntentFilter(Constants.EVEN_SIGNUP), RECEIVER_EXPORTED);
+            }, new IntentFilter(Constants.EVENT_SIGNUP), RECEIVER_EXPORTED);
         } catch (Throwable t) {
             Log.i("SekretessRabbitMqService", "Error while register broadcastreceiver", t);
         }
@@ -406,48 +396,55 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         }
     }
 
-    public void updateOneTimeKeys() throws InvalidKeyException {
+    public void updateOneTimeKeys() {
         DbHelper dbHelper = DbHelper.getInstance(this);
-        KeyMaterial keyMaterial = signup();
-        if (KeycloakManager.getInstance().updateKeys(dbHelper.getAuthState(), keyMaterial)) {
-            Toast.makeText(getApplicationContext(), "One time keys updated", Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(getApplicationContext(), "One time keys update failed", Toast.LENGTH_LONG).show();
-        }
+        generateSignalKeys()
+                .ifPresent(keyMaterial -> KeycloakManager.getInstance()
+                        .updateKeys(getApplicationContext(), dbHelper.getAuthState(), keyMaterial));
     }
 
-    private KeyMaterial signup() throws InvalidKeyException {
 
-        ECKeyPair ecKeyPair = Curve.generateKeyPair();
-        IdentityKey identityKey = new IdentityKey(ecKeyPair.getPublicKey());
-        IdentityKeyPair identityKeyPair = new IdentityKeyPair(identityKey, ecKeyPair.getPrivateKey());
+    private Optional<KeyMaterial> generateSignalKeys() {
 
-        int registrationId = KeyHelper.generateRegistrationId(false);
-        signalProtocolStore = new SekretessSignalProtocolStore(getApplicationContext(),
-                identityKeyPair, registrationId);
-        ECKeyPair keyPair = Curve.generateKeyPair();
-        byte[] signature = Curve.calculateSignature(identityKeyPair.getPrivateKey(),
-                keyPair.getPublicKey().serialize());
+        try {
+            ECKeyPair ecKeyPair = Curve.generateKeyPair();
+            IdentityKey identityKey = new IdentityKey(ecKeyPair.getPublicKey());
+            IdentityKeyPair identityKeyPair = new IdentityKeyPair(identityKey, ecKeyPair.getPrivateKey());
+
+            int registrationId = KeyHelper.generateRegistrationId(false);
+            signalProtocolStore = new SekretessSignalProtocolStore(getApplicationContext(),
+                    identityKeyPair, registrationId);
+            ECKeyPair keyPair = Curve.generateKeyPair();
+            byte[] signature = Curve.calculateSignature(identityKeyPair.getPrivateKey(),
+                    keyPair.getPublicKey().serialize());
 
 
-        DbHelper dbHelper = DbHelper.getInstance(this);
-        dbHelper.clearKeyData();
-        //Generate one-time prekeys
-        PreKeyRecord[] opk = generatePreKeys(15);
-        this.deviceId = Math.abs(new Random().nextInt(Medium.MAX_VALUE - 1));
-        Log.i("SignalProtocolService", "Keys initialized");
-        dbHelper.storeIdentityKeyPair(identityKeyPair);
-        dbHelper.storeRegistrationId(registrationId, deviceId);
+            DbHelper dbHelper = DbHelper.getInstance(this);
+            dbHelper.clearKeyData();
+            //Generate one-time prekeys
+            PreKeyRecord[] opk = generatePreKeys(15);
+            this.deviceId = Math.abs(new Random().nextInt(Medium.MAX_VALUE - 1));
+            Log.i("SignalProtocolService", "Keys initialized");
+            dbHelper.storeIdentityKeyPair(identityKeyPair);
+            dbHelper.storeRegistrationId(registrationId, deviceId);
 
-        SignedPreKeyRecord signedPreKeyRecord = generateSignedPreKey(keyPair, signature);
-        KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
+            SignedPreKeyRecord signedPreKeyRecord = generateSignedPreKey(keyPair, signature);
+            KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
 
-        return new KeyMaterial(registrationId, serializeSignedPreKeys(opk), signedPreKeyRecord,
-                identityKeyPair, signature, serializeKyberPreKeys(kyberPreKeyRecords.getKyberPreKeyRecords()),
-                base64Encoder.encodeToString(kyberPreKeyRecords.getLastResortKyberPreKeyRecord()
-                        .getKeyPair().getPublicKey().serialize()),
-                kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getSignature(),
-                kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId());
+            return Optional.of(new KeyMaterial(registrationId, serializeSignedPreKeys(opk), signedPreKeyRecord,
+                    identityKeyPair, signature, serializeKyberPreKeys(kyberPreKeyRecords.getKyberPreKeyRecords()),
+                    base64Encoder.encodeToString(kyberPreKeyRecords.getLastResortKyberPreKeyRecord()
+                            .getKeyPair().getPublicKey().serialize()),
+                    kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getSignature(),
+                    kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId()));
+
+        } catch (Exception e) {
+            Log.i("SekretessRabbitMqService", "KeyMaterial generation failed", e);
+            Toast.makeText(getApplicationContext(), "KeyMaterial generation failed " + e.getMessage(),
+                            Toast.LENGTH_LONG)
+                    .show();
+            return Optional.empty();
+        }
     }
 
     private KyberPreKeyRecords generateKyberPreKeys(ECPrivateKey ecPrivateKey) {
@@ -547,24 +544,9 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             Log.i("SignalProtocolService", "Group chat chipper created and stored : " + name);
         } catch (Exception e) {
             Log.e("SignalProtocolService", "Error during decrypt key distribution message", e);
-        }
-    }
-
-
-    private void decryptMessage(String base64Message, String sender, String exchangeName, String messageType) {
-        try {
-            Log.i("SignalProtocolService", "Decrypting message");
-            switch (messageType.toLowerCase()) {
-                case "advert":
-                    processAdvertisementMessage(base64Message, exchangeName);
-                    break;
-                case "private":
-                case "key_dist":
-                    processPrivateMessage(base64Message, sender, exchangeName, messageType);
-                    break;
-            }
-        } catch (Exception e) {
-            Log.e("SignalProtocolService", "Error occurred during decrypt message.", e);
+            Toast.makeText(getApplicationContext(),
+                    "Error during decrypt distribution message" + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
         }
     }
 
@@ -584,12 +566,16 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         } else {
             Log.i("SignalProtocolService", "No group cipher available : " + exchangeName
                     + " sender :" + sender);
+            Toast.makeText(getApplicationContext(),
+                    "No group cipher available : " + exchangeName + " sender :" + sender,
+                    Toast.LENGTH_LONG).show();
         }
     }
 
-    private void processPrivateMessage(String base64Message, String sender, String exchangeName, String messageType) throws InvalidMessageException,
-            InvalidVersionException, LegacyMessageException, InvalidKeyException,
-            UntrustedIdentityException, DuplicateMessageException, InvalidKeyIdException {
+    private void processPrivateMessage(String base64Message, String sender, MessageType messageType)
+            throws InvalidMessageException, InvalidVersionException, LegacyMessageException,
+            InvalidKeyException, UntrustedIdentityException, DuplicateMessageException,
+            InvalidKeyIdException {
 
         PreKeySignalMessage preKeySignalMessage = new PreKeySignalMessage(base64Decoder.decode(base64Message));
         SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(sender, deviceId);
@@ -597,8 +583,11 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         Log.i("SignalProtocolService", "" + signalProtocolStore);
         String message = new String(sessionCipher.decrypt(preKeySignalMessage));
 
-        if (messageType.equalsIgnoreCase("key_dist")) {
+        if (messageType == MessageType.KEY_DISTRIBUTION) {
             processKeyDistributionMessage(sender, message);
+            //Store group chat info
+            DbHelper dbHelper = DbHelper.getInstance(this);
+            dbHelper.storeGroupChatInfo(message, sender);
         } else {
             Log.i("SignalProtocolService", "Decrypted private message: " + message);
             DbHelper dbHelper = DbHelper.getInstance(this);
@@ -639,13 +628,5 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         intent.setAction(Constants.EVENT_NEW_INCOMING_MESSAGE);
         sendBroadcast(intent);
 
-    }
-
-    private void broadcastSignupFailed(String message) {
-        Log.i("SignalProtocolService", "Sending signup-failed event");
-        Intent intent = new Intent(Constants.EVENT_SIGNUP_FAILED);
-        intent.putExtra("message", message);
-        intent.setAction(Constants.EVENT_SIGNUP_FAILED);
-        sendBroadcast(intent);
     }
 }

@@ -1,5 +1,6 @@
 package io.sekretess.utils;
 
+import android.content.Context;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -13,8 +14,13 @@ import io.sekretess.dto.UserDto;
 
 import net.openid.appauth.AuthState;
 
+import org.signal.libsignal.protocol.InvalidKeyException;
+
+import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -41,19 +47,12 @@ public class KeycloakManager {
     }
 
 
-    public boolean updateKeys(AuthState authState, KeyMaterial keyMaterial) {
-        try {
-
-            Future<Boolean> f = Executors.newSingleThreadExecutor()
-                    .submit(() -> updateOpksInternal(authState, keyMaterial));
-            return f.get();
-        } catch (Exception e) {
-            Log.e("KeycloakService", "Error occurred during update opks", e);
-            return false;
-        }
+    public void updateKeys(Context context, AuthState authState, KeyMaterial keyMaterial) {
+        Executors.newSingleThreadExecutor()
+                .submit(() -> updateOpksInternal(context, authState, keyMaterial));
     }
 
-    private boolean updateOpksInternal(AuthState authState, KeyMaterial keyMaterial) {
+    private void updateOpksInternal(Context context, AuthState authState, KeyMaterial keyMaterial) {
         HttpURLConnection httpURLConnection = null;
         Base64.Encoder encoder = Base64.getEncoder();
         try {
@@ -91,12 +90,20 @@ public class KeycloakManager {
             outputStream.close();
             String responseMessage = httpURLConnection.getResponseMessage();
 
-            return httpURLConnection.getResponseCode() >= HttpURLConnection.HTTP_OK &&
+            boolean isSuccess = httpURLConnection.getResponseCode() >= HttpURLConnection.HTTP_OK &&
                     httpURLConnection.getResponseCode() <= HttpURLConnection.HTTP_PARTIAL;
+            if (isSuccess) {
+                Toast.makeText(context, "One time keys updated", Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(context, "One time keys update failed with response code "
+                                + httpURLConnection.getResponseCode() + " ResponseMessage " + responseMessage,
+                        Toast.LENGTH_LONG).show();
+            }
 
-        } catch (Throwable e) {
-            Log.e("KeycloakService", "Error occurred during update OPKs", e);
-            return false;
+        } catch (Exception e) {
+            Log.i("KeycloakManager", "Exception occurred during update keys", e);
+            Toast.makeText(context, "Exception occurred during update keys " + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
         } finally {
             if (httpURLConnection != null)
                 httpURLConnection.disconnect();
