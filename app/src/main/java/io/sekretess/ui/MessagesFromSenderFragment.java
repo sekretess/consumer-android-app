@@ -1,0 +1,41 @@
+package io.sekretess.ui;
+
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import io.sekretess.R;
+import io.sekretess.adapters.MessageAdapter;
+import io.sekretess.dto.MessageRecordDto;
+import io.sekretess.repository.DbHelper;
+
+import java.util.List;
+
+public class MessagesFromSenderFragment extends Fragment {
+
+    private RecyclerView recyclerView;
+    private MessageAdapter messageAdapter;
+
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.chat_layout, container, false);
+        String from = getArguments().getString("from");
+        recyclerView = view.findViewById(R.id.messages_rv);
+        List<MessageRecordDto> messages = DbHelper.getInstance(getContext()).loadMessages(from);
+        messageAdapter = new MessageAdapter(messages);
+        recyclerView.setAdapter(messageAdapter);
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        return view;
+    }
+
+
+}
