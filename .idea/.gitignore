@@ -3,3 +3,9 @@
 /workspace.xml
 /AndroidProjectSystem.xml
 /misc.xml
+/.name
+/compiler.xml
+/gradle.xml
+/migrations.xml
+/runConfigurations.xml
+/vcs.xml
