@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.BROADCAST_STICKY" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -9,8 +10,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
 
     <application
+
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -20,71 +23,67 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat"
         android:usesCleartextTraffic="true">
-<!--        <activity-->
-<!--            android:name=".ui.SubscriptionActivity"-->
-<!--            android:exported="false" />-->
 
         <activity
-            android:name=".ui.MessagesFromSenderActivity"
-            android:exported="false" />
-<!--        <activity-->
-<!--            android:name=".ui.ChatsActivity"-->
-<!--            android:exported="false" />-->
+            android:name="io.sekretess.ui.SignupActivity"
+            android:exported="true"
+            android:noHistory="true" />
         <activity
-            android:name=".ui.SignupActivity"
-            android:exported="false"
-            />
-        <activity
-            android:name=".ui.LoginActivity"
-            android:exported="false"
-           />
+            android:name="io.sekretess.ui.LoginActivity"
+            android:exported="true"
+            android:noHistory="true" />
 
         <activity
-            android:name=".StartupActivity"
-            android:exported="true">
+            android:name="io.sekretess.MainActivity"
+            android:exported="true"
+            android:noHistory="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <intent-filter>
-<!--                <action android:name="com.ptruiz.authtest.HANDLE_AUTHORIZATION_RESPONSE"/>-->
-                <category android:name="android.intent.category.DEFAULT"/>
+                <!--                <action android:name="com.ptruiz.authtest.HANDLE_AUTHORIZATION_RESPONSE"/>-->
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-        <activity android:name=".MainActivity"/>
 
-        <activity android:name="net.openid.appauth.RedirectUriReceiverActivity" android:exported="true"
+        <activity
+            android:name="net.openid.appauth.RedirectUriReceiverActivity"
+            android:exported="true"
+            android:noHistory="true"
             tools:node="replace">
             <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="com.sekretess"
-                    android:path="/oauth2redirect"/>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:path="/oauth2redirect"
+                    android:scheme="io.sekretess" />
             </intent-filter>
         </activity>
 
         <service
-            android:name=".service.SekretessRabbitMqService"
+            android:name="io.sekretess.service.SekretessRabbitMqService"
             android:foregroundServiceType="remoteMessaging"
-            android:process=":remote"
+            android:process=":remoterabbitmq"
             android:stopWithTask="false" />
         <service
-            android:name=".service.RefreshTokenService"
-            android:foregroundServiceType="remoteMessaging"
-            android:process=":remote"
-            android:stopWithTask="false" />
-        <service
-            android:name=".service.SignalProtocolService"
-            android:foregroundServiceType="remoteMessaging"
-            android:process=":remote"
+            android:name="io.sekretess.service.RefreshTokenService"
+            android:foregroundServiceType="dataSync"
+            android:process=":remoterefreshtoken"
             android:stopWithTask="false" />
 
         <receiver
-            android:name=".service.BootHandlerService"
+            android:name="io.sekretess.service.BootHandlerService"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.PACKAGE_ADDED"/>
+                <action android:name="android.intent.action.PACKAGE_CHANGED"/>
+                <action android:name="android.intent.action.PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
             </intent-filter>
         </receiver>
     </application>

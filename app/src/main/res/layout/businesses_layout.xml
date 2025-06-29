@@ -6,11 +6,17 @@
     android:id="@+id/businesses_layout"
     android:paddingBottom="10dp">
 
+    <ImageView
+        android:id="@+id/imgBusiness"
+        android:layout_width="48px"
+        android:layout_height="match_parent"
+        android:layout_weight="0.20"
+        android:contentDescription="TODO" />
     <TextView
         android:id="@+id/txtBusinessName"
         android:layout_width="20dp"
         android:layout_height="wrap_content"
-        android:layout_weight="0.70"
+        android:layout_weight="0.50"
         android:paddingLeft="50px"
         android:text="SwedenBank" />
 

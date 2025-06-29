@@ -1,0 +1,150 @@
+package io.sekretess;
+
+import android.app.ActivityManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.Bundle;
+import android.os.PersistableBundle;
+import android.util.Log;
+
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+
+import com.auth0.android.jwt.JWT;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+
+import net.openid.appauth.AuthState;
+
+import java.util.List;
+import java.util.Optional;
+
+import io.sekretess.repository.DbHelper;
+import io.sekretess.service.RefreshTokenService;
+import io.sekretess.service.SekretessRabbitMqService;
+import io.sekretess.ui.ChatsFragment;
+import io.sekretess.ui.BusinessesFragment;
+import io.sekretess.ui.HomeFragment;
+import io.sekretess.ui.LoginActivity;
+import io.sekretess.ui.ProfileFragment;
+
+public class MainActivity extends AppCompatActivity {
+
+    private final BroadcastReceiver tokenRefreshBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.i("MainActivity", "Refresh token failed");
+            startActivity(new Intent(MainActivity.this, LoginActivity.class));
+        }
+    };
+
+    @Override
+    public void onPostCreate(@Nullable Bundle savedInstanceState, @Nullable PersistableBundle persistentState) {
+
+    }
+
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        checkForegroundServices();
+
+        Log.i("MainActivity", "OnCreate");
+
+        Optional<AuthState> authState = restoreState();
+        if (authState.isPresent()) {
+            String username = new JWT(authState.get().getAccessToken()).getClaim(Constants.USERNAME_CLAIM).asString();
+
+            registerReceiver(tokenRefreshBroadcastReceiver,
+                    new IntentFilter(Constants.EVENT_REFRESH_TOKEN_FAILED), RECEIVER_EXPORTED);
+
+            setContentView(R.layout.activity_main);
+            BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
+
+            Log.i("MainActivity", "Notify login...");
+
+            broadcastLoginEvent(username);
+            bottomNavigationView.setOnItemSelectedListener(item -> {
+                if (item.getItemId() == R.id.menu_item_business) {
+                    replaceFragment(new BusinessesFragment());
+                } else if (item.getItemId() == R.id.menu_item_messages) {
+                    replaceFragment(new ChatsFragment());
+                } else if (item.getItemId() == R.id.menu_item_home) {
+                    replaceFragment(new HomeFragment());
+                } else if (item.getItemId() == R.id.menu_item_profile) {
+                    replaceFragment(new ProfileFragment());
+                }
+                return true;
+            });
+        } else {
+            startLoginActivity();
+        }
+    }
+
+    private void checkForegroundServices() {
+        boolean isRabbitMqServiceRunning = false;
+        boolean isTokenRefreshServiceRunning = false;
+
+        ActivityManager activityManager = getSystemService(ActivityManager.class);
+        List<ActivityManager.RunningAppProcessInfo> runningAppProcesses = activityManager.getRunningAppProcesses();
+        for (ActivityManager.RunningAppProcessInfo runningAppProcessInfo : runningAppProcesses) {
+            if (runningAppProcessInfo.processName.equalsIgnoreCase("io.sekretess:remoterefreshtoken")) {
+                isTokenRefreshServiceRunning = true;
+            } else if (runningAppProcessInfo.processName.equalsIgnoreCase("io.sekretess:remoterabbitmq")) {
+                isRabbitMqServiceRunning = true;
+            }
+
+            Log.i("MainActivity", "Running service " + runningAppProcessInfo.processName);
+        }
+
+        if (!isRabbitMqServiceRunning) {
+            Log.i("MainActivity", "Starting sekrtess SekretessRabbitMqService...");
+            ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), SekretessRabbitMqService.class));
+            Log.i("MainActivity", "Started sekrtess SekretessRabbitMqService.");
+        }
+        if (!isTokenRefreshServiceRunning) {
+            Log.i("MainActivity", "Starting sekrtess RefreshTokenService...");
+            ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), RefreshTokenService.class));
+            Log.i("MainActivity", "Started sekrtess RefreshTokenService.");
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
+
+    private void replaceFragment(Fragment fragment) {
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.replace(R.id.frame_layout, fragment);
+        fragmentTransaction.commit();
+    }
+
+    private void startLoginActivity() {
+        startActivity(new Intent(this, LoginActivity.class));
+    }
+
+    private Optional<AuthState> restoreState() {
+        Log.i("StartupActivity", "Restoring state...");
+        DbHelper dbHelper = DbHelper.getInstance(getApplicationContext());
+        AuthState authState = dbHelper.getAuthState();
+        if (authState == null) {
+            return Optional.empty();
+        }
+        Log.i("StartupActivity", "State restored.");
+        return Optional.ofNullable(authState);
+    }
+
+
+    private void broadcastLoginEvent(String userName) {
+        Intent intent = new Intent(Constants.EVENT_LOGIN);
+        intent.putExtra("userName", userName);
+        sendBroadcast(intent);
+    }
+
+}
