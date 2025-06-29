@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/sekretess/consumer-android-app/compare/v1.1.0...v1.2.0) (2025-03-06)
+
+
+### Features
+
+* add bottom horizontal navigation bar change activities to fragm… ([fbae3e7](https://github.com/sekretess/consumer-android-app/commit/fbae3e7ec181cba09a63013bca8df12e28226ab1))
+* add bottom horizontal navigation bar change activities to fragments ([1fc500d](https://github.com/sekretess/consumer-android-app/commit/1fc500dc1f00e3579cba335a96c6f239896b89ea))
+
 ## [1.1.0](https://github.com/sekretess/consumer-android-app/compare/v1.0.0...v1.1.0) (2025-02-07)
 
 
@@ -22,5 +30,3 @@
 * Problem with login fixed ([abbfa87](https://github.com/sekretess/consumer-android-app/commit/abbfa875f5b73048b03a9760f2a7df9c0cbc71a6))
 * Redirect url fix ([391a2f8](https://github.com/sekretess/consumer-android-app/commit/391a2f8b3515f5de30dcf408e139c4f4f7ca9bc2))
 * Redirect url update ([cfdd088](https://github.com/sekretess/consumer-android-app/commit/cfdd0883cb2e12238bbce683c9aa5f492065c389))
-
-

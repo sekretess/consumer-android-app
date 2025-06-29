@@ -9,12 +9,12 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sekretess.R;
 
-public class SubscriptionViewHolder extends RecyclerView.ViewHolder {
+public class BusinessesViewHolder extends RecyclerView.ViewHolder {
 
     public final TextView txtBusinessName;
     public final Button btnSubscribe;
 
-    public SubscriptionViewHolder(@NonNull View itemView) {
+    public BusinessesViewHolder(@NonNull View itemView) {
         super(itemView);
         this.txtBusinessName = itemView.findViewById(R.id.txtBusinessName);
         this.btnSubscribe = itemView.findViewById(R.id.btnSubscribe);

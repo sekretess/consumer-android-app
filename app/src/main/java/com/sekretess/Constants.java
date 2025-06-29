@@ -22,7 +22,7 @@ public interface Constants {
     String CONSUMER_API_URL = "http://consumer.sekretess.co:8081/api/v1/consumers";
     String BUSINESS_API_URL = "http://business.sekretess.co:8082/api/v1/businesses";
 
-    Uri KEYCLOAK_OPENID_CONFIGURATION_URL = Uri.parse("https://auth.sekretess.co/realms/consumer/.well-known/openid-configuration");
+    Uri KEYCLOAK_OPENID_CONFIGURATION_URL = Uri.parse("https://auth.sekretess.co:8443/realms/consumer/.well-known/openid-configuration");
 
 
     Uri AUTH_REDIRECT_URL = Uri.parse("com.sekretess:/oauth2redirect");
