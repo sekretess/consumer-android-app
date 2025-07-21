@@ -45,10 +45,6 @@ public class SendersAdapter extends RecyclerView.Adapter<SenderViewHolder> {
         holder.getTxtSenderName().setText(messageBriefDto.getSender());
         holder.getTxtSenderName().setOnClickListener(v -> {
             listener.onClick(holder.getTxtSenderName().getText().toString());
-//            Bundle bundle = new Bundle();
-//            bundle.putString("from", holder.getTxtSenderName().getText().toString());
-//            MessagesFromSenderFragment fragment = new MessagesFromSenderFragment();
-//            fragment.setArguments(bundle);
         });
         holder.getTxtMessageCount().setText(String.valueOf(messageBriefDto.getCount()));
     }

@@ -42,7 +42,7 @@ public class ProfileFragment extends Fragment {
             var dbHelper = DbHelper.getInstance(getContext());
             var idToken = dbHelper.getAuthState().getIdToken();
             boolean deleteSuccess = false;
-            if (deleteSuccess = ApiClient.deleteUser(idToken)) {
+            if (deleteSuccess = ApiClient.deleteUser(getContext(), idToken)) {
                 if (deleteSuccess = dbHelper.clearUserData()) {
                     startActivity(new Intent(ProfileFragment.this.getContext(), LoginActivity.class));
                 }

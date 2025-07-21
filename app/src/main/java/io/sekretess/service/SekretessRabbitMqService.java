@@ -16,7 +16,6 @@ import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.WorkerThread;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -70,7 +69,6 @@ import io.sekretess.repository.DbHelper;
 import io.sekretess.repository.SekretessSignalProtocolStore;
 import io.sekretess.ui.LoginActivity;
 import io.sekretess.utils.ApiClient;
-import io.sekretess.utils.KeycloakManager;
 
 import java.io.IOException;
 import java.security.SecureRandom;
@@ -81,7 +79,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -89,6 +86,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SekretessRabbitMqService extends SekretessBackgroundService {
+    private final int SIGNAL_KEY_COUNT = 15;
     private static final Base64.Encoder base64Encoder = Base64.getEncoder();
     private static SekretessSignalProtocolStore signalProtocolStore;
     private int deviceId;
@@ -270,14 +268,10 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             if (signalProtocolStore == null) {
                 Log.w("SignalProtocolService", "Signal protocol store is null. Initializing protocolStore...");
                 IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
-                if (groupCipherTable.isEmpty()) {
-                    Log.w("SignalProtocolService", "Group chat chipper (Advertisement) is empty. " +
-                            "Initializing re-joining to channels...");
-                    ApiClient.refreshChannelSubscription(dbHelper.getAuthState().getIdToken());
-                }
                 if (identityKeyPair == null) {
                     Log.w("SignalProtocolService", "No cryptographic keys found. Initializing keys...");
-                    updateOneTimeKeys();
+                    initializeSecretKeys().ifPresent(keyMaterial -> ApiClient
+                            .upsertKeyStore(getApplicationContext(), keyMaterial, dbHelper.getAuthState().getIdToken()));
                 } else {
                     Log.w("SignalProtocolService", "Cryptographic keys found. Loading from database...");
                     loadCryptoKeysFromDb(getApplicationContext());
@@ -286,7 +280,12 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                 for (SignedPreKeyRecord signedPreKeyRecord : signalProtocolStore.loadSignedPreKeys()) {
                     Log.i("SignalProtocolService", "SignedPrekeyRecordLoaded. Id:" + signedPreKeyRecord.getId());
                     Log.i("SignalProtocolService", "SignedPrekeyRecordLoaded. Signature:" + base64Encoder.encodeToString(signedPreKeyRecord.getSignature()));
-
+                }
+            }
+            if (groupCipherTable.isEmpty()) {
+                List<GroupChatDto> groupChatsInfo = dbHelper.getGroupChatsInfo();
+                for (GroupChatDto groupChatDto : groupChatsInfo) {
+                    processKeyDistributionMessage(groupChatDto.getSender(), groupChatDto.getDistributionKey());
                 }
             }
         } catch (Exception e) {
@@ -318,12 +317,11 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     }
 
 
-    public void generateSignalKeys(String username, String email, String password) {
+    private void createConsumerUser(String username, String email, String password) {
         Log.i("SignalProtocolService", "Initialize event received");
-        generateSignalKeys()
+        initializeSecretKeys()
                 .ifPresent(keyMaterial -> {
-                    if (KeycloakManager.getInstance()
-                            .createUser(username, email, password, keyMaterial)) {
+                    if (ApiClient.createUser(getApplicationContext(),username, email, password, keyMaterial)) {
                         startLoginActivity();
                     }
                 });
@@ -368,7 +366,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                     String email = intent.getStringExtra("email");
                     String username = intent.getStringExtra("username");
                     String password = intent.getStringExtra("password");
-                    generateSignalKeys(username, email, password);
+                    createConsumerUser(username, email, password);
                 }
             }, new IntentFilter(Constants.EVENT_SIGNUP), RECEIVER_EXPORTED);
         } catch (Throwable t) {
@@ -396,15 +394,18 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         }
     }
 
-    public void updateOneTimeKeys() {
+    public void updateOneTimeKeys() throws InvalidKeyException {
         DbHelper dbHelper = DbHelper.getInstance(this);
-        generateSignalKeys()
-                .ifPresent(keyMaterial -> KeycloakManager.getInstance()
-                        .updateKeys(getApplicationContext(), dbHelper.getAuthState(), keyMaterial));
+        IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
+        String[] preKeyRecords = serializeSignedPreKeys(generatePreKeys());
+        String[] kyberPreKeyRecords = serializeKyberPreKeys(generateKyberPreKeys(identityKeyPair
+                .getPrivateKey()).getKyberPreKeyRecords());
+        ApiClient.updateOneTimeKeys(getApplicationContext(), dbHelper.getAuthState(), preKeyRecords,
+                kyberPreKeyRecords);
     }
 
 
-    private Optional<KeyMaterial> generateSignalKeys() {
+    private Optional<KeyMaterial> initializeSecretKeys() {
 
         try {
             ECKeyPair ecKeyPair = Curve.generateKeyPair();
@@ -422,7 +423,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             DbHelper dbHelper = DbHelper.getInstance(this);
             dbHelper.clearKeyData();
             //Generate one-time prekeys
-            PreKeyRecord[] opk = generatePreKeys(15);
+            PreKeyRecord[] opk = generatePreKeys();
             this.deviceId = Math.abs(new Random().nextInt(Medium.MAX_VALUE - 1));
             Log.i("SignalProtocolService", "Keys initialized");
             dbHelper.storeIdentityKeyPair(identityKeyPair);
@@ -449,10 +450,9 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
 
     private KyberPreKeyRecords generateKyberPreKeys(ECPrivateKey ecPrivateKey) {
         // Generate post quantum resistance keys
-        int count = 15;
-        KyberPreKeyRecord[] kyberPreKeyRecords = new KyberPreKeyRecord[count];
+        KyberPreKeyRecord[] kyberPreKeyRecords = new KyberPreKeyRecord[SIGNAL_KEY_COUNT];
 
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < kyberPreKeyRecords.length; i++) {
             KyberPreKeyRecord kyberPreKeyRecord = generateKyberPreKey(ecPrivateKey);
             kyberPreKeyRecords[i] = kyberPreKeyRecord;
         }
@@ -486,10 +486,10 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         return signedPreKeyRecord;
     }
 
-    private PreKeyRecord[] generatePreKeys(int count) {
-        PreKeyRecord[] preKeyRecords = new PreKeyRecord[count];
+    private PreKeyRecord[] generatePreKeys() {
+        PreKeyRecord[] preKeyRecords = new PreKeyRecord[SIGNAL_KEY_COUNT];
         SecureRandom preKeyRecordIdGenerator = new SecureRandom();
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < preKeyRecords.length; i++) {
             int id = preKeyRecordIdGenerator.nextInt(Integer.MAX_VALUE);
             ECKeyPair ecKeyPair = Curve.generateKeyPair();
             PreKeyRecord preKeyRecord = new PreKeyRecord(id, ecKeyPair);

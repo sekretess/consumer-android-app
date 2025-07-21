@@ -34,9 +34,9 @@ public class BusinessesFragment extends Fragment {
         DbHelper dbHelper = DbHelper.getInstance(getActivity().getApplicationContext());
 
         recyclerView = view.findViewById(R.id.businessesRecycler);
-        List<BusinessDto> businessList = ApiClient.getBusinesses();
+        List<BusinessDto> businessList = ApiClient.getBusinesses(getContext());
         List<String> subscribedBusinesses = ApiClient
-                .getSubscribedBusinesses(dbHelper.getAuthState().getIdToken());
+                .getSubscribedBusinesses(getContext(),dbHelper.getAuthState().getIdToken());
         BusinessesAdapter businessesAdapter =
                 new BusinessesAdapter(businessList, subscribedBusinesses);
         recyclerView.setAdapter(businessesAdapter);

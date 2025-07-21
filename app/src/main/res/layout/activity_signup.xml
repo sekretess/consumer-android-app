@@ -4,9 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="io.sekretess.sekretess.ui.SignupActivity"
+    android:background="#0D0D0D"
     android:focusable="true"
-    android:focusableInTouchMode="true">
+    android:focusableInTouchMode="true"
+    tools:context="io.sekretess.ui.SignupActivity">
 
     <EditText
         android:id="@+id/txtSignupEmail"

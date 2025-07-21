@@ -55,7 +55,7 @@ public class DbHelper extends SQLiteOpenHelper {
     private final DateTimeFormatter dateTimeFormatter
             = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.systemDefault());
 
-    public static final int DATABASE_VERSION = 14;
+    public static final int DATABASE_VERSION = 15;
     public static final String DATABASE_NAME = "io.sekretess_enc_db.db";
     private static final Base64.Encoder base64Encoder = Base64.getEncoder();
     private static final Base64.Decoder base64Decoder = Base64.getDecoder();
@@ -399,7 +399,7 @@ public class DbHelper extends SQLiteOpenHelper {
     public List<GroupChatDto> getGroupChatsInfo() {
         List<GroupChatDto> groupChatsInfo = new ArrayList<>();
         try (Cursor resultCursor = getReadableDatabase(p())
-                .query(GroupChatEntity.SQL_CREATE_TABLE, new String[]{
+                .query(GroupChatEntity.TABLE_NAME, new String[]{
                         GroupChatEntity.COLUMN_SENDER, GroupChatEntity.COLUMN_DISTRIBUTION_KEY
                 }, null, null, null, null, null)) {
             while (resultCursor.moveToNext()) {
@@ -502,6 +502,7 @@ public class DbHelper extends SQLiteOpenHelper {
         db.execSQL(AuthStateStoreEntity.SQL_CREATE);
         db.execSQL(KyberPreKeyRecordsEntity.SQL_CREATE_TABLE);
         db.execSQL(SenderKeyEntity.SQL_CREATE_TABLE);
+        db.execSQL(GroupChatEntity.SQL_CREATE_TABLE);
     }
 
     @Override
@@ -516,6 +517,7 @@ public class DbHelper extends SQLiteOpenHelper {
         db.execSQL(AuthStateStoreEntity.SQL_DROP_TABLE);
         db.execSQL(KyberPreKeyRecordsEntity.SQL_DROP_TABLE);
         db.execSQL(SenderKeyEntity.SQL_DROP_TABLE);
+        db.execSQL(GroupChatEntity.SQL_DROP_TABLE);
 
         Log.i("DbHelper", "OnUpgrade called. Creating tables");
         db.execSQL(MessageStoreEntity.SQL_CREATE_TABLE);
@@ -528,6 +530,7 @@ public class DbHelper extends SQLiteOpenHelper {
         db.execSQL(AuthStateStoreEntity.SQL_CREATE);
         db.execSQL(KyberPreKeyRecordsEntity.SQL_CREATE_TABLE);
         db.execSQL(SenderKeyEntity.SQL_CREATE_TABLE);
+        db.execSQL(GroupChatEntity.SQL_CREATE_TABLE);
     }
 
     public String getUserNameFromJwt() {

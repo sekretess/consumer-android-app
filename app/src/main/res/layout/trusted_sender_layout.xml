@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="#0D0D0D"
+    android:layout_marginEnd="10dp"
+    android:layout_marginStart="10dp">
+    <ImageButton
+        android:id="@+id/img_trusted_sender"
+        android:background="@drawable/rounded_shape_trusted_senders"
+        android:layout_width="53dp"
+        android:layout_height="53dp"
+        android:layout_marginTop="16dp"
+        android:src="@drawable/round_add_moderator_24"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:scaleType="fitXY"
+        app:layout_constraintHorizontal_bias="0.103"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/txt_trusted_sender"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="52dp"
+        android:text="dfdfdf"
+        android:textColor="@color/white"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@id/img_trusted_sender"
+        app:layout_constraintTop_toTopOf="@+id/img_trusted_sender" />
+</androidx.constraintlayout.widget.ConstraintLayout>

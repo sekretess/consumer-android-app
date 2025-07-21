@@ -6,6 +6,7 @@
     android:layout_height="match_parent"
     tools:context="io.sekretess.ui.LoginActivity"
     android:focusable="true"
+    android:background="#0D0D0D"
     android:focusableInTouchMode="true">
 
     <Button

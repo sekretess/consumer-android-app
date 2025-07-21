@@ -5,12 +5,16 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.drawable.AdaptiveIconDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.graphics.drawable.DrawableContainerCompat;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -51,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         checkForegroundServices();
 
         Log.i("MainActivity", "OnCreate");
@@ -63,10 +68,12 @@ public class MainActivity extends AppCompatActivity {
                     new IntentFilter(Constants.EVENT_REFRESH_TOKEN_FAILED), RECEIVER_EXPORTED);
 
             setContentView(R.layout.activity_main);
+            Toolbar myToolbar =  findViewById(R.id.my_toolbar);
+            myToolbar.setNavigationIcon(R.drawable.ic_notif_sekretess);
+            setSupportActionBar(myToolbar);
             BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
 
             Log.i("MainActivity", "Notify login...");
-
             broadcastLoginEvent(username);
             bottomNavigationView.setOnItemSelectedListener(item -> {
                 if (item.getItemId() == R.id.menu_item_business) {

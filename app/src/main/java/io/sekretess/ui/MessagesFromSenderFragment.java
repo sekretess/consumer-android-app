@@ -24,6 +24,7 @@ public class MessagesFromSenderFragment extends Fragment {
     private RecyclerView recyclerView;
     private MessageAdapter messageAdapter;
 
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {

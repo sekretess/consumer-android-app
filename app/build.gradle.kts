@@ -10,8 +10,8 @@ android {
         applicationId = "io.sekretess"
         minSdk = 30
         targetSdk = 34
-        versionCode =13
-        versionName = "1.0.13"
+        versionCode =15
+        versionName = "1.0.15"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -40,6 +40,7 @@ dependencies {
     implementation ("net.zetetic:android-database-sqlcipher:4.5.4")//Encrypted database
     implementation ("com.auth0.android:jwtdecode:2.0.0")
     implementation ("net.openid:appauth:0.9.1")
+    implementation ("com.squareup.picasso:picasso:2.8")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")

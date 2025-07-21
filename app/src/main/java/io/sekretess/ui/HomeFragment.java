@@ -30,7 +30,7 @@ public class HomeFragment extends Fragment {
         recyclerView = view.findViewById(R.id.businessSubscriptionRecycler);
 
         List<String> subscribedBusinesses = ApiClient
-                .getSubscribedBusinesses(dbHelper.getAuthState().getIdToken());
+                .getSubscribedBusinesses(getContext(), dbHelper.getAuthState().getIdToken());
         SubscribedBusinessesAdapter businessesAdapter =
                 new SubscribedBusinessesAdapter(subscribedBusinesses);
         recyclerView.setAdapter(businessesAdapter);
