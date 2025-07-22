@@ -1,30 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="#11191f"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/businesses_layout"
-    android:paddingBottom="10dp">
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@android:color/transparent"
+    android:layout_marginStart="10dp"
+    android:layout_marginTop="10dp"
+    android:layout_marginEnd="10dp"
+    android:layout_marginBottom="10dp">
 
     <ImageView
         android:id="@+id/imgBusiness"
-        android:layout_width="48px"
-        android:layout_height="match_parent"
-        android:layout_weight="0.20"
-        android:contentDescription="TODO" />
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:contentDescription="TODO"
+        android:src="@drawable/round_add_moderator_24"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <TextView
         android:id="@+id/txtBusinessName"
-        android:layout_width="20dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="0.50"
-        android:paddingLeft="50px"
-        android:text="SwedenBank" />
+        android:layout_width="70dp"
+        android:layout_height="22dp"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:text="SwedenBank"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/imgBusiness" />
 
-    <Button
-        android:id="@+id/btnSubscribe"
-        android:layout_width="24dp"
-        android:layout_height="37dp"
-        android:layout_weight="0.30"
-        android:text="Subscribe"
-        android:background="@drawable/oval_button"/>
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

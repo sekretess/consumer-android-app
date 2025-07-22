@@ -5,15 +5,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.drawable.AdaptiveIconDrawable;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.graphics.drawable.DrawableContainerCompat;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -33,7 +30,6 @@ import io.sekretess.service.RefreshTokenService;
 import io.sekretess.service.SekretessRabbitMqService;
 import io.sekretess.ui.ChatsFragment;
 import io.sekretess.ui.BusinessesFragment;
-import io.sekretess.ui.HomeFragment;
 import io.sekretess.ui.LoginActivity;
 import io.sekretess.ui.ProfileFragment;
 
@@ -78,10 +74,8 @@ public class MainActivity extends AppCompatActivity {
             bottomNavigationView.setOnItemSelectedListener(item -> {
                 if (item.getItemId() == R.id.menu_item_business) {
                     replaceFragment(new BusinessesFragment());
-                } else if (item.getItemId() == R.id.menu_item_messages) {
-                    replaceFragment(new ChatsFragment());
                 } else if (item.getItemId() == R.id.menu_item_home) {
-                    replaceFragment(new HomeFragment());
+                    replaceFragment(new ChatsFragment());
                 } else if (item.getItemId() == R.id.menu_item_profile) {
                     replaceFragment(new ProfileFragment());
                 }

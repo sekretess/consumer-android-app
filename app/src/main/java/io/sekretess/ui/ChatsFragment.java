@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import androidx.appcompat.widget.Toolbar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -61,7 +62,8 @@ public class ChatsFragment extends Fragment {
         fragmentView = inflater.inflate(R.layout.activity_chats, container, false);
         renderTrustedSendersRecycleView();
         renderMessagesRecycleView();
-
+        Toolbar toolbar = getActivity().findViewById(R.id.my_toolbar);
+        toolbar.setTitle("Sekretess/Home");
         return fragmentView;
     }
 

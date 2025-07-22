@@ -47,14 +47,8 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
             Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
             holder.getImgBusiness().setImageBitmap(bitmap);
         }
-        if (mSubscribedBusinesses.contains(businessDto.getBusinessName())) {
-            holder.getBtnSubscribe().setText("Unsubscribe");
-        } else {
-            holder.getBtnSubscribe().setText("Subscribe");
-        }
-
-        holder.getBtnSubscribe()
-                .setOnClickListener(new ButtonClickListener(businessDto.getBusinessName()));
+//        holder.getBtnSubscribe()
+//                .setOnClickListener(new ButtonClickListener(businessDto.getBusinessName()));
     }
 
 

@@ -2,7 +2,10 @@ package io.sekretess.ui;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.Toolbar;
+import androidx.constraintlayout.helper.widget.Grid;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -30,6 +33,9 @@ public class BusinessesFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        Toolbar toolbar = getActivity().findViewById(R.id.my_toolbar);
+        toolbar.setTitle("Sekretess/Businesses");
+
         View view =  inflater.inflate(R.layout.businesses_fragment, container, false);
         DbHelper dbHelper = DbHelper.getInstance(getActivity().getApplicationContext());
 
@@ -40,7 +46,7 @@ public class BusinessesFragment extends Fragment {
         BusinessesAdapter businessesAdapter =
                 new BusinessesAdapter(businessList, subscribedBusinesses);
         recyclerView.setAdapter(businessesAdapter);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this.getActivity()));
+        recyclerView.setLayoutManager(new GridLayoutManager(this.getActivity(),4));
         return view;
     }
 

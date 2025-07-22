@@ -12,11 +12,11 @@
         android:icon="@drawable/ic_business"
         android:title="Business"
         app:showAsAction="ifRoom|withText" />
-    <item
-        android:id="@+id/menu_item_messages"
-        android:icon="@drawable/ic_message"
-        android:title="Message"
-        app:showAsAction="ifRoom|withText"/>
+<!--    <item-->
+<!--        android:id="@+id/menu_item_messages"-->
+<!--        android:icon="@drawable/ic_message"-->
+<!--        android:title="Message"-->
+<!--        app:showAsAction="ifRoom|withText"/>-->
     <item
         android:id="@+id/menu_item_profile"
         android:icon="@drawable/ic_profile"
