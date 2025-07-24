@@ -64,21 +64,21 @@ public class LoginActivity extends AppCompatActivity {
                         SSLContext sslContext = SSLContext.getInstance("TLS");
                         sslContext.init(null, new TrustManager[]{new X509TrustManager() {
                             @Override
-                            public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-
+                            public void checkClientTrusted(X509Certificate[] chain, String authType) {
                             }
 
                             @Override
-                            public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-
+                            public void checkServerTrusted(X509Certificate[] chain, String authType) {
                             }
 
                             @Override
                             public X509Certificate[] getAcceptedIssuers() {
-                                return null;
+                                return new X509Certificate[0];
                             }
                         }}, new SecureRandom());
                         httpsURLConnection.setSSLSocketFactory(sslContext.getSocketFactory());
+//                        HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+
                     } catch (Exception e) {
 
                     }

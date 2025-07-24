@@ -25,11 +25,18 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 public class ApiClient {
 
@@ -175,10 +182,26 @@ public class ApiClient {
     }
 
     private static List<BusinessDto> getBusinessesInternal(Context context) {
-        HttpURLConnection urlConnection = null;
+        HttpsURLConnection urlConnection = null;
         try {
             URL businessApiUrl = new URL(Constants.BUSINESS_API_URL);
-            urlConnection = (HttpURLConnection) businessApiUrl.openConnection();
+            urlConnection = (HttpsURLConnection) businessApiUrl.openConnection();
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, new TrustManager[]{new X509TrustManager() {
+                @Override
+                public void checkClientTrusted(X509Certificate[] chain, String authType) {
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] chain, String authType) {
+                }
+
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[0];
+                }
+            }}, new SecureRandom());
+            urlConnection.setSSLSocketFactory(sslContext.getSocketFactory());
             urlConnection.setRequestMethod("GET");
             urlConnection.setDoOutput(false);
             urlConnection.setDoInput(true);
@@ -222,10 +245,28 @@ public class ApiClient {
     }
 
     private static List<String> getSubscribedBusinessesInternal(Context context, String jwt) {
-        HttpURLConnection urlConnection = null;
+        HttpsURLConnection urlConnection = null;
         try {
             URL businessApiUrl = new URL(Constants.CONSUMER_API_URL + "/ads/businesses");
-            urlConnection = (HttpURLConnection) businessApiUrl.openConnection();
+            urlConnection = (HttpsURLConnection) businessApiUrl.openConnection();
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, new TrustManager[]{new X509TrustManager() {
+                @Override
+                public void checkClientTrusted(X509Certificate[] chain, String authType) {
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] chain, String authType) {
+                }
+
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[0];
+                }
+            }}, new SecureRandom());
+
+            urlConnection.setSSLSocketFactory(sslContext.getSocketFactory());
             urlConnection.setRequestMethod("GET");
             urlConnection.setRequestProperty("Authorization", "Bearer " + jwt);
             urlConnection.setDoOutput(false);

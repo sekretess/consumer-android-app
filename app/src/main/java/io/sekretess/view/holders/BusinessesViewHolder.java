@@ -2,6 +2,7 @@ package io.sekretess.view.holders;
 
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -14,11 +15,13 @@ public class BusinessesViewHolder extends RecyclerView.ViewHolder {
 
     private final TextView txtBusinessName;
     private final ImageView imgBusiness;
+    private final ImageButton btnSubscribe;
 
     public BusinessesViewHolder(@NonNull View itemView) {
         super(itemView);
         this.txtBusinessName = itemView.findViewById(R.id.txtBusinessName);
         this.imgBusiness = itemView.findViewById(R.id.imgBusiness);
+        this.btnSubscribe = itemView.findViewById(R.id.imgBtnSubscribe);
     }
 
 
@@ -28,5 +31,9 @@ public class BusinessesViewHolder extends RecyclerView.ViewHolder {
 
     public TextView getTxtBusinessName() {
         return txtBusinessName;
+    }
+
+    public ImageButton getBtnSubscribe() {
+        return btnSubscribe;
     }
 }

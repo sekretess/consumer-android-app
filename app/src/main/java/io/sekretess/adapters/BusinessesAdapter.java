@@ -47,8 +47,25 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
             Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
             holder.getImgBusiness().setImageBitmap(bitmap);
         }
+        if (isSubscribed(businessDto.getBusinessName())) {
+           holder.getBtnSubscribe().setImageResource(R.drawable.outline_remove_24);
+        }else{
+            holder.getBtnSubscribe().setImageResource(R.drawable.outline_add_24);
+        }
 //        holder.getBtnSubscribe()
 //                .setOnClickListener(new ButtonClickListener(businessDto.getBusinessName()));
+
+    }
+
+
+    private boolean isSubscribed(String businessName) {
+        if (mSubscribedBusinesses == null) return false;
+        for (String subscribedBusiness : mSubscribedBusinesses) {
+            if (subscribedBusiness.equalsIgnoreCase(businessName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 
