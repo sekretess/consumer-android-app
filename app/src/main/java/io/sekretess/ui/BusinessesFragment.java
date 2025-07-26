@@ -3,10 +3,8 @@ package io.sekretess.ui;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
-import androidx.constraintlayout.helper.widget.Grid;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Bundle;
@@ -27,7 +25,7 @@ import java.util.List;
  * status bar and navigation/system bar) with user interaction.
  */
 public class BusinessesFragment extends Fragment {
-    private RecyclerView recyclerView;
+    private RecyclerView subscribedBusinessesRecycler;
 
 
     @Nullable
@@ -36,17 +34,17 @@ public class BusinessesFragment extends Fragment {
         Toolbar toolbar = getActivity().findViewById(R.id.my_toolbar);
         toolbar.setTitle("Sekretess/Businesses");
 
-        View view =  inflater.inflate(R.layout.businesses_fragment, container, false);
+        View view = inflater.inflate(R.layout.businesses_fragment, container, false);
         DbHelper dbHelper = DbHelper.getInstance(getActivity().getApplicationContext());
 
-        recyclerView = view.findViewById(R.id.businessesRecycler);
+        subscribedBusinessesRecycler = view.findViewById(R.id.businessesRecycler);
         List<BusinessDto> businessList = ApiClient.getBusinesses(getContext());
         List<String> subscribedBusinesses = ApiClient
-                .getSubscribedBusinesses(getContext(),dbHelper.getAuthState().getIdToken());
+                .getSubscribedBusinesses(getContext(), dbHelper.getAuthState().getIdToken());
         BusinessesAdapter businessesAdapter =
-                new BusinessesAdapter(businessList, subscribedBusinesses);
-        recyclerView.setAdapter(businessesAdapter);
-        recyclerView.setLayoutManager(new GridLayoutManager(this.getActivity(),4));
+                new BusinessesAdapter(businessList, subscribedBusinesses, getParentFragmentManager());
+        subscribedBusinessesRecycler.setAdapter(businessesAdapter);
+        subscribedBusinessesRecycler.setLayoutManager(new GridLayoutManager(this.getActivity(), 4));
         return view;
     }
 

@@ -3,16 +3,21 @@ package io.sekretess.adapters;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 import io.sekretess.R;
 import io.sekretess.dto.BusinessDto;
-import io.sekretess.ui.ButtonClickListener;
+import io.sekretess.ui.BusinessInfoDialogFragment;
 import io.sekretess.view.holders.BusinessesViewHolder;
 
 import java.util.Base64;
@@ -22,10 +27,13 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
 
     private final List<BusinessDto> mBusinessDtos;
     private final List<String> mSubscribedBusinesses;
+    private final FragmentManager fragmentManager;
 
-    public BusinessesAdapter(List<BusinessDto> mBusinessDtos, List<String> subscribedBusinesses) {
+    public BusinessesAdapter(List<BusinessDto> mBusinessDtos, List<String> subscribedBusinesses,
+                             FragmentManager fragmentManager) {
         this.mBusinessDtos = mBusinessDtos;
         this.mSubscribedBusinesses = subscribedBusinesses;
+        this.fragmentManager = fragmentManager;
     }
 
     @NonNull
@@ -47,14 +55,35 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
             Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
             holder.getImgBusiness().setImageBitmap(bitmap);
         }
-        if (isSubscribed(businessDto.getBusinessName())) {
-           holder.getBtnSubscribe().setImageResource(R.drawable.outline_remove_24);
-        }else{
-            holder.getBtnSubscribe().setImageResource(R.drawable.outline_add_24);
-        }
-//        holder.getBtnSubscribe()
-//                .setOnClickListener(new ButtonClickListener(businessDto.getBusinessName()));
 
+
+        boolean subscribed = isSubscribed(businessDto.getBusinessName());
+        if (subscribed) {
+            holder.getBtnSubscribe().setImageResource(R.drawable.outline_checked_24);
+        }
+
+        holder.getImgBusiness().setOnClickListener(v -> {
+
+            Bundle args = new Bundle();
+            args.putString("businessIcon", businessDto.getIcon());
+            args.putString("businessName", businessDto.getBusinessName());
+            args.putBoolean("subscribed", subscribed);
+
+            BusinessInfoDialogFragment businessInfoDialogFragment = new BusinessInfoDialogFragment();
+            businessInfoDialogFragment.setArguments(args);
+            businessInfoDialogFragment.show(fragmentManager, "businessInfoDialogFragment");
+            //
+//            View businessInfoView = LayoutInflater.from(v.getContext())
+//                    .inflate(R.layout.business_info_dialog_fragment_layout, null);
+//            View viewById = businessInfoView.findViewById(R.id.linearLayout);
+//            BottomSheetBehavior.from(viewById).setState(BottomSheetBehavior.STATE_EXPANDED);
+//
+//            Context context = v.getContext();
+//            BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(context);
+//            bottomSheetDialog.setContentView(businessInfoView);
+//            bottomSheetDialog.show();
+
+        });
     }
 
 

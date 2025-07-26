@@ -77,7 +77,7 @@ public class LoginActivity extends AppCompatActivity {
                             }
                         }}, new SecureRandom());
                         httpsURLConnection.setSSLSocketFactory(sslContext.getSocketFactory());
-//                        HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+                        HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
 
                     } catch (Exception e) {
 

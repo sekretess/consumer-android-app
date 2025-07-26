@@ -18,6 +18,7 @@ import io.sekretess.dto.KeyBundleDto;
 import io.sekretess.dto.KeyMaterial;
 import io.sekretess.dto.OneTimeKeyBundleDto;
 import io.sekretess.dto.UserDto;
+import io.sekretess.repository.DbHelper;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -88,8 +89,9 @@ public class ApiClient {
 
     }
 
-    public static boolean subscribeToBusiness(Context context, String business, String jwt) {
+    public static boolean subscribeToBusiness(Context context, String business) {
         try {
+            String jwt = DbHelper.getInstance(context).getAuthState().getIdToken();
             Future<Boolean> future = Executors.newSingleThreadExecutor()
                     .submit(() -> subscribeToBusinessInternal(context, business, jwt));
             return future.get(20, TimeUnit.SECONDS);
@@ -129,8 +131,9 @@ public class ApiClient {
         }
     }
 
-    public static boolean unSubscribeFromBusiness(Context context, String business, String jwt) {
+    public static boolean unSubscribeFromBusiness(Context context, String business) {
         try {
+            String jwt = DbHelper.getInstance(context).getAuthState().getIdToken();
             Future<Boolean> future = Executors.newSingleThreadExecutor()
                     .submit(() -> unSubscribeFromBusinessInternal(context, business, jwt));
             return future.get(20, TimeUnit.SECONDS);

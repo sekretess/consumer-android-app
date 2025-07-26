@@ -20,15 +20,13 @@ public class ButtonClickListener implements View.OnClickListener {
     @Override
     public void onClick(View v) {
         Context context = v.getContext();
-        DbHelper dbHelper = DbHelper.getInstance(context);
-        AuthState authState = dbHelper.getAuthState();
         Button button = (Button) v;
         String buttonText = button.getText().toString();
         if (buttonText.equalsIgnoreCase("unsubscribe")) {
-            boolean result = ApiClient.unSubscribeFromBusiness(context, businessName, authState.getIdToken());
+            boolean result = ApiClient.unSubscribeFromBusiness(context, businessName);
             if (result) button.setText("Subscribe");
         } else if (buttonText.equalsIgnoreCase("subscribe")) {
-            boolean result = ApiClient.subscribeToBusiness(context, businessName, authState.getIdToken());
+            boolean result = ApiClient.subscribeToBusiness(context, businessName);
             if (result) button.setText("UnSubscribe");
         }
     }
