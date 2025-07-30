@@ -1,6 +1,8 @@
 package io.sekretess.adapters;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -23,8 +25,10 @@ public class SendersAdapter extends RecyclerView.Adapter<SenderViewHolder> {
 
     private final List<MessageBriefDto> mMessageBriefs;
     private final ItemClickListener listener;
+    private final Context context;
 
-    public SendersAdapter(List<MessageBriefDto> mMessageBriefs, ItemClickListener listener) {
+    public SendersAdapter(Context context, List<MessageBriefDto> mMessageBriefs, ItemClickListener listener) {
+        this.context = context;
         this.mMessageBriefs = mMessageBriefs;
         this.listener = listener;
     }
@@ -43,10 +47,12 @@ public class SendersAdapter extends RecyclerView.Adapter<SenderViewHolder> {
     public void onBindViewHolder(@NonNull SenderViewHolder holder, int position) {
         MessageBriefDto messageBriefDto = mMessageBriefs.get(position);
         holder.getTxtSenderName().setText(messageBriefDto.getSender());
-        holder.getTxtSenderName().setOnClickListener(v -> {
-            listener.onClick(holder.getTxtSenderName().getText().toString());
-        });
-        holder.getTxtMessageCount().setText(String.valueOf(messageBriefDto.getCount()));
+        holder.getTxtSenderName().setOnClickListener(v -> listener.onClick(holder.getTxtSenderName().getText().toString()));
+//        holder.getTxtMessageCount().setText(String.valueOf(messageBriefDto.getCount()));
+        String businessImageFilePath = context.getFilesDir().getPath() + "/images/"
+                + messageBriefDto.getSender() + ".jpeg";
+        Bitmap bitmap = BitmapFactory.decodeFile(businessImageFilePath);
+        holder.getImgBusinessIcon().setImageBitmap(bitmap);
     }
 
     @Override

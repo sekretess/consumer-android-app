@@ -7,10 +7,12 @@ public class BusinessDto {
     private String businessName;
     @JsonProperty("icon")
     private String icon;
+    private boolean subscribed;
 
-    public BusinessDto(String businessName, String icon) {
+    public BusinessDto(String businessName, String icon, boolean subscribed) {
         this.businessName = businessName;
         this.icon = icon;
+        this.subscribed = subscribed;
     }
 
     public BusinessDto() {
@@ -31,5 +33,13 @@ public class BusinessDto {
 
     public void setIcon(String icon) {
         this.icon = icon;
+    }
+
+    public boolean isSubscribed() {
+        return subscribed;
+    }
+
+    public void setSubscribed(boolean subscribed) {
+        this.subscribed = subscribed;
     }
 }

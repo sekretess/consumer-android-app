@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
 import androidx.appcompat.widget.Toolbar;
 
 import androidx.annotation.NonNull;
@@ -30,8 +31,10 @@ import io.sekretess.repository.DbHelper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-public class ChatsFragment extends Fragment {
+public class HomeFragment extends Fragment {
 
     private RecyclerView messagesRecycleView;
     private View fragmentView;
@@ -50,6 +53,7 @@ public class ChatsFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //TODO Mock data - remove on production
         Log.i("ChatsActivity", "Registering receiver. Context: " + getActivity().getApplicationContext());
         Log.i("ChatsActivity", "Registering receiver. Context: " + getActivity().getBaseContext());
         Log.i("ChatsActivity", "Registering receiver. Context: " + getContext());
@@ -59,11 +63,11 @@ public class ChatsFragment extends Fragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        fragmentView = inflater.inflate(R.layout.activity_chats, container, false);
+        fragmentView = inflater.inflate(R.layout.activity_home, container, false);
         renderTrustedSendersRecycleView();
         renderMessagesRecycleView();
         Toolbar toolbar = getActivity().findViewById(R.id.my_toolbar);
-        toolbar.setTitle("Sekretess/Home");
+        toolbar.setTitle("Home");
         return fragmentView;
     }
 
@@ -83,20 +87,26 @@ public class ChatsFragment extends Fragment {
     }
 
     private TrustedSendersAdapter updateTrustedSendersAdapter() {
-        List<TrustedSender> trustedSenders = new ArrayList<>();
-        trustedSenders.add(new TrustedSender("Starbugs", "https://logonoid.com/images/starbucks-logo.png"));
-        trustedSenders.add(new TrustedSender("Mitsubishi", "https://wieck-mmna-production.s3.amazonaws.com/photos/d05f8e2530ea21931994bf23f5237e24afb0fff1/preview-928x522.jpg"));
-        trustedSenders.add(new TrustedSender("Add New", R.drawable.round_add_moderator_24));
-        return new TrustedSendersAdapter(trustedSenders);
+        DbHelper dbHelper = DbHelper.getInstance(getContext());
+        List<TrustedSender> trustedSenders = dbHelper.getTopSenders()
+                .stream()
+                .map(businessName -> new TrustedSender(businessName))
+                .collect(Collectors.toList());
+        trustedSenders.add(new TrustedSender("Add New", v -> {
+            AppCompatActivity activity = (AppCompatActivity) fragmentView.getContext();
+            BusinessesFragment fragment = new BusinessesFragment();
+            activity.getSupportFragmentManager().
+                    beginTransaction().
+                    replace(R.id.frame_layout, fragment).
+                    commit();
+        }));
+        return new TrustedSendersAdapter(getContext(), trustedSenders);
     }
 
 
     private SendersAdapter updateMessageAdapter() {
         List<MessageBriefDto> messageBriefs = DbHelper.getInstance(getContext()).getMessageBriefs();
-        messageBriefs.add(new MessageBriefDto("Sweden Bank", 3));
-        messageBriefs.add(new MessageBriefDto("ABC Bank", 1));
-        messageBriefs.add(new MessageBriefDto("TeliaSonera", 1));
-        return new SendersAdapter(messageBriefs, (sender) -> {
+        return new SendersAdapter(getContext(), messageBriefs, (sender) -> {
             try {
                 Bundle bundle = new Bundle();
                 bundle.putString("from", sender);

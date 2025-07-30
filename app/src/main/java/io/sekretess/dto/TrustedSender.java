@@ -1,29 +1,27 @@
 package io.sekretess.dto;
 
-public class TrustedSender {
-    private String businessName;
-    private String icon;
-    private Integer resourceId;
+import android.view.View;
 
-    public TrustedSender(String businessName, String icon) {
+public class TrustedSender {
+    private final String businessName;
+
+    private final View.OnClickListener onClickListener;
+
+    public TrustedSender(String businessName, View.OnClickListener onClickListener) {
         this.businessName = businessName;
-        this.icon = icon;
+        this.onClickListener = onClickListener;
     }
 
-    public TrustedSender(String businessName, int resourceId) {
+    public TrustedSender(String businessName){
         this.businessName = businessName;
-        this.resourceId = resourceId;
+        this.onClickListener = null;
     }
 
     public String getBusinessName() {
         return businessName;
     }
 
-    public String getIcon() {
-        return icon;
-    }
-
-    public Integer getResourceId() {
-        return resourceId;
+    public View.OnClickListener getOnClickListener() {
+        return onClickListener;
     }
 }

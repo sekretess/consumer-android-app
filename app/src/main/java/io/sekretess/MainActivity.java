@@ -22,13 +22,14 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import net.openid.appauth.AuthState;
 
+import java.io.File;
 import java.util.List;
 import java.util.Optional;
 
 import io.sekretess.repository.DbHelper;
 import io.sekretess.service.RefreshTokenService;
 import io.sekretess.service.SekretessRabbitMqService;
-import io.sekretess.ui.ChatsFragment;
+import io.sekretess.ui.HomeFragment;
 import io.sekretess.ui.BusinessesFragment;
 import io.sekretess.ui.LoginActivity;
 import io.sekretess.ui.ProfileFragment;
@@ -52,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        prepareFileSystem();
         checkForegroundServices();
 
         Log.i("MainActivity", "OnCreate");
@@ -64,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
                     new IntentFilter(Constants.EVENT_REFRESH_TOKEN_FAILED), RECEIVER_EXPORTED);
 
             setContentView(R.layout.activity_main);
-            Toolbar myToolbar =  findViewById(R.id.my_toolbar);
+            Toolbar myToolbar = findViewById(R.id.my_toolbar);
             myToolbar.setNavigationIcon(R.drawable.ic_notif_sekretess);
             setSupportActionBar(myToolbar);
             BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
@@ -75,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
                 if (item.getItemId() == R.id.menu_item_business) {
                     replaceFragment(new BusinessesFragment());
                 } else if (item.getItemId() == R.id.menu_item_home) {
-                    replaceFragment(new ChatsFragment());
+                    replaceFragment(new HomeFragment());
                 } else if (item.getItemId() == R.id.menu_item_profile) {
                     replaceFragment(new ProfileFragment());
                 }
@@ -111,6 +113,15 @@ public class MainActivity extends AppCompatActivity {
             Log.i("MainActivity", "Starting sekrtess RefreshTokenService...");
             ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), RefreshTokenService.class));
             Log.i("MainActivity", "Started sekrtess RefreshTokenService.");
+        }
+    }
+
+
+    private void prepareFileSystem() {
+        File baseDir = getApplicationContext().getFilesDir();
+        File imageDir = new File(baseDir, "images");
+        if (!imageDir.exists()) {
+            imageDir.mkdirs();
         }
     }
 

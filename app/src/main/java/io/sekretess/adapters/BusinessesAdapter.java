@@ -4,35 +4,36 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import com.google.android.material.bottomsheet.BottomSheetBehavior;
-import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 import io.sekretess.R;
 import io.sekretess.dto.BusinessDto;
 import io.sekretess.ui.BusinessInfoDialogFragment;
 import io.sekretess.view.holders.BusinessesViewHolder;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.Base64;
 import java.util.List;
 
 public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder> {
 
     private final List<BusinessDto> mBusinessDtos;
-    private final List<String> mSubscribedBusinesses;
     private final FragmentManager fragmentManager;
+    private final Context context;
 
-    public BusinessesAdapter(List<BusinessDto> mBusinessDtos, List<String> subscribedBusinesses,
+    public BusinessesAdapter(Context context, List<BusinessDto> mBusinessDtos,
                              FragmentManager fragmentManager) {
+        this.context = context;
         this.mBusinessDtos = mBusinessDtos;
-        this.mSubscribedBusinesses = subscribedBusinesses;
         this.fragmentManager = fragmentManager;
     }
 
@@ -46,6 +47,15 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
     }
 
     @Override
+    public void onBindViewHolder(@NonNull BusinessesViewHolder holder, int position, @NonNull List<Object> payloads) {
+        if (payloads != null && !payloads.isEmpty()) {
+            mBusinessDtos.remove(position);
+            mBusinessDtos.add((BusinessDto) payloads.get(0));
+        }
+        super.onBindViewHolder(holder, position, payloads);
+    }
+
+    @Override
     public void onBindViewHolder(@NonNull BusinessesViewHolder holder, int position) {
         BusinessDto businessDto = mBusinessDtos.get(position);
         holder.getTxtBusinessName().setText(businessDto.getBusinessName());
@@ -54,12 +64,22 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
             byte[] imageBytes = Base64.getDecoder().decode(imageBase64);
             Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
             holder.getImgBusiness().setImageBitmap(bitmap);
+            holder.getImgBusiness().setScaleType(ImageView.ScaleType.CENTER_CROP);
+            try {
+                File baseDir = context.getFilesDir();
+                File imageDir = new File(baseDir, "images");
+                File imageFile = new File(imageDir, businessDto.getBusinessName()+".jpeg");
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100,
+                        new FileOutputStream(imageFile));
+            } catch (Exception e) {
+                Log.e("BusinessAdapter", "Error saving image: ", e);
+            }
         }
 
-
-        boolean subscribed = isSubscribed(businessDto.getBusinessName());
-        if (subscribed) {
+        if (businessDto.isSubscribed()) {
             holder.getBtnSubscribe().setImageResource(R.drawable.outline_checked_24);
+        } else {
+            holder.getBtnSubscribe().setImageBitmap(null);
         }
 
         holder.getImgBusiness().setOnClickListener(v -> {
@@ -67,36 +87,14 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
             Bundle args = new Bundle();
             args.putString("businessIcon", businessDto.getIcon());
             args.putString("businessName", businessDto.getBusinessName());
-            args.putBoolean("subscribed", subscribed);
+            args.putBoolean("subscribed", businessDto.isSubscribed());
+            args.putInt("position", position);
 
-            BusinessInfoDialogFragment businessInfoDialogFragment = new BusinessInfoDialogFragment();
+            BusinessInfoDialogFragment businessInfoDialogFragment = new BusinessInfoDialogFragment(this);
             businessInfoDialogFragment.setArguments(args);
             businessInfoDialogFragment.show(fragmentManager, "businessInfoDialogFragment");
-            //
-//            View businessInfoView = LayoutInflater.from(v.getContext())
-//                    .inflate(R.layout.business_info_dialog_fragment_layout, null);
-//            View viewById = businessInfoView.findViewById(R.id.linearLayout);
-//            BottomSheetBehavior.from(viewById).setState(BottomSheetBehavior.STATE_EXPANDED);
-//
-//            Context context = v.getContext();
-//            BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(context);
-//            bottomSheetDialog.setContentView(businessInfoView);
-//            bottomSheetDialog.show();
-
         });
     }
-
-
-    private boolean isSubscribed(String businessName) {
-        if (mSubscribedBusinesses == null) return false;
-        for (String subscribedBusiness : mSubscribedBusinesses) {
-            if (subscribedBusiness.equalsIgnoreCase(businessName)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
 
     @Override
     public int getItemCount() {

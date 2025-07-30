@@ -69,6 +69,7 @@ import io.sekretess.repository.DbHelper;
 import io.sekretess.repository.SekretessSignalProtocolStore;
 import io.sekretess.ui.LoginActivity;
 import io.sekretess.utils.ApiClient;
+import io.sekretess.utils.NotificationPreferencesUtils;
 
 import java.io.IOException;
 import java.security.SecureRandom;
@@ -201,7 +202,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             rabbitMqChannel.confirmSelect();
 
             Log.i(TAG, "RabbitMq Consumer connection established.");
-            rabbitMqChannel.basicConsume(userName.concat(Constants.RABBIT_MQ_CONSUMER_QUEUE_SUFFIX),
+            rabbitMqChannel.basicConsume(dbHelper.getUserNameFromJwt().concat(Constants.RABBIT_MQ_CONSUMER_QUEUE_SUFFIX),
                     true, new DefaultConsumer(rabbitMqChannel) {
                         @Override
                         public void handleDelivery(String consumerTag, Envelope envelope,
@@ -321,7 +322,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         Log.i("SignalProtocolService", "Initialize event received");
         initializeSecretKeys()
                 .ifPresent(keyMaterial -> {
-                    if (ApiClient.createUser(getApplicationContext(),username, email, password, keyMaterial)) {
+                    if (ApiClient.createUser(getApplicationContext(), username, email, password, keyMaterial)) {
                         startLoginActivity();
                     }
                 });
@@ -612,6 +613,11 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
 
         NotificationChannel channel = new NotificationChannel(Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME,
                 "New message", NotificationManager.IMPORTANCE_DEFAULT);
+        channel.enableVibration(NotificationPreferencesUtils.getVibrationPreferences(getBaseContext(), sender));
+        boolean soundAlerts = NotificationPreferencesUtils.getSoundAlertsPreferences(getBaseContext(), sender);
+        if (!soundAlerts) {
+            channel.setImportance(NotificationManager.IMPORTANCE_LOW);
+        }
         notificationManager.createNotificationChannel(channel);
 
 

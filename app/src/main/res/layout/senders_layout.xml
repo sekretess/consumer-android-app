@@ -10,7 +10,9 @@
     android:background="@drawable/rounded_shape">
 
     <TableRow android:paddingLeft="5dp">
+
         <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/imgBusinessIcon"
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:background="#414B58"
@@ -40,7 +42,6 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:padding="5dp"
-            android:text="5"
             android:textAlignment="center"
             android:textColor="@color/white"
             android:textSize="24sp"

@@ -132,7 +132,6 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
     public void storeRegistrationId(Integer registrationId, int deviceId) {
-
         ContentValues contentValues = new ContentValues();
         contentValues.put(RegistrationIdStoreEntity.COLUMN_REG_ID, registrationId);
         contentValues.put(RegistrationIdStoreEntity.COLUMN_DEVICE_ID, deviceId);
@@ -409,6 +408,20 @@ public class DbHelper extends SQLiteOpenHelper {
             }
         }
         return groupChatsInfo;
+    }
+
+    public List<String> getTopSenders() {
+        try (Cursor resultCursor = getReadableDatabase(p())
+                .query(MessageStoreEntity.TABLE_NAME, new String[]{
+                        MessageStoreEntity.COLUMN_SENDER
+                }, null, null, null, null,
+                        MessageStoreEntity.COLUMN_CREATED_AT + " DESC", "4")) {
+            List<String> topSenders = new ArrayList<>();
+            while (resultCursor.moveToNext()) {
+                topSenders.add(resultCursor.getString(0));
+            }
+            return topSenders;
+        }
     }
 
     public List<MessageRecordDto> loadMessages(String from) {

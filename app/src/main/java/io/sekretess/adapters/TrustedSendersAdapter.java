@@ -1,6 +1,8 @@
 package io.sekretess.adapters;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,8 +21,10 @@ import io.sekretess.view.holders.TrustedSenderHolder;
 
 public class TrustedSendersAdapter extends RecyclerView.Adapter<TrustedSenderHolder> {
     private List<TrustedSender> mTrustedSenders;
+    private final Context context;
 
-    public TrustedSendersAdapter(List<TrustedSender> mTrustedSenders) {
+    public TrustedSendersAdapter(Context context, List<TrustedSender> mTrustedSenders) {
+        this.context = context;
         this.mTrustedSenders = mTrustedSenders;
     }
 
@@ -37,13 +41,22 @@ public class TrustedSendersAdapter extends RecyclerView.Adapter<TrustedSenderHol
     public void onBindViewHolder(@NonNull TrustedSenderHolder holder, int position) {
         TrustedSender trustedSender = mTrustedSenders.get(position);
         holder.getTxtTrustedSender().setText(trustedSender.getBusinessName());
-        if (trustedSender.getIcon() != null && !trustedSender.getIcon().isEmpty()) {
-            try {
-                Picasso.get().load(trustedSender.getIcon()).into(holder.getImgTrustedSender());
-            } catch (Exception e) {
-                Log.e("TrustedSendersAdapter", "Error loading image: " + e.getMessage(), e);
+        try {
+            if (!trustedSender.getBusinessName().equals("Add New")) {
+                String businessImageFilePath = context.getFilesDir().getPath() + "/images/"
+                        + trustedSender.getBusinessName() + ".jpeg";
+                Bitmap bitmap = BitmapFactory.decodeFile(businessImageFilePath);
+                holder.getImgTrustedSender().setImageBitmap(bitmap);
+            } else {
+                holder.getImgTrustedSender().setImageResource(R.drawable.round_add_moderator_24);
+                if (trustedSender.getOnClickListener() != null) {
+                    holder.getImgTrustedSender().setOnClickListener(trustedSender.getOnClickListener());
+                }
             }
+        } catch (Exception e) {
+            Log.e("TrustedSendersAdapter", "Error loading image: " + e.getMessage(), e);
         }
+
     }
 
     @Override
