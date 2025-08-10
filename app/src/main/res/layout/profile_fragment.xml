@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#11191f">
+    android:background="#0D0D0D">
 
 
     <com.google.android.material.imageview.ShapeableImageView
@@ -39,7 +39,7 @@
         app:layout_constraintTop_toBottomOf="@+id/shapeableImageView"
         app:layout_constraintVertical_bias="0.048" />
 
-    <RelativeLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/relativeLayout"
         android:layout_width="411dp"
         android:layout_height="389dp"
@@ -49,111 +49,33 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/txtUsername">
 
-        <ImageView
-            android:id="@+id/btn_appearance"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentTop="true"
-            android:layout_marginStart="13dp"
-            android:layout_marginTop="9dp"
-            android:background="#1f303d"
-            android:src="@drawable/ic_appearance" />
-
-        <TextView
-            android:layout_width="wrap_content"
+        <Button
+            android:id="@+id/btnLogout"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
-            android:layout_marginStart="22dp"
-            android:layout_marginTop="20dp"
-            android:layout_toEndOf="@+id/btn_appearance"
-            android:text="Appearance" />
+            android:textColor="@color/white"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="132dp"
+            android:background="#111720"
+            android:drawableStart="@drawable/ic_logout"
+            android:text="Logout"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:id="@+id/textView"
-            android:layout_width="wrap_content"
+        <Button
+            android:id="@+id/btnDeleteAccount"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
-            android:layout_marginStart="22dp"
-            android:layout_marginTop="62dp"
-            android:layout_toEndOf="@+id/btn_appearance"
-            android:text="Settings" />
-
-        <TextView
-            android:id="@+id/textView2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
-            android:layout_marginStart="22dp"
-            android:layout_marginTop="108dp"
-            android:layout_toEndOf="@+id/btn_appearance"
-            android:text="Notifications" />
-
-        <TextView
-            android:id="@+id/textView3"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
-            android:layout_marginStart="22dp"
-            android:layout_marginTop="157dp"
-            android:layout_toEndOf="@+id/btn_appearance"
-            android:text="Privacy" />
-
-        <TextView
-            android:id="@+id/textView4"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
-            android:layout_marginStart="22dp"
-            android:layout_marginTop="206dp"
-            android:layout_toEndOf="@+id/btn_appearance"
-            android:text="Delete account" />
+            android:textColor="@color/white"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:background="#111720"
+            android:drawableStart="@drawable/ic_delete_account"
+            android:text="Delete account"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/btnLogout" />
 
 
-        <ImageView
-            android:id="@+id/btn_settings"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentTop="true"
-            android:layout_marginStart="13dp"
-            android:layout_marginTop="56dp"
-            android:background="#1f303d"
-            android:src="@drawable/ic_settings" />
-
-
-        <ImageView
-            android:id="@+id/btn_notifications"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentTop="true"
-            android:layout_marginStart="13dp"
-            android:layout_marginTop="103dp"
-            android:background="#1f303d"
-            android:src="@drawable/ic_notifications" />
-
-        <ImageView
-            android:id="@+id/btn_privacy"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentTop="true"
-            android:layout_marginStart="13dp"
-            android:layout_marginTop="150dp"
-            android:background="#1f303d"
-            android:src="@drawable/ic_privacy" />
-
-        <ImageView
-            android:id="@+id/btn_logout"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentTop="true"
-            android:layout_marginStart="13dp"
-            android:layout_marginTop="197dp"
-            android:background="#1f303d"
-            android:src="@drawable/ic_delete_account" />
-    </RelativeLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -16,7 +16,7 @@ public class MessageStoreEntity implements BaseColumns {
             COLUMN_SENDER + " TEXT, " +
             COLUMN_USERNAME + " TEXT, " +
             COLUMN_MESSAGE_BODY + " TEXT, " +
-            COLUMN_CREATED_AT + " TEXT)";
+            COLUMN_CREATED_AT + " INTEGER)";
 
     public static final String SQL_DROP_TABLE = "DROP TABLE IF EXISTS " + TABLE_NAME;
 }

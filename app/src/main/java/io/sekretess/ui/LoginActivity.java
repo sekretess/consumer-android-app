@@ -7,6 +7,7 @@ import android.util.Log;
 import android.widget.Button;
 import android.widget.Toast;
 
+import androidx.activity.result.contract.ActivityResultContract;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -56,33 +57,6 @@ public class LoginActivity extends AppCompatActivity {
                     Intent authorizationRequestIntent = new AuthorizationService(getApplicationContext())
                             .getAuthorizationRequestIntent(authorizationRequest);
                     startActivityForResult(authorizationRequestIntent, RC_AUTH);
-                }
-                , uri -> {
-                    URL url = new URL(uri.toString());
-                    HttpsURLConnection httpsURLConnection = (HttpsURLConnection) url.openConnection();
-                    try {
-                        SSLContext sslContext = SSLContext.getInstance("TLS");
-                        sslContext.init(null, new TrustManager[]{new X509TrustManager() {
-                            @Override
-                            public void checkClientTrusted(X509Certificate[] chain, String authType) {
-                            }
-
-                            @Override
-                            public void checkServerTrusted(X509Certificate[] chain, String authType) {
-                            }
-
-                            @Override
-                            public X509Certificate[] getAcceptedIssuers() {
-                                return new X509Certificate[0];
-                            }
-                        }}, new SecureRandom());
-                        httpsURLConnection.setSSLSocketFactory(sslContext.getSocketFactory());
-                        HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
-
-                    } catch (Exception e) {
-
-                    }
-                    return httpsURLConnection;
                 });
     }
 

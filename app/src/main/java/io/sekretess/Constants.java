@@ -16,9 +16,6 @@ public interface Constants {
     String EVENT_NEW_INCOMING_MESSAGE = "new-incoming-mesage-event";
     String RABBIT_MQ_CONSUMER_QUEUE_SUFFIX = "_consumer";
 
-    String CONSUMER_API_URL = "https://consumer.sekretess.io/api/v1/consumers";
-    String BUSINESS_API_URL = "https://business.sekretess.net/api/v1/businesses";
-
 
     Uri AUTH_REDIRECT_URL = Uri.parse("io.sekretess:/oauth2redirect");
 }

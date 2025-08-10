@@ -16,7 +16,7 @@ public class ConcreteChatCustomViewHolder extends RecyclerView.ViewHolder {
     public ConcreteChatCustomViewHolder(@NonNull View itemView) {
         super(itemView);
         this.messageText = itemView.findViewById(R.id.messageText);
-        this.messageDate = itemView.findViewById(R.id.text_gchat_date_me);
+        this.messageDate = itemView.findViewById(R.id.txtMessageDate);
         this.messageTime = itemView.findViewById(R.id.text_gchat_timestamp_me);
     }
 

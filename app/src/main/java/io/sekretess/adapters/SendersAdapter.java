@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -47,8 +48,9 @@ public class SendersAdapter extends RecyclerView.Adapter<SenderViewHolder> {
     public void onBindViewHolder(@NonNull SenderViewHolder holder, int position) {
         MessageBriefDto messageBriefDto = mMessageBriefs.get(position);
         holder.getTxtSenderName().setText(messageBriefDto.getSender());
-        holder.getTxtSenderName().setOnClickListener(v -> listener.onClick(holder.getTxtSenderName().getText().toString()));
-//        holder.getTxtMessageCount().setText(String.valueOf(messageBriefDto.getCount()));
+        holder.getTxtSenderName()
+                .setOnClickListener(v -> listener
+                        .onClick(holder.getTxtSenderName().getText().toString()));
         String businessImageFilePath = context.getFilesDir().getPath() + "/images/"
                 + messageBriefDto.getSender() + ".jpeg";
         Bitmap bitmap = BitmapFactory.decodeFile(businessImageFilePath);

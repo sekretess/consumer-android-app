@@ -3,12 +3,12 @@ package io.sekretess.dto;
 public class MessageRecordDto {
     private String sender;
     private String message;
-    private String messageDate;
+    private long messageDate;
 
     public MessageRecordDto() {
     }
 
-    public MessageRecordDto(String sender, String message, String messageDate) {
+    public MessageRecordDto(String sender, String message, long messageDate) {
         this.sender = sender;
         this.message = message;
         this.messageDate = messageDate;
@@ -30,11 +30,11 @@ public class MessageRecordDto {
         this.message = message;
     }
 
-    public String getMessageDate() {
+    public long getMessageDate() {
         return messageDate;
     }
 
-    public void setMessageDate(String messageDate) {
+    public void setMessageDate(long messageDate) {
         this.messageDate = messageDate;
     }
 }

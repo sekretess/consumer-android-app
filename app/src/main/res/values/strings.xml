@@ -20,7 +20,9 @@
     <string name="invalid_password">Password must be >5 characters</string>
     <string name="login_failed">"Login failed"</string>
     <string name="rabbit_mq_uri">amqps://%s:%s@mq.sekretess.net:5671</string>
-    <string name="auth_url">https://auth.sekretess.io/realms/consumer/.well-known/openid-configuration</string>
+    <string name="auth_url">https://auth.test.sekretess.io/realms/consumer/.well-known/openid-configuration</string>
+    <string name="consumer_api_url">https://consumer.test.sekretess.io/api/v1/consumers</string>
+    <string name="business_api_url">https://business.test.sekretess.net/api/v1/businesses</string>
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">First Fragment</string>
     <string name="second_fragment_label">Second Fragment</string>

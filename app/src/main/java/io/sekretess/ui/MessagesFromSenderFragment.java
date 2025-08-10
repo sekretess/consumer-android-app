@@ -7,7 +7,6 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -32,6 +31,28 @@ public class MessagesFromSenderFragment extends Fragment {
         String from = getArguments().getString("from");
         recyclerView = view.findViewById(R.id.messages_rv);
         List<MessageRecordDto> messages = DbHelper.getInstance(getContext()).loadMessages(from);
+        messages.add(new MessageRecordDto("budbee", "This is a Message",
+                1754648569000L));
+        messages.add(new MessageRecordDto("budbee", "This is a Message1",
+                1751970169000L));
+        messages.add(new MessageRecordDto("budbee", "This is a Message2",
+                1751970169000L));
+        messages.add(new MessageRecordDto("budbee", "This is a Message3",
+                1751970169000L));
+        messages.add(new MessageRecordDto("budbee", "This is a Message4",
+                1751970169000L));
+        messages.add(new MessageRecordDto("budbee", "This is a Message5",
+                1754562169000L));
+        messages.add(new MessageRecordDto("budbee", "This is a Message6",
+                1723026169000L));
+        messages.add(new MessageRecordDto("budbee", "This is a Message7",
+                1723026169000L));
+        messages.add(new MessageRecordDto("budbee", "This is a Message8",
+                1723026169000L));
+        messages.add(new MessageRecordDto("budbee", "This is a Message9",
+                1723026169000L));
+        messages.add(new MessageRecordDto("budbee", "This is a Message10",
+                1723026169000L));
         messageAdapter = new MessageAdapter(messages);
         recyclerView.setAdapter(messageAdapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));

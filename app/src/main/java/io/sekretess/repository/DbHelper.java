@@ -55,7 +55,7 @@ public class DbHelper extends SQLiteOpenHelper {
     private final DateTimeFormatter dateTimeFormatter
             = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.systemDefault());
 
-    public static final int DATABASE_VERSION = 15;
+    public static final int DATABASE_VERSION = 16;
     public static final String DATABASE_NAME = "io.sekretess_enc_db.db";
     private static final Base64.Encoder base64Encoder = Base64.getEncoder();
     private static final Base64.Decoder base64Decoder = Base64.getDecoder();
@@ -210,7 +210,18 @@ public class DbHelper extends SQLiteOpenHelper {
             db.endTransaction();
             db.close();
         }
+    }
 
+    public void logout() {
+        SQLiteDatabase db = getWritableDatabase(p());
+        try {
+            db.beginTransaction();
+            db.delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
     }
 
     @SuppressLint("Range")
@@ -308,8 +319,7 @@ public class DbHelper extends SQLiteOpenHelper {
         values.put(MessageStoreEntity.COLUMN_SENDER, sender);
         values.put(MessageStoreEntity.COLUMN_MESSAGE_BODY, message);
         values.put(MessageStoreEntity.COLUMN_USERNAME, username);
-        values.put(MessageStoreEntity.COLUMN_CREATED_AT,
-                dateTimeFormatter.format(Instant.now()));
+        values.put(MessageStoreEntity.COLUMN_CREATED_AT, System.currentTimeMillis());
         try (SQLiteDatabase db = getWritableDatabase(p())) {
             db.insert(MessageStoreEntity.TABLE_NAME,
                     null, values);
@@ -413,8 +423,8 @@ public class DbHelper extends SQLiteOpenHelper {
     public List<String> getTopSenders() {
         try (Cursor resultCursor = getReadableDatabase(p())
                 .query(MessageStoreEntity.TABLE_NAME, new String[]{
-                        MessageStoreEntity.COLUMN_SENDER
-                }, null, null, null, null,
+                                MessageStoreEntity.COLUMN_SENDER
+                        }, null, null, null, null,
                         MessageStoreEntity.COLUMN_CREATED_AT + " DESC", "4")) {
             List<String> topSenders = new ArrayList<>();
             while (resultCursor.moveToNext()) {
@@ -437,7 +447,7 @@ public class DbHelper extends SQLiteOpenHelper {
             while (resultCursor.moveToNext()) {
                 String sender = resultCursor.getString(0);
                 String messageBody = resultCursor.getString(1);
-                String createdAt = resultCursor.getString(2);
+                long createdAt = resultCursor.getInt(2);
 
                 resultArray.add(new MessageRecordDto(sender, messageBody, createdAt));
             }
@@ -549,5 +559,4 @@ public class DbHelper extends SQLiteOpenHelper {
     public String getUserNameFromJwt() {
         return new JWT(getAuthState().getIdToken()).getClaim(Constants.USERNAME_CLAIM).asString();
     }
-
 }
