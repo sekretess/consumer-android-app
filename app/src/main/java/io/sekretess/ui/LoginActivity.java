@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.auth0.android.jwt.JWT;
 
+import io.sekretess.BuildConfig;
 import io.sekretess.Constants;
 import io.sekretess.MainActivity;
 import io.sekretess.R;
@@ -45,8 +46,7 @@ public class LoginActivity extends AppCompatActivity {
     int RC_AUTH = 1717275371;
 
     private void authorizeUser() {
-        String authUrl = getString(R.string.auth_url);
-        AuthorizationServiceConfiguration.fetchFromUrl(Uri.parse(authUrl),
+        AuthorizationServiceConfiguration.fetchFromUrl(Uri.parse(BuildConfig.AUTH_API_URL),
                 (serviceConfiguration, ex) -> {
                     AuthorizationRequest authorizationRequest =
                             new AuthorizationRequest.Builder(serviceConfiguration, "consumer_client",

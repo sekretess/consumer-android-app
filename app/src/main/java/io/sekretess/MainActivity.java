@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -53,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        Toast.makeText(getApplicationContext(), BuildConfig.CONSUMER_API_URL, Toast.LENGTH_LONG).show();
         prepareFileSystem();
         checkForegroundServices();
 

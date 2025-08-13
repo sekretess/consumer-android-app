@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.openid.appauth.AuthState;
 
+import io.sekretess.BuildConfig;
 import io.sekretess.Constants;
 import io.sekretess.R;
 import io.sekretess.dto.BusinessDto;
@@ -60,7 +61,7 @@ public class ApiClient {
     private static boolean deleteUserInternal(Context context, String jwt) {
         HttpURLConnection urlConnection = null;
         try {
-            URL consumerApiUrl = new URL(context.getString(R.string.consumer_api_url));
+            URL consumerApiUrl = new URL(BuildConfig.CONSUMER_API_URL);
             urlConnection = (HttpURLConnection) consumerApiUrl.openConnection();
             urlConnection.setRequestMethod("DELETE");
             urlConnection.addRequestProperty("Content-Type", "application/json");
@@ -106,7 +107,7 @@ public class ApiClient {
     private static boolean subscribeToBusinessInternal(Context context, String business, String jwt) {
         HttpURLConnection urlConnection = null;
         try {
-            URL consumerApiUrl = new URL(context.getString(R.string.consumer_api_url) + "/ads/businesses/" + business);
+            URL consumerApiUrl = new URL(BuildConfig.CONSUMER_API_URL + "/ads/businesses/" + business);
             urlConnection = (HttpURLConnection) consumerApiUrl.openConnection();
             urlConnection.setRequestMethod("POST");
             urlConnection.addRequestProperty("Content-Type", "application/json");
@@ -148,7 +149,7 @@ public class ApiClient {
     private static boolean unSubscribeFromBusinessInternal(Context context, String business, String jwt) {
         HttpURLConnection urlConnection = null;
         try {
-            URL consumerApiUrl = new URL(context.getString(R.string.consumer_api_url) + "/ads/businesses/" + business);
+            URL consumerApiUrl = new URL(BuildConfig.CONSUMER_API_URL + "/ads/businesses/" + business);
             urlConnection = (HttpURLConnection) consumerApiUrl.openConnection();
             urlConnection.setRequestMethod("DELETE");
             urlConnection.setRequestProperty("Authorization", "Bearer " + jwt);
@@ -188,7 +189,7 @@ public class ApiClient {
     private static List<BusinessDto> getBusinessesInternal(Context context) {
         HttpsURLConnection urlConnection = null;
         try {
-            URL businessApiUrl = new URL(context.getString(R.string.business_api_url));
+            URL businessApiUrl = new URL(BuildConfig.BUSINESS_API_URL);
             urlConnection = (HttpsURLConnection) businessApiUrl.openConnection();
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(null, new TrustManager[]{new X509TrustManager() {
@@ -212,7 +213,7 @@ public class ApiClient {
             urlConnection.connect();
             boolean isSuccess = isSuccessResponse(urlConnection.getResponseCode());
             if (!isSuccess) {
-                Log.e("ApiClient", "HTTP error " + urlConnection.getResponseCode() + " URL: " + context.getString(R.string.business_api_url));
+                Log.e("ApiClient", "HTTP error " + urlConnection.getResponseCode() + " URL: " + BuildConfig.BUSINESS_API_URL);
                 showToast(context, "Can not get list of businesses: " + urlConnection.getResponseCode() + "\n"
                         + urlConnection.getResponseMessage());
                 return Collections.EMPTY_LIST;
@@ -251,7 +252,7 @@ public class ApiClient {
     private static List<String> getSubscribedBusinessesInternal(Context context, String jwt) {
         HttpsURLConnection urlConnection = null;
         try {
-            URL businessApiUrl = new URL(context.getString(R.string.consumer_api_url) + "/ads/businesses");
+            URL businessApiUrl = new URL(BuildConfig.CONSUMER_API_URL + "/ads/businesses");
             urlConnection = (HttpsURLConnection) businessApiUrl.openConnection();
 
             SSLContext sslContext = SSLContext.getInstance("TLS");
@@ -308,7 +309,7 @@ public class ApiClient {
             HttpURLConnection urlConnection = null;
             try {
 
-                URL businessApiUrl = new URL(context.getString(R.string.consumer_api_url) + "/keystores");
+                URL businessApiUrl = new URL(BuildConfig.CONSUMER_API_URL + "/keystores");
                 urlConnection = (HttpURLConnection) businessApiUrl.openConnection();
                 urlConnection.setRequestMethod("PUT");
                 urlConnection.setRequestProperty("Authorization", "Bearer " + jwt);
@@ -354,7 +355,7 @@ public class ApiClient {
         HttpURLConnection httpURLConnection = null;
 
         try {
-            URL consumerServiceUrl = new URL(context.getString(R.string.consumer_api_url) + "/onetimekeystores");
+            URL consumerServiceUrl = new URL(BuildConfig.CONSUMER_API_URL + "/onetimekeystores");
             httpURLConnection = (HttpURLConnection) consumerServiceUrl.openConnection();
             httpURLConnection.setRequestMethod("POST");
             httpURLConnection.setRequestProperty("Authorization", "Bearer " + authState.getIdToken());
@@ -404,7 +405,7 @@ public class ApiClient {
                                               KeyMaterial keyMaterial) {
         HttpURLConnection httpURLConnection = null;
         try {
-            URL consumerServiceUrl = new URL(context.getString(R.string.consumer_api_url));
+            URL consumerServiceUrl = new URL(BuildConfig.CONSUMER_API_URL);
             httpURLConnection = (HttpURLConnection) consumerServiceUrl.openConnection();
             httpURLConnection.setRequestMethod("POST");
             httpURLConnection.setRequestProperty("Content-Type", "application/json");

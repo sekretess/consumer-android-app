@@ -25,6 +25,7 @@ import net.openid.appauth.AuthorizationService;
 import net.openid.appauth.AuthorizationServiceConfiguration;
 import net.openid.appauth.EndSessionRequest;
 
+import io.sekretess.BuildConfig;
 import io.sekretess.Constants;
 import io.sekretess.R;
 import io.sekretess.repository.DbHelper;
@@ -77,7 +78,7 @@ public class ProfileFragment extends Fragment {
 
 
     private void logout(String idToken) {
-        AuthorizationServiceConfiguration.fetchFromUrl(Uri.parse(getString(R.string.auth_url)),
+        AuthorizationServiceConfiguration.fetchFromUrl(Uri.parse(BuildConfig.AUTH_API_URL),
                 (serviceConfiguration, ex) -> {
                     EndSessionRequest endSessionRequest = new EndSessionRequest
                             .Builder(serviceConfiguration)
