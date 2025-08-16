@@ -14,6 +14,7 @@ import androidx.appcompat.widget.SwitchCompat;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.squareup.picasso.Picasso;
 
+
 import io.sekretess.R;
 import io.sekretess.adapters.BusinessesAdapter;
 import io.sekretess.dto.BusinessDto;

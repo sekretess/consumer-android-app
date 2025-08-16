@@ -1,11 +1,16 @@
 package io.sekretess;
 
+import static android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG;
+import static android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+
 import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.hardware.biometrics.BiometricPrompt;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.PersistableBundle;
 import android.util.Log;
 import android.widget.Toast;
@@ -53,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        showBiometricLogin();
         Toast.makeText(getApplicationContext(), BuildConfig.CONSUMER_API_URL, Toast.LENGTH_LONG).show();
         prepareFileSystem();
         checkForegroundServices();
@@ -161,4 +166,15 @@ public class MainActivity extends AppCompatActivity {
         sendBroadcast(intent);
     }
 
+    private void showBiometricLogin() {
+        var promptInfo = new BiometricPrompt.Builder(getApplicationContext())
+                .setTitle("Biometric login for my app")
+                .setSubtitle("Log in using your biometric credential")
+                .setAllowedAuthenticators(BIOMETRIC_STRONG | DEVICE_CREDENTIAL)
+                .build();
+        promptInfo.authenticate(new CancellationSignal(), getApplicationContext().getMainExecutor(), new BiometricPrompt.AuthenticationCallback() {
+
+        });
+
+    }
 }
