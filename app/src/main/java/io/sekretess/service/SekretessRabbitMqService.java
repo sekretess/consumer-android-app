@@ -42,7 +42,7 @@ import org.signal.libsignal.protocol.NoSessionException;
 import org.signal.libsignal.protocol.SessionCipher;
 import org.signal.libsignal.protocol.SignalProtocolAddress;
 import org.signal.libsignal.protocol.UntrustedIdentityException;
-import org.signal.libsignal.protocol.ecc.Curve;
+import org.signal.libsignal.protocol.UsePqRatchet;
 import org.signal.libsignal.protocol.ecc.ECKeyPair;
 import org.signal.libsignal.protocol.ecc.ECPrivateKey;
 import org.signal.libsignal.protocol.groups.GroupCipher;
@@ -409,16 +409,20 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     private Optional<KeyMaterial> initializeSecretKeys() {
 
         try {
-            ECKeyPair ecKeyPair = Curve.generateKeyPair();
+            ECKeyPair ecKeyPair = ECKeyPair.generate();
             IdentityKey identityKey = new IdentityKey(ecKeyPair.getPublicKey());
             IdentityKeyPair identityKeyPair = new IdentityKeyPair(identityKey, ecKeyPair.getPrivateKey());
 
             int registrationId = KeyHelper.generateRegistrationId(false);
             signalProtocolStore = new SekretessSignalProtocolStore(getApplicationContext(),
                     identityKeyPair, registrationId);
-            ECKeyPair keyPair = Curve.generateKeyPair();
-            byte[] signature = Curve.calculateSignature(identityKeyPair.getPrivateKey(),
-                    keyPair.getPublicKey().serialize());
+
+            ECKeyPair signedPreKeyPair = ECKeyPair.generate();
+
+            byte[] signature = identityKeyPair
+                    .getPrivateKey()
+                    .calculateSignature(signedPreKeyPair.getPublicKey().serialize());
+            ;
 
 
             DbHelper dbHelper = DbHelper.getInstance(this);
@@ -430,7 +434,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             dbHelper.storeIdentityKeyPair(identityKeyPair);
             dbHelper.storeRegistrationId(registrationId, deviceId);
 
-            SignedPreKeyRecord signedPreKeyRecord = generateSignedPreKey(keyPair, signature);
+            SignedPreKeyRecord signedPreKeyRecord = generateSignedPreKey(signedPreKeyPair, signature);
             KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
 
             return Optional.of(new KeyMaterial(registrationId, serializeSignedPreKeys(opk), signedPreKeyRecord,
@@ -492,7 +496,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         SecureRandom preKeyRecordIdGenerator = new SecureRandom();
         for (int i = 0; i < preKeyRecords.length; i++) {
             int id = preKeyRecordIdGenerator.nextInt(Integer.MAX_VALUE);
-            ECKeyPair ecKeyPair = Curve.generateKeyPair();
+            ECKeyPair ecKeyPair = ECKeyPair.generate();
             PreKeyRecord preKeyRecord = new PreKeyRecord(id, ecKeyPair);
             signalProtocolStore.storePreKey(id, preKeyRecord);
             preKeyRecords[i] = preKeyRecord;
@@ -582,7 +586,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(sender, deviceId);
         SessionCipher sessionCipher = new SessionCipher(signalProtocolStore, signalProtocolAddress);
         Log.i("SignalProtocolService", "" + signalProtocolStore);
-        String message = new String(sessionCipher.decrypt(preKeySignalMessage));
+        String message = new String(sessionCipher.decrypt(preKeySignalMessage, UsePqRatchet.YES));
 
         if (messageType == MessageType.KEY_DISTRIBUTION) {
             processKeyDistributionMessage(sender, message);
@@ -599,23 +603,26 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     }
 
     private void publishNotification(String sender, String text) {
-        Notification notification = new NotificationCompat
+        var notification = new NotificationCompat
                 .Builder(SekretessRabbitMqService.this, Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME)
                 .setContentTitle("Message from " + sender)
+                .setSilent(false)
                 .setLargeIcon(BitmapFactory
                         .decodeResource(getResources(), R.drawable.ic_notif_sekretess))
                 .setContentText(text.substring(0, Math.min(10, text.length()))
                         .concat("...")).setSmallIcon(R.drawable.ic_notif_sekretess)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).build();
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         NotificationManagerCompat notificationManager = NotificationManagerCompat
                 .from(getApplicationContext());
         int m = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
 
         NotificationChannel channel = new NotificationChannel(Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME,
                 "New message", NotificationManager.IMPORTANCE_DEFAULT);
+        channel.setAllowBubbles(true);
         channel.enableVibration(NotificationPreferencesUtils.getVibrationPreferences(getBaseContext(), sender));
         boolean soundAlerts = NotificationPreferencesUtils.getSoundAlertsPreferences(getBaseContext(), sender);
         if (!soundAlerts) {
+            notification.setSilent(true);
             channel.setImportance(NotificationManager.IMPORTANCE_LOW);
         }
         notificationManager.createNotificationChannel(channel);
@@ -623,7 +630,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 == PackageManager.PERMISSION_GRANTED) {
-            notificationManager.notify(m, notification);
+            notificationManager.notify(m, notification.build());
         }
     }
 
