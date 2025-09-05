@@ -447,7 +447,7 @@ public class DbHelper extends SQLiteOpenHelper {
             while (resultCursor.moveToNext()) {
                 String sender = resultCursor.getString(0);
                 String messageBody = resultCursor.getString(1);
-                long createdAt = resultCursor.getInt(2);
+                long createdAt = resultCursor.getLong(2);
 
                 resultArray.add(new MessageRecordDto(sender, messageBody, createdAt));
             }

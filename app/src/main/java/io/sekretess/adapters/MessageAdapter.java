@@ -46,6 +46,7 @@ public class MessageAdapter extends RecyclerView.Adapter<ConcreteChatCustomViewH
         return new ConcreteChatCustomViewHolder(chatsView);
     }
 
+
     @Override
     public void onBindViewHolder(@NonNull ConcreteChatCustomViewHolder holder, int position) {
         MessageRecordDto messageRecordDto = messages.get(position);

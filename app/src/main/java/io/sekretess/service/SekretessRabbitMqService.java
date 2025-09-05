@@ -11,7 +11,9 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -57,6 +59,7 @@ import org.signal.libsignal.protocol.state.SignedPreKeyRecord;
 import org.signal.libsignal.protocol.util.KeyHelper;
 import org.signal.libsignal.protocol.util.Medium;
 
+import io.sekretess.BuildConfig;
 import io.sekretess.Constants;
 import io.sekretess.R;
 import io.sekretess.dto.GroupChatDto;
@@ -172,7 +175,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         connectionFactory.setVirtualHost("sekretess");
         try {
             DbHelper dbHelper = DbHelper.getInstance(getApplicationContext());
-            String amqpConnectionUrl = getString(R.string.rabbit_mq_uri);
+            String amqpConnectionUrl = BuildConfig.RABBIT_MQ_URI;
             amqpConnectionUrl = String.format(amqpConnectionUrl, dbHelper.getUserNameFromJwt(), dbHelper.getAuthState().getAccessToken());
             Log.i(TAG, "Connecting with URI: " + amqpConnectionUrl);
             connectionFactory.setUri(amqpConnectionUrl);
@@ -188,7 +191,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                 }
             });
             connectionFactory.setAutomaticRecoveryEnabled(true);
-
+            connectionFactory.useSslProtocol();
             rabbitMqConnection = connectionFactory.newConnection();
             if (rabbitMqConnection == null) {
                 Log.i(TAG, "RabbitMq Consumer connection NOT established.");
@@ -224,8 +227,8 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                                     case PRIVATE:
                                         exchangeName = message.getConsumerExchange();
                                         sender = message.getSender();
-                                        processPrivateMessage(encryptedText, sender, messageType);
                                         Log.i(TAG, "Private message received. Sender:" + sender + " Exchange:" + exchangeName);
+                                        processPrivateMessage(encryptedText, sender, messageType);
                                         break;
                                 }
                                 Log.i(TAG, "Encoded message received : " + message);
@@ -540,10 +543,10 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                     new SenderKeyDistributionMessage(Base64.getDecoder().decode(base64Key));
 
             new GroupSessionBuilder(signalProtocolStore)
-                    .process(new SignalProtocolAddress(name, deviceId), senderKeyDistributionMessage);
+                    .process(new SignalProtocolAddress(name, 1), senderKeyDistributionMessage);
 
 
-            GroupCipher groupCipher = new GroupCipher(signalProtocolStore, new SignalProtocolAddress(name, deviceId));
+            GroupCipher groupCipher = new GroupCipher(signalProtocolStore, new SignalProtocolAddress(name, 1));
             groupCipherTable.put(name, groupCipher);
 
             Log.i("SignalProtocolService", "Group chat chipper created and stored : " + name);
@@ -571,9 +574,14 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         } else {
             Log.i("SignalProtocolService", "No group cipher available : " + exchangeName
                     + " sender :" + sender);
-            Toast.makeText(getApplicationContext(),
-                    "No group cipher available : " + exchangeName + " sender :" + sender,
-                    Toast.LENGTH_LONG).show();
+            Looper.getMainLooper();
+            Handler mainHander = new Handler(Looper.getMainLooper());
+            mainHander.post(()->{
+                Toast.makeText(getApplicationContext(),
+                        "No group cipher available : " + exchangeName + " sender :" + sender,
+                        Toast.LENGTH_LONG).show();
+            });
+
         }
     }
 
@@ -583,7 +591,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             InvalidKeyIdException {
 
         PreKeySignalMessage preKeySignalMessage = new PreKeySignalMessage(base64Decoder.decode(base64Message));
-        SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(sender, deviceId);
+        SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(sender, 1);
         SessionCipher sessionCipher = new SessionCipher(signalProtocolStore, signalProtocolAddress);
         Log.i("SignalProtocolService", "" + signalProtocolStore);
         String message = new String(sessionCipher.decrypt(preKeySignalMessage, UsePqRatchet.YES));

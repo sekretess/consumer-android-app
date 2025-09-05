@@ -19,6 +19,7 @@ import io.sekretess.R;
 import io.sekretess.adapters.BusinessesAdapter;
 import io.sekretess.dto.BusinessDto;
 import io.sekretess.utils.ApiClient;
+import io.sekretess.utils.ImageUtils;
 import io.sekretess.utils.NotificationPreferencesUtils;
 
 public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
@@ -61,7 +62,8 @@ public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
 
         if (icon != null && !icon.isEmpty()) {
             ImageView businessInfoDialogBusinessIconIv = view.findViewById(R.id.businessInfoDialogImg);
-            Picasso.get().load(icon).into(businessInfoDialogBusinessIconIv);
+            businessInfoDialogBusinessIconIv.setImageBitmap(ImageUtils.bitmapFromBase64(icon));
+            businessInfoDialogBusinessIconIv.setScaleType(ImageView.ScaleType.CENTER_CROP);
         }
 
         return view;

@@ -107,7 +107,6 @@ public class HomeFragment extends Fragment {
 
     private SendersAdapter updateMessageAdapter() {
         List<MessageBriefDto> messageBriefs = DbHelper.getInstance(getContext()).getMessageBriefs();
-        messageBriefs.add(new MessageBriefDto("budbee", 1));
         return new SendersAdapter(getContext(), messageBriefs, (sender) -> {
             try {
                 Bundle bundle = new Bundle();
@@ -117,7 +116,6 @@ public class HomeFragment extends Fragment {
                 fragment.setArguments(bundle);
                 activity.getSupportFragmentManager().beginTransaction().replace(R.id.frame_layout, fragment).commit();
                 Toolbar toolbar = activity.findViewById(R.id.my_toolbar);
-//                toolbar.setNavigationIcon();
                 toolbar.setTitle(sender);
             } catch (Exception e) {
                 Log.e("ChatsFragment", "Error", e);

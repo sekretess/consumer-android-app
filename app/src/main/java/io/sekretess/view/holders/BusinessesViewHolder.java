@@ -15,13 +15,13 @@ public class BusinessesViewHolder extends RecyclerView.ViewHolder {
 
     private final TextView txtBusinessName;
     private final ImageView imgBusiness;
-    private final ImageButton btnSubscribe;
+    private final TextView txtSubscriptionStatus;
 
     public BusinessesViewHolder(@NonNull View itemView) {
         super(itemView);
         this.txtBusinessName = itemView.findViewById(R.id.txtBusinessName);
         this.imgBusiness = itemView.findViewById(R.id.imgBusiness);
-        this.btnSubscribe = itemView.findViewById(R.id.imgBtnSubscribe);
+        this.txtSubscriptionStatus = itemView.findViewById(R.id.txtSubscriptionStatus);
     }
 
 
@@ -33,7 +33,7 @@ public class BusinessesViewHolder extends RecyclerView.ViewHolder {
         return txtBusinessName;
     }
 
-    public ImageButton getBtnSubscribe() {
-        return btnSubscribe;
+    public TextView getTxtSubscriptionStatus() {
+        return txtSubscriptionStatus;
     }
 }

@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import io.sekretess.R;
 import io.sekretess.dto.BusinessDto;
 import io.sekretess.ui.BusinessInfoDialogFragment;
+import io.sekretess.utils.ImageUtils;
 import io.sekretess.view.holders.BusinessesViewHolder;
 
 import java.io.File;
@@ -50,7 +51,7 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
     public void onBindViewHolder(@NonNull BusinessesViewHolder holder, int position, @NonNull List<Object> payloads) {
         if (payloads != null && !payloads.isEmpty()) {
             mBusinessDtos.remove(position);
-            mBusinessDtos.add((BusinessDto) payloads.get(0));
+            mBusinessDtos.add(position,(BusinessDto) payloads.get(0));
         }
         super.onBindViewHolder(holder, position, payloads);
     }
@@ -61,14 +62,13 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
         holder.getTxtBusinessName().setText(businessDto.getBusinessName());
         String imageBase64 = businessDto.getIcon();
         if (imageBase64 != null && !imageBase64.isEmpty()) {
-            byte[] imageBytes = Base64.getDecoder().decode(imageBase64);
-            Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+            Bitmap bitmap = ImageUtils.bitmapFromBase64(imageBase64);
             holder.getImgBusiness().setImageBitmap(bitmap);
             holder.getImgBusiness().setScaleType(ImageView.ScaleType.CENTER_CROP);
             try {
                 File baseDir = context.getFilesDir();
                 File imageDir = new File(baseDir, "images");
-                File imageFile = new File(imageDir, businessDto.getBusinessName()+".jpeg");
+                File imageFile = new File(imageDir, businessDto.getBusinessName() + ".jpeg");
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100,
                         new FileOutputStream(imageFile));
             } catch (Exception e) {
@@ -77,9 +77,9 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
         }
 
         if (businessDto.isSubscribed()) {
-            holder.getBtnSubscribe().setImageResource(R.drawable.outline_checked_24);
+            holder.getTxtSubscriptionStatus().setText("Subscribed");
         } else {
-            holder.getBtnSubscribe().setImageBitmap(null);
+            holder.getTxtSubscriptionStatus().setText("Not subscribed");
         }
 
         holder.getImgBusiness().setOnClickListener(v -> {

@@ -45,7 +45,7 @@ android {
             buildConfigField(
                 "String",
                 "BUSINESS_API_URL",
-                "\"https://business.sekretess.io/api/v1/businesses\""
+                "\"https://business.sekretess.net/api/v1/businesses\""
             )
             buildConfigField("String", "RABBIT_MQ_URI", "\"amqps://%s:%s@mq.sekretess.net:5671\"")
         }
@@ -67,9 +67,9 @@ android {
             buildConfigField(
                 "String",
                 "BUSINESS_API_URL",
-                "\"https://business.test.sekretess.io/api/v1/businesses\""
+                "\"https://business.test.sekretess.net/api/v1/businesses\""
             )
-            buildConfigField("String", "RABBIT_MQ_URI", "\"amqps://%s:%s@mq.sekretess.net:5671\"")
+            buildConfigField("String", "RABBIT_MQ_URI", "\"amqps://%s:%s@mq.test.sekretess.net:30071\"")
 
         }
 

@@ -22,6 +22,7 @@ public class RefreshTokenService extends SekretessBackgroundService {
     public static final int REFRESH_TOKEN_SERVICE_NOTIFICATION = 3;
 
     private boolean running;
+    private boolean refreshAfterLogin = false;
     private CountDownTimer countDownTimer = new CountDownTimer(Long.MAX_VALUE, 10000) {
         @Override
         public void onTick(long millisUntilFinished) {
@@ -32,8 +33,10 @@ public class RefreshTokenService extends SekretessBackgroundService {
             try {
                 AuthState authState = dbHelper.getAuthState();
                 if (authState != null) {
-                    if (authState.getNeedsTokenRefresh()) {
+                    if (authState.getNeedsTokenRefresh() || refreshAfterLogin) {
+                        refreshAfterLogin = false;
                         Log.i("RefreshTokenService", "Refreshing token");
+                        authState.setNeedsTokenRefresh(true);
                         authState.performActionWithFreshTokens(new AuthorizationService(getApplicationContext()),
                                 (accessToken, idToken, ex) -> {
                                     if (ex != null) {
@@ -70,6 +73,7 @@ public class RefreshTokenService extends SekretessBackgroundService {
     @Override
     public void started(Intent intent) {
         Log.i("RefreshTokenService", "Service Started");
+        refreshAfterLogin = true;
         registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
