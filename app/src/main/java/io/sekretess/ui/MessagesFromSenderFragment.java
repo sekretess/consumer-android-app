@@ -39,7 +39,7 @@ public class MessagesFromSenderFragment extends Fragment {
             List<MessageRecordDto> messages = DbHelper.getInstance(context).loadMessages(from);
             messageAdapter = new MessageAdapter(messages);
             recyclerView.setAdapter(messageAdapter);
-            messageAdapter.notifyItemInserted(messages.size()-1);
+            messageAdapter.notifyItemInserted(messages.size());
         }
     };
 
@@ -65,7 +65,8 @@ public class MessagesFromSenderFragment extends Fragment {
         List<MessageRecordDto> messages = DbHelper.getInstance(getContext()).loadMessages(from);
         messageAdapter = new MessageAdapter(messages);
         recyclerView.setAdapter(messageAdapter);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext());
+        recyclerView.setLayoutManager(linearLayoutManager);
         return view;
     }
 

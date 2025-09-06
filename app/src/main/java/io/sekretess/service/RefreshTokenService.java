@@ -36,7 +36,6 @@ public class RefreshTokenService extends SekretessBackgroundService {
                     if (authState.getNeedsTokenRefresh() || refreshAfterLogin) {
                         refreshAfterLogin = false;
                         Log.i("RefreshTokenService", "Refreshing token");
-                        authState.setNeedsTokenRefresh(true);
                         authState.performActionWithFreshTokens(new AuthorizationService(getApplicationContext()),
                                 (accessToken, idToken, ex) -> {
                                     if (ex != null) {
@@ -48,6 +47,7 @@ public class RefreshTokenService extends SekretessBackgroundService {
                                         dbHelper.storeAuthState(authState.jsonSerializeString());
                                     }
                                 });
+                        authState.setNeedsTokenRefresh(true);
                     } else {
                         Log.i("RefreshTokenService", "Token refresh is not requiring:" + authState.getAccessToken());
                     }

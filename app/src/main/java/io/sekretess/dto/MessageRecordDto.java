@@ -1,17 +1,23 @@
 package io.sekretess.dto;
 
+import io.sekretess.enums.ItemType;
+
 public class MessageRecordDto {
     private String sender;
     private String message;
     private long messageDate;
+    private String dateText;
+    private ItemType itemType;
 
     public MessageRecordDto() {
     }
 
-    public MessageRecordDto(String sender, String message, long messageDate) {
+    public MessageRecordDto(String sender, String message, long messageDate, String dateText ,ItemType itemType) {
         this.sender = sender;
         this.message = message;
         this.messageDate = messageDate;
+        this.itemType = itemType;
+        this.dateText = dateText;
     }
 
     public String getSender() {
@@ -34,7 +40,15 @@ public class MessageRecordDto {
         return messageDate;
     }
 
+    public String getDateText() {
+        return dateText;
+    }
+
     public void setMessageDate(long messageDate) {
         this.messageDate = messageDate;
+    }
+
+    public ItemType getItemType() {
+        return itemType;
     }
 }

@@ -14,6 +14,7 @@ import io.sekretess.dto.GroupChatDto;
 import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.MessageRecordDto;
 import io.sekretess.dto.RegistrationAndDeviceId;
+import io.sekretess.enums.ItemType;
 import io.sekretess.model.AuthStateStoreEntity;
 import io.sekretess.model.GroupChatEntity;
 import io.sekretess.model.IdentityKeyPairStoreEntity;
@@ -44,8 +45,11 @@ import org.signal.libsignal.protocol.state.SignalProtocolStore;
 import org.signal.libsignal.protocol.state.SignedPreKeyRecord;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -54,7 +58,9 @@ import java.util.UUID;
 public class DbHelper extends SQLiteOpenHelper {
     private final DateTimeFormatter dateTimeFormatter
             = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.systemDefault());
-
+    private static final DateTimeFormatter WEEK_FORMATTER = DateTimeFormatter.ofPattern("EEEE");
+    private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM");
+    private static final DateTimeFormatter YEAR_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM yyyy");
     public static final int DATABASE_VERSION = 16;
     public static final String DATABASE_NAME = "io.sekretess_enc_db.db";
     private static final Base64.Encoder base64Encoder = Base64.getEncoder();
@@ -444,15 +450,47 @@ public class DbHelper extends SQLiteOpenHelper {
                         new String[]{from}, null, null, null)) {
             List<MessageRecordDto> resultArray = new ArrayList<>();
 
+            String dateTimeText = "";
             while (resultCursor.moveToNext()) {
+
+
                 String sender = resultCursor.getString(0);
                 String messageBody = resultCursor.getString(1);
                 long createdAt = resultCursor.getLong(2);
 
-                resultArray.add(new MessageRecordDto(sender, messageBody, createdAt));
+                LocalDateTime messageDateTime = LocalDateTime
+                        .ofInstant(Instant.ofEpochMilli(createdAt),
+                                ZoneId.systemDefault());
+
+                String dateTimeAsText = dateTimeText(messageDateTime.toLocalDate());
+                if(dateTimeText.equals(dateTimeAsText)){
+                    resultArray.add(new MessageRecordDto(sender, messageBody, createdAt,dateTimeAsText, ItemType.ITEM));
+                }else{
+                    resultArray.add(new MessageRecordDto(sender, messageBody, createdAt,dateTimeAsText, ItemType.HEADER));
+                    dateTimeText = dateTimeAsText;
+                }
+
             }
 
             return resultArray;
+        }
+    }
+
+    public static String dateTimeText(LocalDate dateTime) {
+
+        LocalDate today = LocalDate.now();
+        long daysBetween = ChronoUnit.DAYS.between(dateTime, today);
+        long monthsBetween = ChronoUnit.MONTHS.between(dateTime, today);
+
+        if (daysBetween ==0) {
+            return "Today";
+        }
+        if (daysBetween <= 7) {
+            return WEEK_FORMATTER.format(dateTime);
+        } else if (monthsBetween >= 12) {
+            return YEAR_FORMATTER.format(dateTime);
+        } else {
+            return MONTH_FORMATTER.format(dateTime);
         }
     }
 

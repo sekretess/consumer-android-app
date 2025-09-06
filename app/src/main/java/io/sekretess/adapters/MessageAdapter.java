@@ -1,18 +1,22 @@
 package io.sekretess.adapters;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import io.sekretess.R;
 import io.sekretess.dto.MessageRecordDto;
+import io.sekretess.enums.ItemType;
 import io.sekretess.view.holders.ConcreteChatCustomViewHolder;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -22,9 +26,7 @@ import java.util.List;
 public class MessageAdapter extends RecyclerView.Adapter<ConcreteChatCustomViewHolder> {
 
     private final List<MessageRecordDto> messages;
-    private static final DateTimeFormatter WEEK_FORMATTER = DateTimeFormatter.ofPattern("EEEE");
-    private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM");
-    private static final DateTimeFormatter YEAR_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM yyyy");
+
     private String currentGroupingDate = "";
 
     public MessageAdapter(List<MessageRecordDto> messages) {
@@ -34,7 +36,9 @@ public class MessageAdapter extends RecyclerView.Adapter<ConcreteChatCustomViewH
 
     @Override
     public int getItemViewType(int position) {
-        return super.getItemViewType(position);
+        MessageRecordDto messageRecordDto = messages.get(position);
+        if (messageRecordDto.getItemType() == ItemType.HEADER) return 1;
+        return 0;
     }
 
     @NonNull
@@ -55,15 +59,13 @@ public class MessageAdapter extends RecyclerView.Adapter<ConcreteChatCustomViewH
                 .ofInstant(Instant.ofEpochMilli(messageRecordDto.getMessageDate()),
                         ZoneId.systemDefault());
 
-        String dateTimeText = dateTimeText(messageDateTime);
-
-        if (!currentGroupingDate.equals(dateTimeText)) {
-            currentGroupingDate = dateTimeText;
-            holder.getMessageDate().setText(dateTimeText);
+        if(holder.getItemViewType() == 1) {
+            holder.getMessageDate().setText(messageRecordDto.getDateText());
             holder.getMessageDate().setVisibility(View.VISIBLE);
-        } else {
-            holder.getMessageDate().setVisibility(View.GONE);
-        }
+        }else {
+
+                holder.getMessageDate().setVisibility(View.GONE);
+            }
 
         holder.getMessageText().setText(messageRecordDto.getMessage());
         holder.getMessageTime().setText(DateTimeFormatter.ofPattern("HH:mm")
@@ -76,20 +78,5 @@ public class MessageAdapter extends RecyclerView.Adapter<ConcreteChatCustomViewH
         return messages.size();
     }
 
-    public static String dateTimeText(LocalDateTime dateTime) {
-        LocalDateTime today = LocalDateTime.now();
-        long daysBetween = ChronoUnit.DAYS.between(dateTime, today);
-        long monthsBetween = ChronoUnit.MONTHS.between(dateTime, today);
 
-        if (daysBetween == 0) {
-            return "Today";
-        }
-        if (daysBetween <= 7) {
-            return WEEK_FORMATTER.format(dateTime);
-        } else if (monthsBetween >= 12) {
-            return YEAR_FORMATTER.format(dateTime);
-        } else {
-            return MONTH_FORMATTER.format(dateTime);
-        }
-    }
 }
