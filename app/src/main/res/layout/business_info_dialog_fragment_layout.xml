@@ -38,7 +38,7 @@
         android:layout_height="52dp"
         android:layout_marginTop="8dp"
         android:layout_marginRight="10dp"
-        android:text="Boudeeeeeeeeeee"
+        android:text="About business"
         android:textColor="@color/white"
         app:flow_wrapMode="aligned"
         app:layout_constraintEnd_toEndOf="parent"

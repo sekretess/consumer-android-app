@@ -2,6 +2,9 @@ package io.sekretess.utils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
+
+import java.util.prefs.Preferences;
 
 public class NotificationPreferencesUtils {
 
@@ -18,13 +21,13 @@ public class NotificationPreferencesUtils {
     }
 
     public static boolean getSoundAlertsPreferences(Context context, String businessName) {
-
+        Log.i("NotificationPreferencesUtils", "getSoundAlertsPreferences" + businessName);
         return readPreference(context, "sound_alerts_" + businessName);
     }
 
     private static SharedPreferences getSharedPreference(Context context) {
-        return context.getApplicationContext()
-                .getSharedPreferences("notification_preferences", Context.MODE_PRIVATE);
+        return context
+                .getSharedPreferences("notification_preferences", Context.MODE_MULTI_PROCESS);
     }
 
 
@@ -33,6 +36,7 @@ public class NotificationPreferencesUtils {
         SharedPreferences.Editor notificationPreferencesEditor = sharedPreferences.edit();
         notificationPreferencesEditor.putBoolean(preferenceName, value);
         notificationPreferencesEditor.apply();
+
     }
 
     private static boolean readPreference(Context context, String preferenceName) {

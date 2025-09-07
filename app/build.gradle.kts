@@ -12,11 +12,12 @@ android {
     defaultConfig {
         applicationId = "io.sekretess"
         minSdk = 30
-        targetSdk = 34
-        versionCode = 15
-        versionName = "1.0.15"
+        targetSdk = 35
+        versionCode = 16
+        versionName = "1.0.16"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
     }
 
 
@@ -25,7 +26,7 @@ android {
             resValue("string", "app_name", "Sekretess")
             isMinifyEnabled = false
             isDebuggable = false
-            applicationIdSuffix = ".release"
+//            applicationIdSuffix = ".release"
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -53,7 +54,7 @@ android {
             isDebuggable = true
             resValue("string", "app_name", "Sekretess-test")
             signingConfig = signingConfigs.getByName("debug")
-            applicationIdSuffix = ".test"
+//            applicationIdSuffix = ".test"
             buildConfigField(
                 "String",
                 "AUTH_API_URL",

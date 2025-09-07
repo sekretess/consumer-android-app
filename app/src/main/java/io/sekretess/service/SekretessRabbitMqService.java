@@ -576,7 +576,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                     + " sender :" + sender);
             Looper.getMainLooper();
             Handler mainHander = new Handler(Looper.getMainLooper());
-            mainHander.post(()->{
+            mainHander.post(() -> {
                 Toast.makeText(getApplicationContext(),
                         "No group cipher available : " + exchangeName + " sender :" + sender,
                         Toast.LENGTH_LONG).show();
@@ -627,11 +627,14 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         NotificationChannel channel = new NotificationChannel(Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME,
                 "New message", NotificationManager.IMPORTANCE_DEFAULT);
         channel.setAllowBubbles(true);
-        channel.enableVibration(NotificationPreferencesUtils.getVibrationPreferences(getBaseContext(), sender));
-        boolean soundAlerts = NotificationPreferencesUtils.getSoundAlertsPreferences(getBaseContext(), sender);
+        channel.enableVibration(NotificationPreferencesUtils.getVibrationPreferences(getApplicationContext(), sender));
+        boolean soundAlerts = NotificationPreferencesUtils.getSoundAlertsPreferences(getApplicationContext(), sender);
+        Log.i("SekretessRabbitMqService", "soundAlerts:" + soundAlerts + "sender:" + sender);
         if (!soundAlerts) {
             notification.setSilent(true);
             channel.setImportance(NotificationManager.IMPORTANCE_LOW);
+        } else {
+            notification.setSilent(false);
         }
         notificationManager.createNotificationChannel(channel);
 

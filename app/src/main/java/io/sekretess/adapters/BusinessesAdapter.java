@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import io.sekretess.R;
 import io.sekretess.dto.BusinessDto;
+import io.sekretess.listeners.BusinessViewOnClickListener;
 import io.sekretess.ui.BusinessInfoDialogFragment;
 import io.sekretess.utils.ImageUtils;
 import io.sekretess.view.holders.BusinessesViewHolder;
@@ -81,19 +82,10 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
         } else {
             holder.getTxtSubscriptionStatus().setText("Not subscribed");
         }
-
-        holder.getImgBusiness().setOnClickListener(v -> {
-
-            Bundle args = new Bundle();
-            args.putString("businessIcon", businessDto.getIcon());
-            args.putString("businessName", businessDto.getBusinessName());
-            args.putBoolean("subscribed", businessDto.isSubscribed());
-            args.putInt("position", position);
-
-            BusinessInfoDialogFragment businessInfoDialogFragment = new BusinessInfoDialogFragment(this);
-            businessInfoDialogFragment.setArguments(args);
-            businessInfoDialogFragment.show(fragmentManager, "businessInfoDialogFragment");
-        });
+        BusinessViewOnClickListener businessViewOnClickListener =
+                new BusinessViewOnClickListener(businessDto, position, this, fragmentManager);
+        holder.itemView.findViewById(R.id.businesses_layout).setOnClickListener(businessViewOnClickListener );
+        holder.getImgBusiness().setOnClickListener(businessViewOnClickListener);
     }
 
     @Override
