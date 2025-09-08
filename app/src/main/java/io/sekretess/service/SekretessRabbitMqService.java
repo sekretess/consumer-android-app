@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -611,6 +612,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     }
 
     private void publishNotification(String sender, String text) {
+        Intent intent = new Intent();
         var notification = new NotificationCompat
                 .Builder(SekretessRabbitMqService.this, Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME)
                 .setContentTitle("Message from " + sender)
@@ -619,13 +621,16 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                         .decodeResource(getResources(), R.drawable.ic_notif_sekretess))
                 .setContentText(text.substring(0, Math.min(10, text.length()))
                         .concat("...")).setSmallIcon(R.drawable.ic_notif_sekretess)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(PendingIntent.getActivity(getApplicationContext(), 0,intent, PendingIntent.FLAG_IMMUTABLE))
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         NotificationManagerCompat notificationManager = NotificationManagerCompat
                 .from(getApplicationContext());
         int m = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
 
         NotificationChannel channel = new NotificationChannel(Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME,
-                "New message", NotificationManager.IMPORTANCE_DEFAULT);
+                "New message", NotificationManager.IMPORTANCE_HIGH);
         channel.setAllowBubbles(true);
         channel.enableVibration(NotificationPreferencesUtils.getVibrationPreferences(getApplicationContext(), sender));
         boolean soundAlerts = NotificationPreferencesUtils.getSoundAlertsPreferences(getApplicationContext(), sender);
@@ -634,6 +639,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             notification.setSilent(true);
             channel.setImportance(NotificationManager.IMPORTANCE_LOW);
         } else {
+            notification.setDefaults(0);
             notification.setSilent(false);
         }
         notificationManager.createNotificationChannel(channel);

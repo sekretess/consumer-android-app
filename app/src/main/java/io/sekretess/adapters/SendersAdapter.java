@@ -55,6 +55,7 @@ public class SendersAdapter extends RecyclerView.Adapter<SenderViewHolder> {
                 + messageBriefDto.getSender() + ".jpeg";
         Bitmap bitmap = BitmapFactory.decodeFile(businessImageFilePath);
         holder.getImgBusinessIcon().setImageBitmap(bitmap);
+        holder.getTxtMessageBrief().setText(messageBriefDto.getMessageText());
     }
 
     @Override

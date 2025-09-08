@@ -2,14 +2,14 @@ package io.sekretess.dto;
 
 public class MessageBriefDto {
     private String sender;
-    private int count;
+    private String messageText;
 
     public MessageBriefDto() {
     }
 
-    public MessageBriefDto(String sender, int count) {
+    public MessageBriefDto(String sender, String messageText) {
         this.sender = sender;
-        this.count = count;
+        this.messageText = messageText;
     }
 
     public String getSender() {
@@ -20,11 +20,11 @@ public class MessageBriefDto {
         this.sender = sender;
     }
 
-    public int getCount() {
-        return count;
+    public String getMessageText() {
+        return messageText;
     }
 
-    public void setCount(int count) {
-        this.count = count;
+    public void setMessageText(String messageText) {
+        this.messageText = messageText;
     }
 }

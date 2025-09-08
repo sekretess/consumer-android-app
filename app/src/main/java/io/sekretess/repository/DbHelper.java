@@ -61,7 +61,7 @@ public class DbHelper extends SQLiteOpenHelper {
     private static final DateTimeFormatter WEEK_FORMATTER = DateTimeFormatter.ofPattern("EEEE");
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM");
     private static final DateTimeFormatter YEAR_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM yyyy");
-    public static final int DATABASE_VERSION = 16;
+    public static final int DATABASE_VERSION = 17;
     public static final String DATABASE_NAME = "io.sekretess_enc_db.db";
     private static final Base64.Encoder base64Encoder = Base64.getEncoder();
     private static final Base64.Decoder base64Decoder = Base64.getDecoder();
@@ -338,20 +338,21 @@ public class DbHelper extends SQLiteOpenHelper {
         try (Cursor resultCursor = getReadableDatabase(p())
                 .query(MessageStoreEntity.TABLE_NAME,
                         new String[]{MessageStoreEntity.COLUMN_SENDER,
-                                "COUNT(" + MessageStoreEntity.COLUMN_SENDER + ") AS count"},
+                                MessageStoreEntity.COLUMN_MESSAGE_BODY},
                         MessageStoreEntity.COLUMN_USERNAME + "=?",
                         new String[]{getUserNameFromJwt()},
-                        MessageStoreEntity.COLUMN_SENDER,
                         null,
-                        null
+                        null,
+                        MessageStoreEntity.COLUMN_CREATED_AT + " DESC",
+                        "1"
                 )) {
 
             resultArray = new ArrayList<>();
 
             while (resultCursor.moveToNext()) {
                 String senderName = resultCursor.getString(0);
-                int messageCount = resultCursor.getInt(1);
-                resultArray.add(new MessageBriefDto(senderName, messageCount));
+                String messageText = resultCursor.getString(1);
+                resultArray.add(new MessageBriefDto(senderName, messageText));
 
             }
         }
@@ -442,7 +443,8 @@ public class DbHelper extends SQLiteOpenHelper {
 
     public List<MessageRecordDto> loadMessages(String from) {
         try (Cursor resultCursor = getReadableDatabase(p())
-                .query(MessageStoreEntity.TABLE_NAME, new String[]{MessageStoreEntity.COLUMN_SENDER,
+                .query(MessageStoreEntity.TABLE_NAME, new String[]{MessageStoreEntity._ID,
+                                MessageStoreEntity.COLUMN_SENDER,
                                 MessageStoreEntity.COLUMN_MESSAGE_BODY,
                                 MessageStoreEntity.COLUMN_CREATED_AT
                         },
@@ -453,20 +455,22 @@ public class DbHelper extends SQLiteOpenHelper {
             String dateTimeText = "";
             while (resultCursor.moveToNext()) {
 
-
-                String sender = resultCursor.getString(0);
-                String messageBody = resultCursor.getString(1);
-                long createdAt = resultCursor.getLong(2);
+                Long id = resultCursor.getLong(0);
+                String sender = resultCursor.getString(1);
+                String messageBody = resultCursor.getString(2);
+                long createdAt = resultCursor.getLong(3);
 
                 LocalDateTime messageDateTime = LocalDateTime
                         .ofInstant(Instant.ofEpochMilli(createdAt),
                                 ZoneId.systemDefault());
 
                 String dateTimeAsText = dateTimeText(messageDateTime.toLocalDate());
-                if(dateTimeText.equals(dateTimeAsText)){
-                    resultArray.add(new MessageRecordDto(sender, messageBody, createdAt,dateTimeAsText, ItemType.ITEM));
-                }else{
-                    resultArray.add(new MessageRecordDto(sender, messageBody, createdAt,dateTimeAsText, ItemType.HEADER));
+                if (dateTimeText.equals(dateTimeAsText)) {
+                    resultArray.add(new MessageRecordDto(id, sender, messageBody, createdAt,
+                            dateTimeAsText, ItemType.ITEM));
+                } else {
+                    resultArray.add(new MessageRecordDto(id, sender, messageBody, createdAt,
+                            dateTimeAsText, ItemType.HEADER));
                     dateTimeText = dateTimeAsText;
                 }
 
@@ -482,7 +486,7 @@ public class DbHelper extends SQLiteOpenHelper {
         long daysBetween = ChronoUnit.DAYS.between(dateTime, today);
         long monthsBetween = ChronoUnit.MONTHS.between(dateTime, today);
 
-        if (daysBetween ==0) {
+        if (daysBetween == 0) {
             return "Today";
         }
         if (daysBetween <= 7) {
@@ -596,5 +600,12 @@ public class DbHelper extends SQLiteOpenHelper {
 
     public String getUserNameFromJwt() {
         return new JWT(getAuthState().getIdToken()).getClaim(Constants.USERNAME_CLAIM).asString();
+    }
+
+    public void deleteMessage(Long messageId) {
+        try (SQLiteDatabase db = getWritableDatabase(p())) {
+            db.delete(MessageStoreEntity.TABLE_NAME,
+                    MessageStoreEntity._ID + "=?", new String[]{String.valueOf(messageId)});
+        }
     }
 }

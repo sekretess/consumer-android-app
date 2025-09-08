@@ -3,6 +3,7 @@ package io.sekretess.dto;
 import io.sekretess.enums.ItemType;
 
 public class MessageRecordDto {
+    private Long messageId;
     private String sender;
     private String message;
     private long messageDate;
@@ -12,7 +13,9 @@ public class MessageRecordDto {
     public MessageRecordDto() {
     }
 
-    public MessageRecordDto(String sender, String message, long messageDate, String dateText ,ItemType itemType) {
+    public MessageRecordDto(Long messageId, String sender, String message, long messageDate,
+                            String dateText, ItemType itemType) {
+        this.messageId = messageId;
         this.sender = sender;
         this.message = message;
         this.messageDate = messageDate;
@@ -50,5 +53,13 @@ public class MessageRecordDto {
 
     public ItemType getItemType() {
         return itemType;
+    }
+
+    public void setMessageId(Long messageId) {
+        this.messageId = messageId;
+    }
+
+    public Long getMessageId() {
+        return messageId;
     }
 }

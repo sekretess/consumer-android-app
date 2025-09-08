@@ -14,14 +14,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
 import io.sekretess.adapters.MessageAdapter;
-import io.sekretess.adapters.SendersAdapter;
-import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.MessageRecordDto;
 import io.sekretess.repository.DbHelper;
 
@@ -65,6 +64,28 @@ public class MessagesFromSenderFragment extends Fragment {
         List<MessageRecordDto> messages = DbHelper.getInstance(getContext()).loadMessages(from);
         messageAdapter = new MessageAdapter(messages);
         recyclerView.setAdapter(messageAdapter);
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(
+                new ItemTouchHelper.Callback() {
+                    @Override
+                    public int getMovementFlags(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+                        return makeMovementFlags(0, ItemTouchHelper.END);
+                    }
+
+                    @Override
+                    public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                        return false;
+                    }
+
+                    @Override
+                    public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                        int position = viewHolder.getAdapterPosition();
+                        DbHelper.getInstance(getContext()).deleteMessage(messages.get(position).getMessageId());
+                        messages.remove(position);
+                        messageAdapter.notifyDataSetChanged();
+                    }
+                }
+        );
+        itemTouchHelper.attachToRecyclerView(recyclerView);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext());
         recyclerView.setLayoutManager(linearLayoutManager);
         return view;

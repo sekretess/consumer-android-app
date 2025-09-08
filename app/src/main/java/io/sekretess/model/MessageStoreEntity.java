@@ -12,7 +12,7 @@ public class MessageStoreEntity implements BaseColumns {
 
     public static final String SQL_CREATE_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME +
             "(" +
-            _ID + " INTEGER PRIMARY KEY, " +
+            _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
             COLUMN_SENDER + " TEXT, " +
             COLUMN_USERNAME + " TEXT, " +
             COLUMN_MESSAGE_BODY + " TEXT, " +

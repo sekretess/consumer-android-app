@@ -13,8 +13,8 @@ android {
         applicationId = "io.sekretess"
         minSdk = 30
         targetSdk = 35
-        versionCode = 16
-        versionName = "1.0.16"
+        versionCode = 18
+        versionName = "1.0.18"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -51,7 +51,7 @@ android {
             buildConfigField("String", "RABBIT_MQ_URI", "\"amqps://%s:%s@mq.sekretess.net:5671\"")
         }
         create("internal-test") {
-            isDebuggable = true
+            isDebuggable = false
             resValue("string", "app_name", "Sekretess-test")
             signingConfig = signingConfigs.getByName("debug")
 //            applicationIdSuffix = ".test"
