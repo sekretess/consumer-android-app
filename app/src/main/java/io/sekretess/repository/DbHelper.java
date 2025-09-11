@@ -469,8 +469,10 @@ public class DbHelper extends SQLiteOpenHelper {
                     resultArray.add(new MessageRecordDto(id, sender, messageBody, createdAt,
                             dateTimeAsText, ItemType.ITEM));
                 } else {
-                    resultArray.add(new MessageRecordDto(id, sender, messageBody, createdAt,
+                    resultArray.add(new MessageRecordDto(id, sender, null, createdAt,
                             dateTimeAsText, ItemType.HEADER));
+                    resultArray.add(new MessageRecordDto(id, sender, messageBody, createdAt,
+                            dateTimeAsText, ItemType.ITEM));
                     dateTimeText = dateTimeAsText;
                 }
 

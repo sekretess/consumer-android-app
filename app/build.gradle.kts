@@ -13,8 +13,8 @@ android {
         applicationId = "io.sekretess"
         minSdk = 30
         targetSdk = 35
-        versionCode = 18
-        versionName = "1.0.18"
+        versionCode = 19
+        versionName = "1.0.19"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -52,6 +52,30 @@ android {
         }
         create("internal-test") {
             isDebuggable = false
+            resValue("string", "app_name", "Sekretess-test")
+            signingConfig = signingConfigs.getByName("debug")
+//            applicationIdSuffix = ".test"
+            buildConfigField(
+                "String",
+                "AUTH_API_URL",
+                "\"https://auth.test.sekretess.io/realms/consumer/.well-known/openid-configuration\""
+            )
+            buildConfigField(
+                "String",
+                "CONSUMER_API_URL",
+                "\"https://consumer.test.sekretess.io/api/v1/consumers\""
+            )
+            buildConfigField(
+                "String",
+                "BUSINESS_API_URL",
+                "\"https://business.test.sekretess.net/api/v1/businesses\""
+            )
+            buildConfigField("String", "RABBIT_MQ_URI", "\"amqps://%s:%s@mq.test.sekretess.net:30071\"")
+
+        }
+
+        create("internal-test-debug") {
+            isDebuggable = true
             resValue("string", "app_name", "Sekretess-test")
             signingConfig = signingConfigs.getByName("debug")
 //            applicationIdSuffix = ".test"

@@ -156,7 +156,8 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         rabbitMqConnectionGuard = Executors.newScheduledThreadPool(1);
         rabbitMqConnectionGuard.scheduleWithFixedDelay(() -> {
             Log.i("SekretessRabbitMqService", "rabbitMqConnectionGuard...");
-            if (rabbitMqConnection == null) {
+            if (rabbitMqConnection == null || rabbitMqChannel == null ||
+                    !rabbitMqConnection.isOpen() || !rabbitMqConnection.isOpen()) {
                 Log.i("SekretessRabbitMqService", "rabbitMqConnectionGuard - RabbitMq connection not established connecting...");
                 startRabbitMqConnection();
             }
@@ -177,7 +178,8 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         try {
             DbHelper dbHelper = DbHelper.getInstance(getApplicationContext());
             String amqpConnectionUrl = BuildConfig.RABBIT_MQ_URI;
-            amqpConnectionUrl = String.format(amqpConnectionUrl, dbHelper.getUserNameFromJwt(), dbHelper.getAuthState().getAccessToken());
+            String username = dbHelper.getUserNameFromJwt();
+            amqpConnectionUrl = String.format(amqpConnectionUrl, username, dbHelper.getAuthState().getAccessToken());
             Log.i(TAG, "Connecting with URI: " + amqpConnectionUrl);
             connectionFactory.setUri(amqpConnectionUrl);
             connectionFactory.setCredentialsProvider(new CredentialsProvider() {
@@ -206,41 +208,42 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             rabbitMqChannel.confirmSelect();
 
             Log.i(TAG, "RabbitMq Consumer connection established.");
-            rabbitMqChannel.basicConsume(dbHelper.getUserNameFromJwt().concat(Constants.RABBIT_MQ_CONSUMER_QUEUE_SUFFIX),
-                    true, new DefaultConsumer(rabbitMqChannel) {
-                        @Override
-                        public void handleDelivery(String consumerTag, Envelope envelope,
-                                                   AMQP.BasicProperties properties, byte[] body) {
-                            try {
-                                String exchangeName = envelope.getExchange();
-                                Log.i(TAG, "Received payload:" + new String(body) +
-                                        " ExchangeName :" + exchangeName);
-                                MessageDto message = objectMapper.readValue(body, MessageDto.class);
-                                String encryptedText = message.getText();
-                                MessageType messageType = MessageType.getInstance(message.getType());
-                                String sender = "";
-                                switch (messageType) {
-                                    case ADVERTISEMENT:
-                                        exchangeName = message.getBusinessExchange();
-                                        processAdvertisementMessage(encryptedText, exchangeName);
-                                        break;
-                                    case KEY_DISTRIBUTION:
-                                    case PRIVATE:
-                                        exchangeName = message.getConsumerExchange();
-                                        sender = message.getSender();
-                                        Log.i(TAG, "Private message received. Sender:" + sender + " Exchange:" + exchangeName);
-                                        processPrivateMessage(encryptedText, sender, messageType);
-                                        break;
-                                }
-                                Log.i(TAG, "Encoded message received : " + message);
-                            } catch (Throwable e) {
-                                Log.e(TAG, e.getMessage(), e);
+            rabbitMqChannel
+                    .basicConsume(username.concat(Constants.RABBIT_MQ_CONSUMER_QUEUE_SUFFIX),
+                            true, new DefaultConsumer(rabbitMqChannel) {
+                                @Override
+                                public void handleDelivery(String consumerTag, Envelope envelope,
+                                                           AMQP.BasicProperties properties, byte[] body) {
+                                    try {
+                                        String exchangeName = envelope.getExchange();
+                                        Log.i(TAG, "Received payload:" + new String(body) +
+                                                " ExchangeName :" + exchangeName);
+                                        MessageDto message = objectMapper.readValue(body, MessageDto.class);
+                                        String encryptedText = message.getText();
+                                        MessageType messageType = MessageType.getInstance(message.getType());
+                                        String sender = "";
+                                        switch (messageType) {
+                                            case ADVERTISEMENT:
+                                                exchangeName = message.getBusinessExchange();
+                                                processAdvertisementMessage(encryptedText, exchangeName);
+                                                break;
+                                            case KEY_DISTRIBUTION:
+                                            case PRIVATE:
+                                                exchangeName = message.getConsumerExchange();
+                                                sender = message.getSender();
+                                                Log.i(TAG, "Private message received. Sender:" + sender + " Exchange:" + exchangeName);
+                                                processPrivateMessage(encryptedText, sender, messageType);
+                                                break;
+                                        }
+                                        Log.i(TAG, "Encoded message received : " + message);
+                                    } catch (Throwable e) {
+                                        Log.e(TAG, e.getMessage(), e);
 //                                Toast.makeText(getApplicationContext(),
 //                                        "Error during decrypt message" + e.getMessage(),
 //                                        Toast.LENGTH_LONG).show();
-                            }
-                        }
-                    });
+                                    }
+                                }
+                            });
             Log.i(TAG, "RabbitMq Consumer started");
         } catch (Throwable e) {
             Log.e(TAG, "Can not establish connection", e);
@@ -623,7 +626,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                         .concat("...")).setSmallIcon(R.drawable.ic_notif_sekretess)
                 .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setContentIntent(PendingIntent.getActivity(getApplicationContext(), 0,intent, PendingIntent.FLAG_IMMUTABLE))
+                .setContentIntent(PendingIntent.getActivity(getApplicationContext(), 0, intent, PendingIntent.FLAG_IMMUTABLE))
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         NotificationManagerCompat notificationManager = NotificationManagerCompat
                 .from(getApplicationContext());

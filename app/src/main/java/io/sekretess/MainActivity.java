@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS},1);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
         super.onCreate(savedInstanceState);
         showBiometricLogin();
         Toast.makeText(getApplicationContext(), BuildConfig.CONSUMER_API_URL, Toast.LENGTH_LONG).show();
@@ -94,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             });
         } else {
+            Log.i("MainActivity", "Starting login activity");
             startLoginActivity();
         }
     }
@@ -152,10 +153,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private Optional<AuthState> restoreState() {
-        Log.i("StartupActivity", "Restoring state...");
+        Log.i("StartupActivity", "Restoring Authstate...");
         DbHelper dbHelper = DbHelper.getInstance(getApplicationContext());
         AuthState authState = dbHelper.getAuthState();
         if (authState == null) {
+            Log.i("StartupActivity", "Auth state is not found");
             return Optional.empty();
         }
         Log.i("StartupActivity", "State restored.");

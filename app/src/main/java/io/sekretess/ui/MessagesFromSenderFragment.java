@@ -31,11 +31,12 @@ public class MessagesFromSenderFragment extends Fragment {
     private RecyclerView recyclerView;
     private MessageAdapter messageAdapter;
     private String from;
+    private List<MessageRecordDto> messages;
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.i("MessageFromSenderFragment", "new-incoming-message event received");
-            List<MessageRecordDto> messages = DbHelper.getInstance(context).loadMessages(from);
+             messages = DbHelper.getInstance(context).loadMessages(from);
             messageAdapter = new MessageAdapter(messages);
             recyclerView.setAdapter(messageAdapter);
             messageAdapter.notifyItemInserted(messages.size());
@@ -61,7 +62,7 @@ public class MessagesFromSenderFragment extends Fragment {
         View view = inflater.inflate(R.layout.chat_layout, container, false);
         from = getArguments().getString("from");
         recyclerView = view.findViewById(R.id.messages_rv);
-        List<MessageRecordDto> messages = DbHelper.getInstance(getContext()).loadMessages(from);
+         messages = DbHelper.getInstance(getContext()).loadMessages(from);
         messageAdapter = new MessageAdapter(messages);
         recyclerView.setAdapter(messageAdapter);
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(
@@ -81,7 +82,8 @@ public class MessagesFromSenderFragment extends Fragment {
                         int position = viewHolder.getAdapterPosition();
                         DbHelper.getInstance(getContext()).deleteMessage(messages.get(position).getMessageId());
                         messages.remove(position);
-                        messageAdapter.notifyDataSetChanged();
+                        messageAdapter.notifyItemRemoved(position);
+                        messageAdapter.notifyItemRangeChanged(position,messages.size());
                     }
                 }
         );
@@ -92,4 +94,7 @@ public class MessagesFromSenderFragment extends Fragment {
     }
 
 
+    public void setMessages(List<MessageRecordDto> messages) {
+        this.messages = messages;
+    }
 }
