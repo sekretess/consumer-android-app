@@ -91,7 +91,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        dbHelper = DbHelper.getInstance(getApplicationContext());
+        dbHelper = new DbHelper(getApplicationContext());
         setContentView(R.layout.activity_login);
         Button btnSignup = findViewById(R.id.btnSignup);
         Button btnLogin = findViewById(R.id.btnLogin);

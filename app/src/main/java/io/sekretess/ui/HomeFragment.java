@@ -43,7 +43,8 @@ public class HomeFragment extends Fragment {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.i("ChatsFragment", "new-incoming-message event received");
-            List<MessageBriefDto> messageBriefs = DbHelper.getInstance(context).getMessageBriefs();
+            String username = new DbHelper(getContext()).getUserNameFromJwt();
+            List<MessageBriefDto> messageBriefs = new DbHelper(context).getMessageBriefs(username);
             SendersAdapter sendersAdapter = updateMessageAdapter();
             messagesRecycleView.setAdapter(sendersAdapter);
             sendersAdapter.notifyItemInserted(messageBriefs.size());
@@ -87,7 +88,7 @@ public class HomeFragment extends Fragment {
     }
 
     private TrustedSendersAdapter updateTrustedSendersAdapter() {
-        DbHelper dbHelper = DbHelper.getInstance(getContext());
+        DbHelper dbHelper = new DbHelper(getContext());
         List<TrustedSender> trustedSenders = dbHelper.getTopSenders()
                 .stream()
                 .distinct()
@@ -106,7 +107,8 @@ public class HomeFragment extends Fragment {
 
 
     private SendersAdapter updateMessageAdapter() {
-        List<MessageBriefDto> messageBriefs = DbHelper.getInstance(getContext()).getMessageBriefs();
+        String username = new DbHelper(getContext()).getUserNameFromJwt();
+        List<MessageBriefDto> messageBriefs = new DbHelper(getContext()).getMessageBriefs(username);
         return new SendersAdapter(getContext(), messageBriefs, (sender) -> {
             try {
                 Bundle bundle = new Bundle();

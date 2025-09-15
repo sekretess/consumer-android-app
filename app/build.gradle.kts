@@ -13,8 +13,8 @@ android {
         applicationId = "io.sekretess"
         minSdk = 30
         targetSdk = 35
-        versionCode = 19
-        versionName = "1.0.19"
+        versionCode = 22
+        versionName = "1.0.22"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -119,8 +119,8 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
-    implementation("org.signal:libsignal-client:0.78.2")
-    implementation("androidx.sqlite:sqlite:2.5.2")
+    implementation("org.signal:libsignal-client:0.80.1")
+    implementation("androidx.sqlite:sqlite:2.6.0")
     implementation("androidx.security:security-crypto:1.1.0")
     implementation("androidx.annotation:annotation:1.9.1")
     implementation("com.rabbitmq:amqp-client:5.26.0")

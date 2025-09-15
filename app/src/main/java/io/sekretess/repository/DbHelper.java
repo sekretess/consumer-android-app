@@ -29,6 +29,7 @@ import io.sekretess.model.SignedPreKeyRecordStoreEntity;
 
 import net.openid.appauth.AuthState;
 import net.sqlcipher.Cursor;
+import net.sqlcipher.DatabaseErrorHandler;
 import net.sqlcipher.database.SQLiteDatabase;
 import net.sqlcipher.database.SQLiteOpenHelper;
 
@@ -44,6 +45,7 @@ import org.signal.libsignal.protocol.state.SessionRecord;
 import org.signal.libsignal.protocol.state.SignalProtocolStore;
 import org.signal.libsignal.protocol.state.SignedPreKeyRecord;
 
+import java.io.File;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -51,9 +53,14 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class DbHelper extends SQLiteOpenHelper {
     private final DateTimeFormatter dateTimeFormatter
@@ -61,15 +68,15 @@ public class DbHelper extends SQLiteOpenHelper {
     private static final DateTimeFormatter WEEK_FORMATTER = DateTimeFormatter.ofPattern("EEEE");
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM");
     private static final DateTimeFormatter YEAR_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM yyyy");
-    public static final int DATABASE_VERSION = 17;
-    public static final String DATABASE_NAME = "io.sekretess_enc_db.db";
+    public static final int DATABASE_VERSION = 19;
+    public static final String DATABASE_NAME = "sekretessencrypt.db";
     private static final Base64.Encoder base64Encoder = Base64.getEncoder();
     private static final Base64.Decoder base64Decoder = Base64.getDecoder();
     private Context mContext;
+    private static volatile DbHelper mInstance;
+    private static ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-    private static DbHelper mInstance;
-
-    private DbHelper(Context context) {
+    public DbHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
         this.mContext = context;
         SQLiteDatabase.loadLibs(this.mContext);
@@ -78,32 +85,54 @@ public class DbHelper extends SQLiteOpenHelper {
             if (p == null || p.isBlank() || p.isEmpty()) {
                 p = cp();
             }
-            this.getWritableDatabase(p);
+            Log.i("DbHelper", "db path: " + mContext.getDatabasePath(DATABASE_NAME));
+
+            SQLiteDatabase.openOrCreateDatabase(mContext.getDatabasePath(DATABASE_NAME), p,
+                    null, null, new DatabaseErrorHandler() {
+                        @Override
+                        public void onCorruption(SQLiteDatabase sqLiteDatabase) {
+                            Log.i("DbHelper", "Error occurred during create db");
+                        }
+                    });
+            Log.i("DbHelper", "DbCreated");
         } catch (Exception e) {
             Log.e("DBHelper", "Db initialization failed. ", e);
         }
     }
 
-    public static synchronized DbHelper getInstance(Context context) {
-        synchronized (DbHelper.class) {
-            if (mInstance == null) {
-                mInstance = new DbHelper(context.getApplicationContext());
-            }
-            return mInstance;
-        }
-    }
+//    public static synchronized DbHelper getInstance(Context context) {
+//        synchronized (DbHelper.class) {
+//            if (mInstance == null) {
+//                mInstance = new DbHelper(context.getApplicationContext());
+//            }
+//            return mInstance;
+//        }
+//    }
 
     @SuppressLint("Range")
     public IdentityKeyPair getIdentityKeyPair() {
-        try (Cursor cursor = getReadableDatabase(p()).query(IdentityKeyPairStoreEntity.TABLE_NAME,
-                new String[]{IdentityKeyPairStoreEntity._ID, IdentityKeyPairStoreEntity.COLUMN_IKP},
-                null, null, null, null, null)) {
-            if (cursor.moveToNext()) {
-                String ikp = cursor.getString(cursor.getColumnIndex(IdentityKeyPairStoreEntity.COLUMN_IKP));
-                return new IdentityKeyPair(base64Decoder.decode(ikp));
-            }
+        try {
+            return executorService.submit(() -> {
+                Cursor cursor = null;
+                try {
+                    cursor = getWritableDatabase(p()).query(IdentityKeyPairStoreEntity.TABLE_NAME,
+                            new String[]{IdentityKeyPairStoreEntity._ID, IdentityKeyPairStoreEntity.COLUMN_IKP},
+                            null, null, null, null, null);
+                    if (cursor.moveToNext()) {
+                        String ikp = cursor.getString(cursor.getColumnIndex(IdentityKeyPairStoreEntity.COLUMN_IKP));
+                        return new IdentityKeyPair(base64Decoder.decode(ikp));
+                    }
+                } finally {
+                    if (cursor != null) {
+                        cursor.close();
+                    }
+                }
+                return null;
+            }).get();
+        } catch (Exception e) {
+            Log.e("DbHelper", "Error occurred during get ikp from database", e);
+            return null;
         }
-        return null;
     }
 
     public void storeIdentityKeyPair(IdentityKeyPair identityKeyPair) {
@@ -111,30 +140,46 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(IdentityKeyPairStoreEntity.COLUMN_IKP,
                 base64Encoder.encodeToString(identityKeyPair.serialize()));
         contentValues.put(IdentityKeyPairStoreEntity.COLUMN_CREATED_AT, dateTimeFormatter.format(Instant.now()));
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
-            db.insert(IdentityKeyPairStoreEntity.TABLE_NAME, null, contentValues);
-        }
+
+        executorService.submit(() -> {
+            getWritableDatabase(p()).insert(IdentityKeyPairStoreEntity.TABLE_NAME, null, contentValues);
+        });
+
+
     }
 
     @SuppressLint("Range")
     public RegistrationAndDeviceId getRegistrationId() {
-        try (Cursor cursor = getReadableDatabase(p()).query(RegistrationIdStoreEntity.TABLE_NAME,
-                new String[]{RegistrationIdStoreEntity._ID, RegistrationIdStoreEntity.COLUMN_REG_ID, RegistrationIdStoreEntity.COLUMN_DEVICE_ID},
-                null, null, null, null, null)) {
-            if (cursor.getCount() == 0) {
-                Log.e("DbHelper", " No Registration id found");
-            }
-            if (cursor.moveToNext()) {
-                String[] columnNames = cursor.getColumnNames();
-                for (String columnName : columnNames) {
-                    Log.i("DbHelper", "ColumnName: " + columnName);
+        try {
+            return executorService.submit(() -> {
+                Cursor cursor = null;
+                try {
+                    cursor = getReadableDatabase(p()).query(RegistrationIdStoreEntity.TABLE_NAME,
+                            new String[]{RegistrationIdStoreEntity._ID, RegistrationIdStoreEntity.COLUMN_REG_ID, RegistrationIdStoreEntity.COLUMN_DEVICE_ID},
+                            null, null, null, null, null);
+                    if (cursor.getCount() == 0) {
+                        Log.e("DbHelper", " No Registration id found");
+                    }
+                    if (cursor.moveToNext()) {
+                        String[] columnNames = cursor.getColumnNames();
+                        for (String columnName : columnNames) {
+                            Log.i("DbHelper", "ColumnName: " + columnName);
+                        }
+                        return new RegistrationAndDeviceId(cursor
+                                .getInt(cursor.getColumnIndex(RegistrationIdStoreEntity.COLUMN_REG_ID)),
+                                cursor.getInt(cursor.getColumnIndex(RegistrationIdStoreEntity.COLUMN_DEVICE_ID)));
+                    }
+                } finally {
+                    if (cursor != null) {
+                        cursor.close();
+                    }
                 }
-                return new RegistrationAndDeviceId(cursor
-                        .getInt(cursor.getColumnIndex(RegistrationIdStoreEntity.COLUMN_REG_ID)),
-                        cursor.getInt(cursor.getColumnIndex(RegistrationIdStoreEntity.COLUMN_DEVICE_ID)));
-            }
+                return null;
+            }).get();
+        } catch (Exception e) {
+            Log.e("DbHelper", "Error occurred during get registration id from database", e);
+            return null;
         }
-        return null;
     }
 
     public void storeRegistrationId(Integer registrationId, int deviceId) {
@@ -142,27 +187,42 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(RegistrationIdStoreEntity.COLUMN_REG_ID, registrationId);
         contentValues.put(RegistrationIdStoreEntity.COLUMN_DEVICE_ID, deviceId);
         contentValues.put(RegistrationIdStoreEntity.COLUMN_CREATED_AT, dateTimeFormatter.format(Instant.now()));
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
-            db.insert(RegistrationIdStoreEntity.TABLE_NAME, null, contentValues);
-        }
+        executorService.submit(() -> {
+            getWritableDatabase(p()).insert(RegistrationIdStoreEntity.TABLE_NAME, null, contentValues);
+        });
+
+
     }
 
     @SuppressLint("Range")
     public SignedPreKeyRecord getSignedPreKeyRecord() {
-        try (Cursor cursor = getReadableDatabase(p()).query(SignedPreKeyRecordStoreEntity.TABLE_NAME,
-                new String[]{SignedPreKeyRecordStoreEntity._ID, SignedPreKeyRecordStoreEntity.COLUMN_SPK_RECORD},
-                null, null, null, null, null)) {
-            if (cursor.moveToNext()) {
+        try {
+            return executorService.submit(() -> {
+                Cursor cursor = null;
                 try {
-                    return new SignedPreKeyRecord(base64Decoder.decode(cursor.getString(cursor
-                            .getColumnIndex(SignedPreKeyRecordStoreEntity.COLUMN_SPK_RECORD))));
-                } catch (Exception e) {
-                    Log.e("DbHelper", "Error occurred during get spk from database");
-                    return null;
+                    cursor = getReadableDatabase(p()).query(SignedPreKeyRecordStoreEntity.TABLE_NAME,
+                            new String[]{SignedPreKeyRecordStoreEntity._ID, SignedPreKeyRecordStoreEntity.COLUMN_SPK_RECORD},
+                            null, null, null, null, null);
+                    if (cursor.moveToNext()) {
+                        try {
+                            return new SignedPreKeyRecord(base64Decoder.decode(cursor.getString(cursor
+                                    .getColumnIndex(SignedPreKeyRecordStoreEntity.COLUMN_SPK_RECORD))));
+                        } catch (Exception e) {
+                            Log.e("DbHelper", "Error occurred during get spk from database");
+                            return null;
+                        }
+                    }
+                } finally {
+                    if (cursor != null) {
+                        cursor.close();
+                    }
                 }
-            }
+                return null;
+            }).get();
+        } catch (Exception e) {
+            Log.e("DbHelper", "Error occurred during get spk from database", e);
+            return null;
         }
-        return null;
     }
 
     public void storeSignedPreKeyRecord(SignedPreKeyRecord signedPreKeyRecord) {
@@ -170,88 +230,114 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(SignedPreKeyRecordStoreEntity.COLUMN_SPK_RECORD, base64Encoder
                 .encodeToString(signedPreKeyRecord.serialize()));
         contentValues.put(SignedPreKeyRecordStoreEntity.COLUMN_CREATED_AT, dateTimeFormatter.format(Instant.now()));
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
-            db.insert(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
-        }
+        executorService.submit(() -> {
+            getWritableDatabase(p()).insert(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
+        });
     }
 
     public boolean clearKeyData() {
-        SQLiteDatabase db = getWritableDatabase(p());
         try {
-            db.beginTransaction();
-            db.delete(IdentityKeyPairStoreEntity.TABLE_NAME, null, null);
-            db.delete(RegistrationIdStoreEntity.TABLE_NAME, null, null);
-            db.delete(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, null);
-            db.delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
-            db.delete(KyberPreKeyRecordsEntity.TABLE_NAME, null, null);
-            db.setTransactionSuccessful();
-            return true;
+            return executorService.submit(() -> {
+                try {
+                    getWritableDatabase(p()).beginTransaction();
+                    getWritableDatabase(p()).delete(IdentityKeyPairStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).delete(RegistrationIdStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).delete(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).delete(KyberPreKeyRecordsEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).setTransactionSuccessful();
+                    return true;
+                } catch (Exception e) {
+                    return false;
+                } finally {
+                    getWritableDatabase(p()).endTransaction();
+//            db.close();
+                }
+            }).get();
         } catch (Exception e) {
+            Log.e("DbHelper", "Error occurred during clear key data", e);
             return false;
-        } finally {
-            db.endTransaction();
-            db.close();
         }
     }
 
     public boolean clearUserData() {
-        SQLiteDatabase db = getWritableDatabase(p());
         try {
-            db.beginTransaction();
-            db.delete(MessageStoreEntity.TABLE_NAME, null, null);
-            db.delete(IdentityKeyPairStoreEntity.TABLE_NAME, null, null);
-            db.delete(RegistrationIdStoreEntity.TABLE_NAME, null, null);
-            db.delete(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, null);
-            db.delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
-            db.delete(JwtStoreEntity.TABLE_NAME, null, null);
-            db.delete(SessionStoreEntity.TABLE_NAME, null, null);
-            db.delete(AuthStateStoreEntity.TABLE_NAME, null, null);
-            db.delete(KyberPreKeyRecordsEntity.TABLE_NAME, null, null);
-            db.delete(SenderKeyEntity.TABLE_NAME, null, null);
-            db.setTransactionSuccessful();
-            return true;
+            return executorService.submit(() -> {
+                try {
+                    getWritableDatabase(p()).beginTransaction();
+                    getWritableDatabase(p()).delete(MessageStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).delete(IdentityKeyPairStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).delete(RegistrationIdStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).delete(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).delete(JwtStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).delete(SessionStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).delete(KyberPreKeyRecordsEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).delete(SenderKeyEntity.TABLE_NAME, null, null);
+                    getWritableDatabase(p()).setTransactionSuccessful();
+                    return true;
+                } catch (Exception e) {
+                    return false;
+                } finally {
+                    getWritableDatabase(p()).endTransaction();
+//            db.close();
+                }
+            }).get();
         } catch (Exception e) {
+            Log.e("DbHelper", "Error occurred during clear user data", e);
             return false;
-        } finally {
-            db.endTransaction();
-            db.close();
         }
+
     }
 
     public void logout() {
-        SQLiteDatabase db = getWritableDatabase(p());
-        try {
-            db.beginTransaction();
-            db.delete(AuthStateStoreEntity.TABLE_NAME, null, null);
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
-            db.close();
-        }
+
+        executorService.submit(() -> {
+            try {
+                getWritableDatabase(p()).beginTransaction();
+                getWritableDatabase(p()).delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+                getWritableDatabase(p()).setTransactionSuccessful();
+            } finally {
+                getWritableDatabase(p()).endTransaction();
+//            db.close();
+            }
+        });
     }
 
     @SuppressLint("Range")
     public void loadPreKeyRecords(SignalProtocolStore signalProtocolStore) throws InvalidMessageException {
-        try (Cursor cursor = getReadableDatabase(p()).query(PreKeyRecordStoreEntity.TABLE_NAME,
-                new String[]{PreKeyRecordStoreEntity._ID, PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD},
-                null, null, null, null, null)) {
-            while (cursor.moveToNext()) {
-                PreKeyRecord preKeyRecord = new PreKeyRecord(base64Decoder.decode(cursor
-                        .getString(cursor.getColumnIndex(PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD))));
-                signalProtocolStore.storePreKey(preKeyRecord.getId(), preKeyRecord);
+        executorService.submit(() -> {
+            Cursor cursor = null;
+            try {
+                cursor = getReadableDatabase(p()).query(PreKeyRecordStoreEntity.TABLE_NAME,
+                        new String[]{PreKeyRecordStoreEntity._ID, PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD},
+                        null, null, null, null, null);
+                while (cursor.moveToNext()) {
+                    PreKeyRecord preKeyRecord = new PreKeyRecord(base64Decoder.decode(cursor
+                            .getString(cursor.getColumnIndex(PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD))));
+                    signalProtocolStore.storePreKey(preKeyRecord.getId(), preKeyRecord);
+                }
+            } catch (InvalidMessageException e) {
+                throw new RuntimeException(e);
+            } finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
             }
-        }
+        });
     }
 
     public void removePreKeyRecord(int prekeyId) {
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
-            db.delete(PreKeyRecordStoreEntity.TABLE_NAME,
+        executorService.submit(() -> {
+            getWritableDatabase(p()).delete(PreKeyRecordStoreEntity.TABLE_NAME,
                     PreKeyRecordStoreEntity.COLUMN_PREKEY_ID + "=?", new String[]{String.valueOf(prekeyId)});
-        }
+        });
+
     }
 
     public void storePreKeyRecords(PreKeyRecord[] preKeyRecords) {
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
+        executorService.submit(() -> {
             for (PreKeyRecord preKeyRecord : preKeyRecords) {
                 ContentValues contentValues = new ContentValues();
                 contentValues.put(PreKeyRecordStoreEntity.COLUMN_PREKEY_ID, preKeyRecord.getId());
@@ -259,18 +345,22 @@ public class DbHelper extends SQLiteOpenHelper {
                         base64Encoder.encodeToString(preKeyRecord.serialize()));
                 contentValues.put(PreKeyRecordStoreEntity.COLUMN_CREATED_AT,
                         dateTimeFormatter.format(Instant.now()));
-                db.insert(PreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
+                getWritableDatabase(p()).insert(PreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
+
             }
-        }
+        });
+
     }
 
     public void markKyberPreKeyUsed(int kyberPreKeyId) {
         ContentValues contentValues = new ContentValues();
         contentValues.put(KyberPreKeyRecordsEntity.COLUMN_USED, 1);
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
-            db.update(KyberPreKeyRecordsEntity.TABLE_NAME, SQLiteDatabase.CONFLICT_REPLACE,
+        executorService.submit(() -> {
+            getWritableDatabase(p()).update(KyberPreKeyRecordsEntity.TABLE_NAME, SQLiteDatabase.CONFLICT_REPLACE,
                     contentValues, KyberPreKeyRecordsEntity.COLUMN_PREKEY_ID + "=?", new Object[]{kyberPreKeyId});
-        }
+        });
+
+
     }
 
     public void storeKyberPreKey(KyberPreKeyRecord kyberPreKeyRecord) {
@@ -281,41 +371,65 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(KyberPreKeyRecordsEntity.COLUMN_USED, 0);
         contentValues.put(KyberPreKeyRecordsEntity.COLUMN_CREATED_AT,
                 dateTimeFormatter.format(Instant.now()));
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
-            db.insert(KyberPreKeyRecordsEntity.TABLE_NAME, null, contentValues);
-        }
+        executorService.submit(() -> {
+            getWritableDatabase(p()).insert(KyberPreKeyRecordsEntity.TABLE_NAME, null, contentValues);
+        });
+
+
     }
 
     public void storeAuthState(String authState) {
         ContentValues values = new ContentValues();
         values.put(AuthStateStoreEntity.COLUMN_AUTH_STATE, authState);
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
-            db.delete(AuthStateStoreEntity.TABLE_NAME, null, null);
-            db.insert(AuthStateStoreEntity.TABLE_NAME, null, values);
-        }
+
+        executorService.submit(() -> {
+            getWritableDatabase(p()).delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+            getWritableDatabase(p()).insert(AuthStateStoreEntity.TABLE_NAME, null, values);
+
+        });
+
     }
 
     public void removeAuthState() {
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
-            db.delete(AuthStateStoreEntity.TABLE_NAME, null, null);
-        }
+        executorService.submit(() -> {
+            getWritableDatabase(p()).delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+        });
     }
 
     @SuppressLint("Range")
     public AuthState getAuthState() {
-        try (Cursor result = getReadableDatabase(p())
-                .query(AuthStateStoreEntity.TABLE_NAME,
-                        null,
-                        null, null, null, null, null)) {
-            if (result.moveToNext()) {
-                return AuthState.jsonDeserialize(result
-                        .getString(result.getColumnIndex(AuthStateStoreEntity.COLUMN_AUTH_STATE)));
-            }
-        } catch (JSONException e) {
-            Log.e("DbHelper", "Getting AuthState failed", e);
+        try {
+            return executorService.submit(() -> {
+                Cursor result = null;
+                SQLiteDatabase db = null;
+                try {
+                    db = getWritableDatabase(p());
+                    result = db
+                            .query(AuthStateStoreEntity.TABLE_NAME,
+                                    null,
+                                    null, null, null, null, null);
+                    if (result.moveToNext()) {
+                        return AuthState.jsonDeserialize(result
+                                .getString(result.getColumnIndex(AuthStateStoreEntity.COLUMN_AUTH_STATE)));
+                    }
+                } catch (Throwable e) {
+                    Log.e("DbHelper", "Getting AuthState failed", e);
+                    return null;
+                } finally {
+                    if (result != null) {
+                        result.close();
+                    }
+                    if (db != null) {
+                        db.close();
+                    }
+                }
+                return null;
+            }).get(10, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            Log.i("DbHelper", "Getting AuthState failed", e);
             return null;
         }
-        return null;
+
     }
 
 
@@ -326,37 +440,58 @@ public class DbHelper extends SQLiteOpenHelper {
         values.put(MessageStoreEntity.COLUMN_MESSAGE_BODY, message);
         values.put(MessageStoreEntity.COLUMN_USERNAME, username);
         values.put(MessageStoreEntity.COLUMN_CREATED_AT, System.currentTimeMillis());
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
-            db.insert(MessageStoreEntity.TABLE_NAME,
+        executorService.submit(() -> {
+            getWritableDatabase(p()).insert(MessageStoreEntity.TABLE_NAME,
                     null, values);
-        }
+        });
+
     }
 
-    public List<MessageBriefDto> getMessageBriefs() {
-        List<MessageBriefDto> resultArray;
+    public List<MessageBriefDto> getMessageBriefs(String username) {
+        try {
+            return executorService.submit(() -> {
+                List<MessageBriefDto> resultArray;
+                Cursor resultCursor = null;
+                SQLiteDatabase sqLiteDatabase = null;
+                try {
+                    sqLiteDatabase = getWritableDatabase(p());
+                    sqLiteDatabase.enableWriteAheadLogging();
+                    resultCursor = sqLiteDatabase
+                            .query(MessageStoreEntity.TABLE_NAME,
+                                    new String[]{MessageStoreEntity.COLUMN_SENDER,
+                                            MessageStoreEntity.COLUMN_MESSAGE_BODY},
+                                    MessageStoreEntity.COLUMN_USERNAME + "=?",
+                                    new String[]{username},
+                                    null,
+                                    null,
+                                    MessageStoreEntity.COLUMN_CREATED_AT + " DESC",
+                                    "1"
+                            );
+                    resultArray = new ArrayList<>();
 
-        try (Cursor resultCursor = getReadableDatabase(p())
-                .query(MessageStoreEntity.TABLE_NAME,
-                        new String[]{MessageStoreEntity.COLUMN_SENDER,
-                                MessageStoreEntity.COLUMN_MESSAGE_BODY},
-                        MessageStoreEntity.COLUMN_USERNAME + "=?",
-                        new String[]{getUserNameFromJwt()},
-                        null,
-                        null,
-                        MessageStoreEntity.COLUMN_CREATED_AT + " DESC",
-                        "1"
-                )) {
+                    while (resultCursor.moveToNext()) {
+                        String senderName = resultCursor.getString(0);
+                        String messageText = resultCursor.getString(1);
+                        resultArray.add(new MessageBriefDto(senderName, messageText));
+                    }
+                    return resultArray;
+                } catch (Throwable e) {
+                    Log.e("DbHelper", "Getting MessageBriefs failed", e);
+                    return new ArrayList<MessageBriefDto>();
+                } finally {
+                    if (resultCursor != null) {
+                        resultCursor.close();
+                    }
+                    if (sqLiteDatabase != null) {
+                        sqLiteDatabase.close();
+                    }
+                }
 
-            resultArray = new ArrayList<>();
-
-            while (resultCursor.moveToNext()) {
-                String senderName = resultCursor.getString(0);
-                String messageText = resultCursor.getString(1);
-                resultArray.add(new MessageBriefDto(senderName, messageText));
-
-            }
+            }).get(10, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            Log.e("DbHelper", "Getting MessageBriefs failed:", e);
+            return new ArrayList<MessageBriefDto>();
         }
-        return resultArray;
     }
 
     public void storeSenderKey(SignalProtocolAddress sender, UUID distributionId, SenderKeyRecord record) {
@@ -365,9 +500,10 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(SenderKeyEntity.COLUMN_ADDRESS_DEVICE_ID, sender.getDeviceId());
         contentValues.put(SenderKeyEntity.COLUMN_DISTRIBUTION_UUID, distributionId.toString());
         contentValues.put(SenderKeyEntity.COLUMN_SENDER_KEY_RECORD, base64Encoder.encodeToString(record.serialize()));
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
-            db.insert(SenderKeyEntity.TABLE_NAME, null, contentValues);
-        }
+        executorService.submit(() -> {
+            getWritableDatabase(p()).insert(SenderKeyEntity.TABLE_NAME, null, contentValues);
+        });
+
     }
 
     public void storeSession(SignalProtocolAddress address, SessionRecord sessionRecord) {
@@ -380,105 +516,164 @@ public class DbHelper extends SQLiteOpenHelper {
         }
         contentValues.put(SessionStoreEntity.COLUMN_SESSION,
                 base64Encoder.encodeToString(sessionRecord.serialize()));
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
-            db.insert(SessionStoreEntity.TABLE_NAME, null, contentValues);
-        }
+        executorService.submit(() -> {
+            getWritableDatabase(p()).insert(SessionStoreEntity.TABLE_NAME, null, contentValues);
+        });
+
     }
 
     @SuppressLint("Range")
     public void loadKyberPreKeys(SekretessSignalProtocolStore signalProtocolStore) throws InvalidMessageException {
-        try (Cursor result = getReadableDatabase(p())
-                .query(KyberPreKeyRecordsEntity.TABLE_NAME, new String[]{
-                                KyberPreKeyRecordsEntity.COLUMN_PREKEY_ID, KyberPreKeyRecordsEntity.COLUMN_KPK_RECORD,
-                                KyberPreKeyRecordsEntity.COLUMN_USED},
-                        null, null, null, null, null)) {
-            while (result.moveToNext()) {
-                int prekeyId = result.getInt(result.getColumnIndex(KyberPreKeyRecordsEntity.COLUMN_PREKEY_ID));
-                String kpkRecordBase64 = result.getString(result.getColumnIndex(KyberPreKeyRecordsEntity.COLUMN_KPK_RECORD));
-                int used = result.getInt(result.getColumnIndex(KyberPreKeyRecordsEntity.COLUMN_USED));
 
-                signalProtocolStore.loadKyberPreKey(prekeyId, new KyberPreKeyRecord(base64Decoder
-                        .decode(kpkRecordBase64)), used == 1);
+        executorService.submit(() -> {
+            Cursor result = null;
+            try {
+                result = getReadableDatabase(p())
+                        .query(KyberPreKeyRecordsEntity.TABLE_NAME, new String[]{
+                                        KyberPreKeyRecordsEntity.COLUMN_PREKEY_ID, KyberPreKeyRecordsEntity.COLUMN_KPK_RECORD,
+                                        KyberPreKeyRecordsEntity.COLUMN_USED},
+                                null, null, null, null, null);
+                while (result.moveToNext()) {
+                    int prekeyId = result.getInt(result.getColumnIndex(KyberPreKeyRecordsEntity.COLUMN_PREKEY_ID));
+                    String kpkRecordBase64 = result.getString(result.getColumnIndex(KyberPreKeyRecordsEntity.COLUMN_KPK_RECORD));
+                    int used = result.getInt(result.getColumnIndex(KyberPreKeyRecordsEntity.COLUMN_USED));
+
+                    signalProtocolStore.loadKyberPreKey(prekeyId, new KyberPreKeyRecord(base64Decoder
+                            .decode(kpkRecordBase64)), used == 1);
+                }
+            } catch (Exception e) {
+                Log.e("DbHelper", "Error occurred during load kyber prekeys", e);
+            } finally {
+                if (result != null) {
+                    result.close();
+                }
             }
-        }
+        });
+
     }
 
     public void storeGroupChatInfo(String distributionKey, String sender) {
         ContentValues contentValues = new ContentValues();
         contentValues.put(GroupChatEntity.COLUMN_SENDER, sender);
         contentValues.put(GroupChatEntity.COLUMN_DISTRIBUTION_KEY, distributionKey);
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
-            db.replace(GroupChatEntity.TABLE_NAME, null, contentValues);
-        }
+        executorService.submit(() -> {
+            getWritableDatabase(p()).replace(GroupChatEntity.TABLE_NAME, null, contentValues);
+        });
+
     }
 
     public List<GroupChatDto> getGroupChatsInfo() {
-        List<GroupChatDto> groupChatsInfo = new ArrayList<>();
-        try (Cursor resultCursor = getReadableDatabase(p())
-                .query(GroupChatEntity.TABLE_NAME, new String[]{
-                        GroupChatEntity.COLUMN_SENDER, GroupChatEntity.COLUMN_DISTRIBUTION_KEY
-                }, null, null, null, null, null)) {
-            while (resultCursor.moveToNext()) {
-                String sender = resultCursor.getString(0);
-                String distributionKey = resultCursor.getString(1);
-                groupChatsInfo.add(new GroupChatDto(sender, distributionKey));
-            }
+        try {
+            return executorService.submit(() -> {
+                List<GroupChatDto> groupChatsInfo = new ArrayList<>();
+                Cursor resultCursor = null;
+                try {
+                    resultCursor = getReadableDatabase(p())
+                            .query(GroupChatEntity.TABLE_NAME, new String[]{
+                                    GroupChatEntity.COLUMN_SENDER, GroupChatEntity.COLUMN_DISTRIBUTION_KEY
+                            }, null, null, null, null, null);
+                    while (resultCursor.moveToNext()) {
+                        String sender = resultCursor.getString(0);
+                        String distributionKey = resultCursor.getString(1);
+                        groupChatsInfo.add(new GroupChatDto(sender, distributionKey));
+                    }
+                } finally {
+                    if (resultCursor != null) {
+                        resultCursor.close();
+                    }
+                }
+                return groupChatsInfo;
+            }).get();
+        } catch (Exception e) {
+            Log.e("DbHelper", "Getting GroupChatsInfo failed", e);
+            return Collections.emptyList();
         }
-        return groupChatsInfo;
     }
 
     public List<String> getTopSenders() {
-        try (Cursor resultCursor = getReadableDatabase(p())
-                .query(MessageStoreEntity.TABLE_NAME, new String[]{
-                                MessageStoreEntity.COLUMN_SENDER
-                        }, null, null, null, null,
-                        MessageStoreEntity.COLUMN_CREATED_AT + " DESC", "4")) {
-            List<String> topSenders = new ArrayList<>();
-            while (resultCursor.moveToNext()) {
-                topSenders.add(resultCursor.getString(0));
-            }
-            return topSenders;
+        try {
+            return executorService.submit(() -> {
+                Cursor resultCursor = null;
+                SQLiteDatabase db = getWritableDatabase(p());
+                try {
+                    resultCursor = db
+                            .query(MessageStoreEntity.TABLE_NAME, new String[]{
+                                            MessageStoreEntity.COLUMN_SENDER
+                                    }, null, null, null, null,
+                                    MessageStoreEntity.COLUMN_CREATED_AT + " DESC", "4");
+                    List<String> topSenders = new ArrayList<>();
+                    while (resultCursor.moveToNext()) {
+                        topSenders.add(resultCursor.getString(0));
+                    }
+                    return topSenders;
+                } finally {
+                    if (resultCursor != null) {
+                        resultCursor.close();
+                    }
+                    if (db != null) {
+                        db.close();
+                    }
+                }
+            }).get();
+
+        } catch (Exception e) {
+            Log.e("DbHelper", "Getting top senders failed", e);
+            return Collections.emptyList();
         }
     }
 
     public List<MessageRecordDto> loadMessages(String from) {
-        try (Cursor resultCursor = getReadableDatabase(p())
-                .query(MessageStoreEntity.TABLE_NAME, new String[]{MessageStoreEntity._ID,
-                                MessageStoreEntity.COLUMN_SENDER,
-                                MessageStoreEntity.COLUMN_MESSAGE_BODY,
-                                MessageStoreEntity.COLUMN_CREATED_AT
-                        },
-                        "sender=?",
-                        new String[]{from}, null, null, null)) {
-            List<MessageRecordDto> resultArray = new ArrayList<>();
+        try {
+            return executorService.submit(() -> {
+                Cursor resultCursor = null;
+                try {
+                    resultCursor = getReadableDatabase(p())
+                            .query(MessageStoreEntity.TABLE_NAME, new String[]{MessageStoreEntity._ID,
+                                            MessageStoreEntity.COLUMN_SENDER,
+                                            MessageStoreEntity.COLUMN_MESSAGE_BODY,
+                                            MessageStoreEntity.COLUMN_CREATED_AT
+                                    },
+                                    "sender=?",
+                                    new String[]{from}, null, null, null);
+                    List<MessageRecordDto> resultArray = new ArrayList<>();
 
-            String dateTimeText = "";
-            while (resultCursor.moveToNext()) {
+                    String dateTimeText = "";
+                    while (resultCursor.moveToNext()) {
 
-                Long id = resultCursor.getLong(0);
-                String sender = resultCursor.getString(1);
-                String messageBody = resultCursor.getString(2);
-                long createdAt = resultCursor.getLong(3);
+                        Long id = resultCursor.getLong(0);
+                        String sender = resultCursor.getString(1);
+                        String messageBody = resultCursor.getString(2);
+                        long createdAt = resultCursor.getLong(3);
 
-                LocalDateTime messageDateTime = LocalDateTime
-                        .ofInstant(Instant.ofEpochMilli(createdAt),
-                                ZoneId.systemDefault());
+                        LocalDateTime messageDateTime = LocalDateTime
+                                .ofInstant(Instant.ofEpochMilli(createdAt),
+                                        ZoneId.systemDefault());
 
-                String dateTimeAsText = dateTimeText(messageDateTime.toLocalDate());
-                if (dateTimeText.equals(dateTimeAsText)) {
-                    resultArray.add(new MessageRecordDto(id, sender, messageBody, createdAt,
-                            dateTimeAsText, ItemType.ITEM));
-                } else {
-                    resultArray.add(new MessageRecordDto(id, sender, null, createdAt,
-                            dateTimeAsText, ItemType.HEADER));
-                    resultArray.add(new MessageRecordDto(id, sender, messageBody, createdAt,
-                            dateTimeAsText, ItemType.ITEM));
-                    dateTimeText = dateTimeAsText;
+                        String dateTimeAsText = dateTimeText(messageDateTime.toLocalDate());
+                        if (dateTimeText.equals(dateTimeAsText)) {
+                            resultArray.add(new MessageRecordDto(id, sender, messageBody, createdAt,
+                                    dateTimeAsText, ItemType.ITEM));
+                        } else {
+                            resultArray.add(new MessageRecordDto(id, sender, null, createdAt,
+                                    dateTimeAsText, ItemType.HEADER));
+                            resultArray.add(new MessageRecordDto(id, sender, messageBody, createdAt,
+                                    dateTimeAsText, ItemType.ITEM));
+                            dateTimeText = dateTimeAsText;
+                        }
+
+                    }
+
+                    return resultArray;
+                } finally {
+                    if (resultCursor != null) {
+                        resultCursor.close();
+                    }
                 }
+            }).get();
 
-            }
-
-            return resultArray;
+        } catch (Exception e) {
+            Log.e("DbHelper", "Getting messages failed", e);
+            return Collections.emptyList();
         }
     }
 
@@ -502,36 +697,45 @@ public class DbHelper extends SQLiteOpenHelper {
 
     @SuppressLint("Range")
     public void loadSessions(SekretessSignalProtocolStore signalProtocolStore) {
+        executorService.submit(() -> {
+            Cursor result = null;
+            try {
+                result = getReadableDatabase(p())
+                        .query(SessionStoreEntity.TABLE_NAME, new String[]{SessionStoreEntity.COLUMN_SESSION,
+                                        SessionStoreEntity.COLUMN_SERVICE_ID, SessionStoreEntity.COLUMN_ADDRESS_NAME,
+                                        SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID}, null, null,
+                                null, null, null);
+                while (result.moveToNext()) {
+                    String name = result.getString(result.getColumnIndex(SessionStoreEntity.COLUMN_ADDRESS_NAME));
+                    int deviceId = result.getInt(result.getColumnIndex(SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID));
 
-        try (Cursor result = getReadableDatabase(p())
-                .query(SessionStoreEntity.TABLE_NAME, new String[]{SessionStoreEntity.COLUMN_SESSION,
-                                SessionStoreEntity.COLUMN_SERVICE_ID, SessionStoreEntity.COLUMN_ADDRESS_NAME,
-                                SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID}, null, null,
-                        null, null, null)) {
-            while (result.moveToNext()) {
-                String name = result.getString(result.getColumnIndex(SessionStoreEntity.COLUMN_ADDRESS_NAME));
-                int deviceId = result.getInt(result.getColumnIndex(SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID));
-
-                byte[] sessionRecord = base64Decoder
-                        .decode(result.getString(result.getColumnIndex(SessionStoreEntity.COLUMN_SESSION)));
-                try {
-                    signalProtocolStore.loadSession(new SignalProtocolAddress(name, deviceId),
-                            new SessionRecord(sessionRecord));
-                } catch (Exception e) {
-                    Log.e("DbHelper", "Error occurred during load session. " +
-                            "DeviceId = " + deviceId + " DeviceName = " + name, e);
+                    byte[] sessionRecord = base64Decoder
+                            .decode(result.getString(result.getColumnIndex(SessionStoreEntity.COLUMN_SESSION)));
+                    try {
+                        signalProtocolStore.loadSession(new SignalProtocolAddress(name, deviceId),
+                                new SessionRecord(sessionRecord));
+                    } catch (Exception e) {
+                        Log.e("DbHelper", "Error occurred during load session. " +
+                                "DeviceId = " + deviceId + " DeviceName = " + name, e);
+                    }
+                }
+            } finally {
+                if (result != null) {
+                    result.close();
                 }
             }
-        }
+        });
     }
 
     public void removeSession(SignalProtocolAddress address) {
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
-            db.delete(SessionStoreEntity.TABLE_NAME,
+        executorService.submit(() -> {
+            getWritableDatabase(p()).delete(SessionStoreEntity.TABLE_NAME,
                     SessionStoreEntity.COLUMN_ADDRESS_NAME + "=? AND"
                             + SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID + " = ?",
                     new Object[]{address.getName(), address.getDeviceId()});
-        }
+
+        });
+
     }
 
     private String cp() {
@@ -605,9 +809,11 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
     public void deleteMessage(Long messageId) {
-        try (SQLiteDatabase db = getWritableDatabase(p())) {
-            db.delete(MessageStoreEntity.TABLE_NAME,
+        executorService.submit(() -> {
+            getWritableDatabase(p()).delete(MessageStoreEntity.TABLE_NAME,
                     MessageStoreEntity._ID + "=?", new String[]{String.valueOf(messageId)});
-        }
+
+        });
+
     }
 }

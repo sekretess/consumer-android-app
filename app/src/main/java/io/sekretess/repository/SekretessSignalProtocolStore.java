@@ -16,7 +16,7 @@ public class SekretessSignalProtocolStore extends InMemorySignalProtocolStore {
 
     public SekretessSignalProtocolStore(Context context, IdentityKeyPair identityKeyPair, int registrationId) {
         super(identityKeyPair, registrationId);
-        this.dbHelper = DbHelper.getInstance(context);
+        this.dbHelper = new DbHelper(context);
     }
 
     @Override

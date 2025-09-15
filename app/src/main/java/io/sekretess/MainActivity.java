@@ -154,14 +154,18 @@ public class MainActivity extends AppCompatActivity {
 
     private Optional<AuthState> restoreState() {
         Log.i("StartupActivity", "Restoring Authstate...");
-        DbHelper dbHelper = DbHelper.getInstance(getApplicationContext());
-        AuthState authState = dbHelper.getAuthState();
-        if (authState == null) {
-            Log.i("StartupActivity", "Auth state is not found");
+        DbHelper dbHelper = new DbHelper(getApplicationContext());
+        if(dbHelper != null) {
+            AuthState authState = dbHelper.getAuthState();
+            if (authState == null) {
+                Log.i("StartupActivity", "Auth state is not found");
+                return Optional.empty();
+            }
+            Log.i("StartupActivity", "State restored.");
+            return Optional.ofNullable(authState);
+        }else{
             return Optional.empty();
         }
-        Log.i("StartupActivity", "State restored.");
-        return Optional.ofNullable(authState);
     }
 
 

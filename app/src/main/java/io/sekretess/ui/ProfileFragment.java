@@ -52,7 +52,7 @@ public class ProfileFragment extends Fragment {
 //    Delete Account button action
         AppCompatButton btnDeleteAccount = view.findViewById(R.id.btnDeleteAccount);
         btnDeleteAccount.setOnClickListener(v -> {
-            var dbHelper = DbHelper.getInstance(getContext());
+            var dbHelper = new DbHelper(getContext());
             var idToken = dbHelper.getAuthState().getIdToken();
             boolean deleteSuccess = false;
             if (deleteSuccess = ApiClient.deleteUser(getContext(), idToken)) {
@@ -71,7 +71,7 @@ public class ProfileFragment extends Fragment {
 //    Logout button action
         AppCompatButton btnLogout = view.findViewById(R.id.btnLogout);
         btnLogout.setOnClickListener(v -> {
-            var dbHelper = DbHelper.getInstance(getContext());
+            var dbHelper = new DbHelper(getContext());
             var idToken = dbHelper.getAuthState().getIdToken();
             dbHelper.logout();
             logout(idToken);

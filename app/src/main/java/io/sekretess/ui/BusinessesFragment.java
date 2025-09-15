@@ -38,7 +38,7 @@ public class BusinessesFragment extends Fragment {
         toolbar.setTitle("Businesses");
 
         View view = inflater.inflate(R.layout.businesses_fragment, container, false);
-        DbHelper dbHelper = DbHelper.getInstance(getActivity().getApplicationContext());
+        DbHelper dbHelper =new DbHelper(getActivity().getApplicationContext());
 
         subscribedBusinessesRecycler = view.findViewById(R.id.businessesRecycler);
         List<String> subscribedBusinesses = ApiClient

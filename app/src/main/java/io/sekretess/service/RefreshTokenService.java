@@ -29,7 +29,7 @@ public class RefreshTokenService extends SekretessBackgroundService {
             Log.i("RefreshTokenService", "On tick...");
 
 
-            DbHelper dbHelper = DbHelper.getInstance(getApplicationContext());
+            DbHelper dbHelper = new DbHelper(getApplicationContext());
             try {
                 AuthState authState = dbHelper.getAuthState();
                 if (authState != null) {
@@ -59,7 +59,7 @@ public class RefreshTokenService extends SekretessBackgroundService {
                     countDownTimer.cancel();
                 }
             } finally {
-                dbHelper.close();
+
             }
         }
 

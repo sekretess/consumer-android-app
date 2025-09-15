@@ -26,6 +26,7 @@ import androidx.core.app.NotificationManagerCompat;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AuthenticationFailureException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -76,6 +77,9 @@ import io.sekretess.utils.ApiClient;
 import io.sekretess.utils.NotificationPreferencesUtils;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
@@ -176,7 +180,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         ConnectionFactory connectionFactory = new ConnectionFactory();
         connectionFactory.setVirtualHost("sekretess");
         try {
-            DbHelper dbHelper = DbHelper.getInstance(getApplicationContext());
+            DbHelper dbHelper = new DbHelper(getApplicationContext());
             String amqpConnectionUrl = BuildConfig.RABBIT_MQ_URI;
             String username = dbHelper.getUserNameFromJwt();
             amqpConnectionUrl = String.format(amqpConnectionUrl, username, dbHelper.getAuthState().getAccessToken());
@@ -245,8 +249,12 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                                 }
                             });
             Log.i(TAG, "RabbitMq Consumer started");
-        } catch (Throwable e) {
+        } catch (TimeoutException | NoSuchAlgorithmException |
+                 KeyManagementException | URISyntaxException e) {
             Log.e(TAG, "Can not establish connection", e);
+        } catch (IOException  io) {
+            Log.e(TAG, "Can not establish connection", io);
+            sendBroadcast(new Intent(Constants.EVENT_REFRESH_TOKEN_FAILED));
         }
 
     }
@@ -272,7 +280,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                     .edit()
                     .putString("username", username)
                     .apply();
-            DbHelper dbHelper = DbHelper.getInstance(this);
+            DbHelper dbHelper = new DbHelper(this);
             if (signalProtocolStore == null) {
                 Log.w("SignalProtocolService", "Signal protocol store is null. Initializing protocolStore...");
                 IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
@@ -304,7 +312,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
 
 
     private void loadCryptoKeysFromDb(Context context) throws InvalidMessageException {
-        DbHelper dbHelper = DbHelper.getInstance(this);
+        DbHelper dbHelper = new DbHelper(this);
         RegistrationAndDeviceId registrationId = dbHelper.getRegistrationId();
         IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
         signalProtocolStore = new SekretessSignalProtocolStore(context, identityKeyPair, registrationId.getRegistrationId());
@@ -383,7 +391,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     }
 
     private void initSignalProtocol() {
-        DbHelper dbHelper = DbHelper.getInstance(this);
+        DbHelper dbHelper = new DbHelper(this);
         Log.i("SignalProtocolService", "All broadcast receivers registered");
         Log.i("SignalProtocolService", "signalProtocolStore = " + signalProtocolStore);
         if (signalProtocolStore == null) {
@@ -403,7 +411,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     }
 
     public void updateOneTimeKeys() throws InvalidKeyException {
-        DbHelper dbHelper = DbHelper.getInstance(this);
+        DbHelper dbHelper = new DbHelper(this);
         IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
         String[] preKeyRecords = serializeSignedPreKeys(generatePreKeys());
         String[] kyberPreKeyRecords = serializeKyberPreKeys(generateKyberPreKeys(identityKeyPair
@@ -432,7 +440,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             ;
 
 
-            DbHelper dbHelper = DbHelper.getInstance(this);
+            DbHelper dbHelper = new DbHelper(this);
             dbHelper.clearKeyData();
             //Generate one-time prekeys
             PreKeyRecord[] opk = generatePreKeys();
@@ -480,7 +488,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                 System.currentTimeMillis(), kemKeyPair,
                 ecPrivateKey.calculateSignature(kemKeyPair.getPublicKey().serialize()));
         signalProtocolStore.storeKyberPreKey(kyberPreKeyRecord.getId(), kyberPreKeyRecord);
-        DbHelper dbHelper = DbHelper.getInstance(this);
+        DbHelper dbHelper = new DbHelper(this);
         dbHelper.storeKyberPreKey(kyberPreKeyRecord);
         return kyberPreKeyRecord;
     }
@@ -493,7 +501,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                 System.currentTimeMillis(), keyPair, signature);
         signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
 
-        DbHelper dbHelper = DbHelper.getInstance(this);
+        DbHelper dbHelper = new DbHelper(this);
         dbHelper.storeSignedPreKeyRecord(signedPreKeyRecord);
         return signedPreKeyRecord;
     }
@@ -508,7 +516,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             signalProtocolStore.storePreKey(id, preKeyRecord);
             preKeyRecords[i] = preKeyRecord;
         }
-        DbHelper dbHelper = DbHelper.getInstance(this);
+        DbHelper dbHelper = new DbHelper(this);
         dbHelper.storePreKeyRecords(preKeyRecords);
         return preKeyRecords;
     }
@@ -571,7 +579,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         if (groupCipher != null) {
             String message = new String(groupCipher.decrypt(base64Decoder.decode(base64Message)));
             Log.i("SignalProtocolService", "Decrypted advertisement message: " + message);
-            DbHelper dbHelper = DbHelper.getInstance(this);
+            DbHelper dbHelper = new DbHelper(this);
             dbHelper.storeDecryptedMessage(sender, message);
             broadcastNewMessageReceived();
             publishNotification(sender, message);
@@ -603,11 +611,11 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         if (messageType == MessageType.KEY_DISTRIBUTION) {
             processKeyDistributionMessage(sender, message);
             //Store group chat info
-            DbHelper dbHelper = DbHelper.getInstance(this);
+            DbHelper dbHelper = new DbHelper(this);
             dbHelper.storeGroupChatInfo(message, sender);
         } else {
             Log.i("SignalProtocolService", "Decrypted private message: " + message);
-            DbHelper dbHelper = DbHelper.getInstance(this);
+            DbHelper dbHelper = new DbHelper(this);
             dbHelper.storeDecryptedMessage(sender, message);
             broadcastNewMessageReceived();
             publishNotification(sender, message);

@@ -10,6 +10,8 @@ import androidx.core.content.ContextCompat;
 
 import java.util.List;
 
+import io.sekretess.repository.DbHelper;
+
 public class BootHandlerService extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -26,6 +28,7 @@ public class BootHandlerService extends BroadcastReceiver {
 
 
     private void checkForegroundServices(Context context) {
+        new DbHelper(context);
         boolean isRabbitMqServiceRunning = false;
         boolean isTokenRefreshServiceRunning = false;
 

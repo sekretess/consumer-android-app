@@ -62,15 +62,17 @@ public class MessageAdapter extends RecyclerView.Adapter<ConcreteChatCustomViewH
         if (holder.getItemViewType() == 1) {
             holder.getMessageDate().setText(messageRecordDto.getDateText());
             holder.getMessageDate().setVisibility(View.VISIBLE);
+            holder.getMessageText().setVisibility(View.GONE);
         } else {
 
             holder.getMessageDate().setVisibility(View.GONE);
+            holder.getMessageText().setVisibility(View.GONE);
+
         }
         if (messageRecordDto.getMessage() != null) {
             holder.getMessageText().setText(messageRecordDto.getMessage());
             holder.getMessageText().setVisibility(View.VISIBLE);
-        }else {
-            holder.getMessageText().setVisibility(View.GONE);
+
         }
         holder.getMessageTime().setText(DateTimeFormatter.ofPattern("HH:mm")
                 .withZone(ZoneId.systemDefault())

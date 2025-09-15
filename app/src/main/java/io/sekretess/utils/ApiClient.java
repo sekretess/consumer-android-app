@@ -93,7 +93,7 @@ public class ApiClient {
 
     public static boolean subscribeToBusiness(Context context, String business) {
         try {
-            String jwt = DbHelper.getInstance(context).getAuthState().getIdToken();
+            String jwt = new DbHelper(context).getAuthState().getIdToken();
             Future<Boolean> future = Executors.newSingleThreadExecutor()
                     .submit(() -> subscribeToBusinessInternal(context, business, jwt));
             return future.get(20, TimeUnit.SECONDS);
@@ -135,7 +135,7 @@ public class ApiClient {
 
     public static boolean unSubscribeFromBusiness(Context context, String business) {
         try {
-            String jwt = DbHelper.getInstance(context).getAuthState().getIdToken();
+            String jwt = new DbHelper(context).getAuthState().getIdToken();
             Future<Boolean> future = Executors.newSingleThreadExecutor()
                     .submit(() -> unSubscribeFromBusinessInternal(context, business, jwt));
             return future.get(20, TimeUnit.SECONDS);

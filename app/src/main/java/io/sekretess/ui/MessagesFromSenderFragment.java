@@ -36,7 +36,7 @@ public class MessagesFromSenderFragment extends Fragment {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.i("MessageFromSenderFragment", "new-incoming-message event received");
-             messages = DbHelper.getInstance(context).loadMessages(from);
+             messages = new DbHelper(context).loadMessages(from);
             messageAdapter = new MessageAdapter(messages);
             recyclerView.setAdapter(messageAdapter);
             messageAdapter.notifyItemInserted(messages.size());
@@ -62,7 +62,7 @@ public class MessagesFromSenderFragment extends Fragment {
         View view = inflater.inflate(R.layout.chat_layout, container, false);
         from = getArguments().getString("from");
         recyclerView = view.findViewById(R.id.messages_rv);
-         messages = DbHelper.getInstance(getContext()).loadMessages(from);
+         messages = new DbHelper(getContext()).loadMessages(from);
         messageAdapter = new MessageAdapter(messages);
         recyclerView.setAdapter(messageAdapter);
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(
@@ -80,7 +80,7 @@ public class MessagesFromSenderFragment extends Fragment {
                     @Override
                     public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
                         int position = viewHolder.getAdapterPosition();
-                        DbHelper.getInstance(getContext()).deleteMessage(messages.get(position).getMessageId());
+                        new DbHelper(getContext()).deleteMessage(messages.get(position).getMessageId());
                         messages.remove(position);
                         messageAdapter.notifyItemRemoved(position);
                         messageAdapter.notifyItemRangeChanged(position,messages.size());
