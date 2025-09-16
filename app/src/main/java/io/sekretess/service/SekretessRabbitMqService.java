@@ -93,6 +93,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public class SekretessRabbitMqService extends SekretessBackgroundService {
     private final int SIGNAL_KEY_COUNT = 15;
@@ -242,9 +246,6 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                                         Log.i(TAG, "Encoded message received : " + message);
                                     } catch (Throwable e) {
                                         Log.e(TAG, e.getMessage(), e);
-//                                Toast.makeText(getApplicationContext(),
-//                                        "Error during decrypt message" + e.getMessage(),
-//                                        Toast.LENGTH_LONG).show();
                                     }
                                 }
                             });
@@ -252,7 +253,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         } catch (TimeoutException | NoSuchAlgorithmException |
                  KeyManagementException | URISyntaxException e) {
             Log.e(TAG, "Can not establish connection", e);
-        } catch (IOException  io) {
+        } catch (IOException io) {
             Log.e(TAG, "Can not establish connection", io);
             sendBroadcast(new Intent(Constants.EVENT_REFRESH_TOKEN_FAILED));
         }
@@ -286,7 +287,7 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
                 IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
                 if (identityKeyPair == null) {
                     Log.w("SignalProtocolService", "No cryptographic keys found. Initializing keys...");
-                    initializeSecretKeys().ifPresent(keyMaterial -> ApiClient
+                    initializeSecretKeys(keyMaterial -> ApiClient
                             .upsertKeyStore(getApplicationContext(), keyMaterial, dbHelper.getAuthState().getIdToken()));
                 } else {
                     Log.w("SignalProtocolService", "Cryptographic keys found. Loading from database...");
@@ -306,6 +307,14 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             }
         } catch (Exception e) {
             Log.e("SignalProtocolService", "Something wrong gone during handle login event. No cryptographic env initialized!", e);
+
+        }
+    }
+
+
+    private void upsertKeyStore(KeyMaterial keyMaterial, String jwtToken) {
+        if (ApiClient
+                .upsertKeyStore(getApplicationContext(), keyMaterial, jwtToken)) {
 
         }
     }
@@ -335,12 +344,14 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
 
     private void createConsumerUser(String username, String email, String password) {
         Log.i("SignalProtocolService", "Initialize event received");
-        initializeSecretKeys()
-                .ifPresent(keyMaterial -> {
-                    if (ApiClient.createUser(getApplicationContext(), username, email, password, keyMaterial)) {
-                        startLoginActivity();
-                    }
-                });
+        initializeSecretKeys(keyMaterial -> {
+            if (ApiClient.createUser(getApplicationContext(), username, email, password, keyMaterial)) {
+                startLoginActivity();
+                return true;
+            } else {
+                return false;
+            }
+        });
     }
 
     private void startLoginActivity() {
@@ -413,25 +424,26 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
     public void updateOneTimeKeys() throws InvalidKeyException {
         DbHelper dbHelper = new DbHelper(this);
         IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
-        String[] preKeyRecords = serializeSignedPreKeys(generatePreKeys());
-        String[] kyberPreKeyRecords = serializeKyberPreKeys(generateKyberPreKeys(identityKeyPair
-                .getPrivateKey()).getKyberPreKeyRecords());
-        ApiClient.updateOneTimeKeys(getApplicationContext(), dbHelper.getAuthState(), preKeyRecords,
-                kyberPreKeyRecords);
+        PreKeyRecord[] preKeyRecords = generatePreKeys();
+        KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair
+                .getPrivateKey());
+        String[] strPreKeyRecords = serializeSignedPreKeys(preKeyRecords);
+        String[] strKyberPreKeyRecords = serializeKyberPreKeys(kyberPreKeyRecords.getKyberPreKeyRecords());
+        if (ApiClient.updateOneTimeKeys(getApplicationContext(), dbHelper.getAuthState(), strPreKeyRecords,
+                strKyberPreKeyRecords)) {
+            storePreKeyRecords(preKeyRecords);
+            storeKyberPreKeyRecords(kyberPreKeyRecords);
+        }
     }
 
 
-    private Optional<KeyMaterial> initializeSecretKeys() {
-
+    private void initializeSecretKeys(Function<KeyMaterial, Boolean> f) {
         try {
             ECKeyPair ecKeyPair = ECKeyPair.generate();
             IdentityKey identityKey = new IdentityKey(ecKeyPair.getPublicKey());
             IdentityKeyPair identityKeyPair = new IdentityKeyPair(identityKey, ecKeyPair.getPrivateKey());
 
             int registrationId = KeyHelper.generateRegistrationId(false);
-            signalProtocolStore = new SekretessSignalProtocolStore(getApplicationContext(),
-                    identityKeyPair, registrationId);
-
             ECKeyPair signedPreKeyPair = ECKeyPair.generate();
 
             byte[] signature = identityKeyPair
@@ -440,31 +452,39 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             ;
 
 
-            DbHelper dbHelper = new DbHelper(this);
-            dbHelper.clearKeyData();
             //Generate one-time prekeys
             PreKeyRecord[] opk = generatePreKeys();
-            this.deviceId = Math.abs(new Random().nextInt(Medium.MAX_VALUE - 1));
-            Log.i("SignalProtocolService", "Keys initialized");
-            dbHelper.storeIdentityKeyPair(identityKeyPair);
-            dbHelper.storeRegistrationId(registrationId, deviceId);
+            this.deviceId = 1;
 
             SignedPreKeyRecord signedPreKeyRecord = generateSignedPreKey(signedPreKeyPair, signature);
             KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
 
-            return Optional.of(new KeyMaterial(registrationId, serializeSignedPreKeys(opk), signedPreKeyRecord,
+            KeyMaterial keyMaterial = new KeyMaterial(registrationId, serializeSignedPreKeys(opk), signedPreKeyRecord,
                     identityKeyPair, signature, serializeKyberPreKeys(kyberPreKeyRecords.getKyberPreKeyRecords()),
                     base64Encoder.encodeToString(kyberPreKeyRecords.getLastResortKyberPreKeyRecord()
                             .getKeyPair().getPublicKey().serialize()),
                     kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getSignature(),
-                    kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId()));
+                    kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId());
+
+            if (f.apply(keyMaterial)) {
+                DbHelper dbHelper = new DbHelper(getApplicationContext());
+                dbHelper.clearKeyData();
+                dbHelper.storeIdentityKeyPair(identityKeyPair);
+                dbHelper.storeRegistrationId(registrationId, deviceId);
+
+                signalProtocolStore = new SekretessSignalProtocolStore(getApplicationContext(),
+                        identityKeyPair, registrationId);
+
+                storeKyberPreKeyRecords(kyberPreKeyRecords);
+                storeSignedPreKey(signedPreKeyRecord);
+            }
+
 
         } catch (Exception e) {
             Log.i("SekretessRabbitMqService", "KeyMaterial generation failed", e);
             Toast.makeText(getApplicationContext(), "KeyMaterial generation failed " + e.getMessage(),
                             Toast.LENGTH_LONG)
                     .show();
-            return Optional.empty();
         }
     }
 
@@ -487,23 +507,53 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
         KyberPreKeyRecord kyberPreKeyRecord = new KyberPreKeyRecord(kyberSignedPreKeyId,
                 System.currentTimeMillis(), kemKeyPair,
                 ecPrivateKey.calculateSignature(kemKeyPair.getPublicKey().serialize()));
-        signalProtocolStore.storeKyberPreKey(kyberPreKeyRecord.getId(), kyberPreKeyRecord);
-        DbHelper dbHelper = new DbHelper(this);
-        dbHelper.storeKyberPreKey(kyberPreKeyRecord);
         return kyberPreKeyRecord;
     }
 
+    private void persistsKeys(KyberPreKeyRecords kyberPreKeyRecords, PreKeyRecord[] preKeyRecords,
+                              SignedPreKeyRecord signedPreKeyRecord) {
+        //Store KyberPreKey
+        storeKyberPreKeyRecords(kyberPreKeyRecords);
+        //Store PreKey
+        storePreKeyRecords(preKeyRecords);
+        //Store signedPreKey
+        storeSignedPreKey(signedPreKeyRecord);
+    }
+
+    private void storeKyberPreKeyRecords(KyberPreKeyRecords kyberPreKeyRecords) {
+        DbHelper dbHelper = new DbHelper(this);
+
+        for (KyberPreKeyRecord kyberPreKeyRecord : kyberPreKeyRecords.getKyberPreKeyRecords()) {
+            dbHelper.storeKyberPreKey(kyberPreKeyRecord);
+            signalProtocolStore.storeKyberPreKey(kyberPreKeyRecord.getId(), kyberPreKeyRecord);
+        }
+
+        dbHelper.storeKyberPreKey(kyberPreKeyRecords.getLastResortKyberPreKeyRecord());
+        signalProtocolStore
+                .storeKyberPreKey(kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId(),
+                        kyberPreKeyRecords.getLastResortKyberPreKeyRecord());
+    }
+
+    private void storePreKeyRecords(PreKeyRecord[] preKeyRecords) {
+        DbHelper dbHelper = new DbHelper(this);
+        for (PreKeyRecord preKeyRecord : preKeyRecords) {
+            signalProtocolStore.storePreKey(preKeyRecord.getId(), preKeyRecord);
+            dbHelper.storePreKeyRecord(preKeyRecord);
+        }
+
+    }
+
+    private void storeSignedPreKey(SignedPreKeyRecord signedPreKeyRecord) {
+        DbHelper dbHelper = new DbHelper(this);
+        signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
+        dbHelper.storeSignedPreKeyRecord(signedPreKeyRecord);
+    }
 
     private SignedPreKeyRecord generateSignedPreKey(ECKeyPair keyPair, byte[] signature) {
         //Generate signed prekeyRecord
         int signedPreKeyId = new Random().nextInt(Medium.MAX_VALUE - 1);
-        SignedPreKeyRecord signedPreKeyRecord = new SignedPreKeyRecord(signedPreKeyId,
+        return new SignedPreKeyRecord(signedPreKeyId,
                 System.currentTimeMillis(), keyPair, signature);
-        signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
-
-        DbHelper dbHelper = new DbHelper(this);
-        dbHelper.storeSignedPreKeyRecord(signedPreKeyRecord);
-        return signedPreKeyRecord;
     }
 
     private PreKeyRecord[] generatePreKeys() {
@@ -513,11 +563,8 @@ public class SekretessRabbitMqService extends SekretessBackgroundService {
             int id = preKeyRecordIdGenerator.nextInt(Integer.MAX_VALUE);
             ECKeyPair ecKeyPair = ECKeyPair.generate();
             PreKeyRecord preKeyRecord = new PreKeyRecord(id, ecKeyPair);
-            signalProtocolStore.storePreKey(id, preKeyRecord);
             preKeyRecords[i] = preKeyRecord;
         }
-        DbHelper dbHelper = new DbHelper(this);
-        dbHelper.storePreKeyRecords(preKeyRecords);
         return preKeyRecords;
     }
 

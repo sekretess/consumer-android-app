@@ -304,54 +304,72 @@ public class ApiClient {
     }
 
 
-    public static void upsertKeyStore(Context context, KeyMaterial keyMaterial, String jwt) {
-        Executors.newSingleThreadExecutor().submit(() -> {
-            HttpURLConnection urlConnection = null;
-            try {
+    public static boolean upsertKeyStore(Context context, KeyMaterial keyMaterial, String jwt) {
+        try {
+            return Executors
+                    .newSingleThreadExecutor()
+                    .submit(() -> internalUpsertKeyStore(context, keyMaterial, jwt))
+                    .get();
+        } catch (Exception e) {
+            Log.e("ApiClient", "Error occurred while upsertKeyStore", e);
+            return false;
+        }
+    }
 
-                URL businessApiUrl = new URL(BuildConfig.CONSUMER_API_URL + "/keystores");
-                urlConnection = (HttpURLConnection) businessApiUrl.openConnection();
-                urlConnection.setRequestMethod("PUT");
-                urlConnection.setRequestProperty("Authorization", "Bearer " + jwt);
-                urlConnection.setRequestProperty("Content-Type", "application/json");
-                OutputStream outputStream = urlConnection.getOutputStream();
-                KeyBundleDto keyBundleDto = Mappers.toKeyBundleDto(keyMaterial);
-                String json = objectMapper.writeValueAsString(keyBundleDto);
-                outputStream.write(json.getBytes(StandardCharsets.UTF_8));
-                outputStream.flush();
-                outputStream.close();
-                String responseMessage = urlConnection.getResponseMessage();
-                boolean isSuccess = isSuccessResponse(urlConnection.getResponseCode());
-                if (isSuccess) {
-                    Log.i("ApiClient", "Upsert success");
-                    showToast(context, "One time keys updated");
-                } else {
-                    Log.e("ApiClient", "Upsert failed" + urlConnection.getResponseCode()
-                            + ": " + urlConnection.getResponseMessage());
-                    showToast(context, "One time keys update failed with response code "
-                            + urlConnection.getResponseCode()
-                            + " ResponseMessage " + responseMessage);
+    private static boolean internalUpsertKeyStore(Context context, KeyMaterial keyMaterial, String jwt) {
 
-                }
-            } catch (Exception e) {
-                Log.e("ApiClient", "Error occurred during upsert keystore", e);
-                showToast(context, "One time keys update failed : " + e.getMessage());
+        HttpURLConnection urlConnection = null;
+        try {
+            URL businessApiUrl = new URL(BuildConfig.CONSUMER_API_URL + "/keystores");
+            urlConnection = (HttpURLConnection) businessApiUrl.openConnection();
+            urlConnection.setRequestMethod("PUT");
+            urlConnection.setRequestProperty("Authorization", "Bearer " + jwt);
+            urlConnection.setRequestProperty("Content-Type", "application/json");
+            OutputStream outputStream = urlConnection.getOutputStream();
+            KeyBundleDto keyBundleDto = Mappers.toKeyBundleDto(keyMaterial);
+            String json = objectMapper.writeValueAsString(keyBundleDto);
+            outputStream.write(json.getBytes(StandardCharsets.UTF_8));
+            outputStream.flush();
+            outputStream.close();
+            String responseMessage = urlConnection.getResponseMessage();
+            boolean isSuccess = isSuccessResponse(urlConnection.getResponseCode());
+            if (isSuccess) {
+                Log.i("ApiClient", "Upsert success");
+                showToast(context, "One time keys updated");
+                return true;
+            } else {
+                Log.e("ApiClient", "Upsert failed" + urlConnection.getResponseCode()
+                        + ": " + urlConnection.getResponseMessage());
+                showToast(context, "One time keys update failed with response code "
+                        + urlConnection.getResponseCode()
+                        + " ResponseMessage " + responseMessage);
+                return false;
 
-            } finally {
-                if (urlConnection != null) urlConnection.disconnect();
             }
-        });
+        } catch (Exception e) {
+            Log.e("ApiClient", "Error occurred during upsert keystore", e);
+            showToast(context, "One time keys update failed : " + e.getMessage());
+            return false;
+        } finally {
+            if (urlConnection != null) urlConnection.disconnect();
+        }
+
     }
 
 
-    public static void updateOneTimeKeys(Context context, AuthState authState, String[] preKeyRecords,
-                                         String[] kyberPreKeyRecords) {
-        Executors.newSingleThreadExecutor().submit(() -> updateOpksInternal(context, authState,
-                preKeyRecords, kyberPreKeyRecords));
+    public static boolean updateOneTimeKeys(Context context, AuthState authState, String[] preKeyRecords,
+                                            String[] kyberPreKeyRecords) {
+        try {
+            return Executors.newSingleThreadExecutor().submit(() -> updateOpksInternal(context, authState,
+                    preKeyRecords, kyberPreKeyRecords)).get();
+        } catch (Exception e) {
+            Log.e("ApiClient", "Error occurred while updateOneTimeKeys", e);
+            return false;
+        }
     }
 
-    private static void updateOpksInternal(Context context, AuthState authState, String[] preKeyRecords,
-                                           String[] kyberPreKeyRecords) {
+    private static boolean updateOpksInternal(Context context, AuthState authState, String[] preKeyRecords,
+                                              String[] kyberPreKeyRecords) {
         HttpURLConnection httpURLConnection = null;
 
         try {
@@ -374,15 +392,18 @@ public class ApiClient {
             boolean isSuccess = isSuccessResponse(httpURLConnection.getResponseCode());
             if (isSuccess) {
                 showToast(context, "One time keys updated");
+                return true;
             } else {
                 showToast(context, "One time keys update failed with response code "
                         + httpURLConnection.getResponseCode()
                         + " ResponseMessage " + responseMessage);
+                return false;
             }
 
         } catch (Exception e) {
             Log.i("ApiClient", "Exception occurred during update keys", e);
             showToast(context, "Exception occurred during update keys " + e.getMessage());
+            return false;
         } finally {
             if (httpURLConnection != null) httpURLConnection.disconnect();
         }

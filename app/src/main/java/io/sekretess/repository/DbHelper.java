@@ -336,18 +336,15 @@ public class DbHelper extends SQLiteOpenHelper {
 
     }
 
-    public void storePreKeyRecords(PreKeyRecord[] preKeyRecords) {
+    public void storePreKeyRecord(PreKeyRecord preKeyRecord) {
         executorService.submit(() -> {
-            for (PreKeyRecord preKeyRecord : preKeyRecords) {
-                ContentValues contentValues = new ContentValues();
-                contentValues.put(PreKeyRecordStoreEntity.COLUMN_PREKEY_ID, preKeyRecord.getId());
-                contentValues.put(PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD,
-                        base64Encoder.encodeToString(preKeyRecord.serialize()));
-                contentValues.put(PreKeyRecordStoreEntity.COLUMN_CREATED_AT,
-                        dateTimeFormatter.format(Instant.now()));
-                getWritableDatabase(p()).insert(PreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
-
-            }
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(PreKeyRecordStoreEntity.COLUMN_PREKEY_ID, preKeyRecord.getId());
+            contentValues.put(PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD,
+                    base64Encoder.encodeToString(preKeyRecord.serialize()));
+            contentValues.put(PreKeyRecordStoreEntity.COLUMN_CREATED_AT,
+                    dateTimeFormatter.format(Instant.now()));
+            getWritableDatabase(p()).insert(PreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
         });
 
     }
