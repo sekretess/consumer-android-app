@@ -46,12 +46,12 @@ public class BootHandlerService extends BroadcastReceiver {
 
         if (!isRabbitMqServiceRunning) {
             Log.i("BootHandlerService", "Starting sekrtess SekretessRabbitMqService...");
-            ContextCompat.startForegroundService(context, new Intent(context, SekretessRabbitMqService.class));
+            ContextCompat.startForegroundService(context, new Intent(context, SekretessAbstractRabbitMqService.class));
             Log.i("BootHandlerService", "Started sekrtess SekretessRabbitMqService.");
         }
         if (!isTokenRefreshServiceRunning) {
             Log.i("BootHandlerService", "Starting sekrtess RefreshTokenService...");
-            ContextCompat.startForegroundService(context, new Intent(context, RefreshTokenService.class));
+            ContextCompat.startForegroundService(context, new Intent(context, RefreshTokenServiceAbstract.class));
             Log.i("BootHandlerService", "Started sekrtess RefreshTokenService.");
         }
     }

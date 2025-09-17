@@ -35,8 +35,8 @@ import java.util.List;
 import java.util.Optional;
 
 import io.sekretess.repository.DbHelper;
-import io.sekretess.service.RefreshTokenService;
-import io.sekretess.service.SekretessRabbitMqService;
+import io.sekretess.service.RefreshTokenServiceAbstract;
+import io.sekretess.service.SekretessAbstractRabbitMqService;
 import io.sekretess.ui.HomeFragment;
 import io.sekretess.ui.BusinessesFragment;
 import io.sekretess.ui.LoginActivity;
@@ -73,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
             String username = new JWT(authState.get().getAccessToken()).getClaim(Constants.USERNAME_CLAIM).asString();
 
             registerReceiver(tokenRefreshBroadcastReceiver,
-                    new IntentFilter(Constants.EVENT_REFRESH_TOKEN_FAILED), RECEIVER_EXPORTED);
+                    new IntentFilter(Constants.EVENT_TOKEN_ISSUE), RECEIVER_EXPORTED);
 
             setContentView(R.layout.activity_main);
             Toolbar myToolbar = findViewById(R.id.my_toolbar);
@@ -117,12 +117,12 @@ public class MainActivity extends AppCompatActivity {
 
         if (!isRabbitMqServiceRunning) {
             Log.i("MainActivity", "Starting sekrtess SekretessRabbitMqService...");
-            ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), SekretessRabbitMqService.class));
+            ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), SekretessAbstractRabbitMqService.class));
             Log.i("MainActivity", "Started sekrtess SekretessRabbitMqService.");
         }
         if (!isTokenRefreshServiceRunning) {
             Log.i("MainActivity", "Starting sekrtess RefreshTokenService...");
-            ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), RefreshTokenService.class));
+            ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), RefreshTokenServiceAbstract.class));
             Log.i("MainActivity", "Started sekrtess RefreshTokenService.");
         }
     }

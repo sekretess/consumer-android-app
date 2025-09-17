@@ -16,14 +16,12 @@ import io.sekretess.repository.DbHelper;
 import net.openid.appauth.AuthState;
 import net.openid.appauth.AuthorizationService;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
-public class RefreshTokenService extends SekretessBackgroundService {
+public class RefreshTokenServiceAbstract extends SekretessAbstractBackgroundService {
     public static final int REFRESH_TOKEN_SERVICE_NOTIFICATION = 3;
 
     private boolean running;
     private boolean refreshAfterLogin = false;
-    private CountDownTimer countDownTimer = new CountDownTimer(Long.MAX_VALUE, 10000) {
+    private final CountDownTimer countDownTimer = new CountDownTimer(Long.MAX_VALUE, 10000) {
         @Override
         public void onTick(long millisUntilFinished) {
             Log.i("RefreshTokenService", "On tick...");
@@ -36,17 +34,17 @@ public class RefreshTokenService extends SekretessBackgroundService {
                     if (authState.getNeedsTokenRefresh() || refreshAfterLogin) {
                         refreshAfterLogin = false;
                         Log.i("RefreshTokenService", "Refreshing token");
-                        authState.performActionWithFreshTokens(new AuthorizationService(getApplicationContext()),
-                                (accessToken, idToken, ex) -> {
-                                    if (ex != null) {
-                                        Log.e("RefreshTokenService", "Error occurred during refresh token.", ex);
-                                        dbHelper.removeAuthState();
-                                        sendBroadcast(new Intent(Constants.EVENT_REFRESH_TOKEN_FAILED));
-                                    } else {
-                                        Log.i("RefreshTokenService", "Token refreshed");
-                                        dbHelper.storeAuthState(authState.jsonSerializeString());
-                                    }
-                                });
+                        authState.performActionWithFreshTokens(new AuthorizationService(getApplicationContext()), (accessToken, idToken, ex) -> {
+                            if (ex != null) {
+                                Log.e("RefreshTokenService", "Error occurred during refresh token.", ex);
+                                dbHelper.removeAuthState();
+                                cancelTimer();
+                                sendBroadcast(new Intent(Constants.EVENT_TOKEN_ISSUE));
+                            } else {
+                                Log.i("RefreshTokenService", "Token refreshed");
+                                dbHelper.storeAuthState(authState.jsonSerializeString());
+                            }
+                        });
                         authState.setNeedsTokenRefresh(true);
                     } else {
                         Log.i("RefreshTokenService", "Token refresh is not requiring:" + authState.getAccessToken());
@@ -54,13 +52,19 @@ public class RefreshTokenService extends SekretessBackgroundService {
                     running = true;
                 } else {
                     Log.e("RefreshTokenService", "Error occurred during refresh token. AuthState is null");
-                    running = false;
-                    sendBroadcast(new Intent(Constants.EVENT_REFRESH_TOKEN_FAILED));
-                    countDownTimer.cancel();
+                    cancelTimer();
+                    sendBroadcast(new Intent(Constants.EVENT_TOKEN_ISSUE));
                 }
             } finally {
 
             }
+        }
+
+        private void cancelTimer() {
+            if (countDownTimer != null) {
+                countDownTimer.cancel();
+            }
+            running = false;
         }
 
 
@@ -78,8 +82,7 @@ public class RefreshTokenService extends SekretessBackgroundService {
             @Override
             public void onReceive(Context context, Intent intent) {
                 Log.i("RefreshTokenService", "Login event received");
-                if (!running)
-                    countDownTimer.start();
+                if (!running) countDownTimer.start();
             }
         }, new IntentFilter(Constants.EVENT_LOGIN), RECEIVER_EXPORTED);
     }

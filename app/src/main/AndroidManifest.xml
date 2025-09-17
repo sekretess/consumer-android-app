@@ -69,12 +69,12 @@
         </activity>
 
         <service
-            android:name="io.sekretess.service.SekretessRabbitMqService"
+            android:name="io.sekretess.service.SekretessAbstractRabbitMqService"
             android:foregroundServiceType="remoteMessaging"
             android:process=":remoterabbitmq"
             android:stopWithTask="false" />
         <service
-            android:name="io.sekretess.service.RefreshTokenService"
+            android:name="io.sekretess.service.RefreshTokenServiceAbstract"
             android:foregroundServiceType="dataSync"
             android:process=":remoterefreshtoken"
             android:stopWithTask="false" />

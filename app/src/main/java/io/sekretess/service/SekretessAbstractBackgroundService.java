@@ -1,7 +1,5 @@
 package io.sekretess.service;
 
-import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING;
-
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -9,16 +7,11 @@ import android.app.Service;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
-import android.os.PowerManager;
 import android.util.Log;
-
-import androidx.core.app.NotificationCompat;
 
 import io.sekretess.R;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
-public abstract class SekretessBackgroundService extends Service {
+public abstract class SekretessAbstractBackgroundService extends Service {
 
     @Override
     public final void onCreate() {
