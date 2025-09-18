@@ -42,6 +42,7 @@
             android:exported="true"
             android:noHistory="true">
             <intent-filter>
+                <action android:name="android.intent.action.INSTALL_PACKAGE"/>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
@@ -69,7 +70,7 @@
         </activity>
 
         <service
-            android:name="io.sekretess.service.SekretessAbstractRabbitMqService"
+            android:name="io.sekretess.service.SekretessRabbitMqService"
             android:foregroundServiceType="remoteMessaging"
             android:process=":remoterabbitmq"
             android:stopWithTask="false" />
@@ -79,17 +80,18 @@
             android:process=":remoterefreshtoken"
             android:stopWithTask="false" />
 
-        <receiver
-            android:name="io.sekretess.service.BootHandlerService"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.PACKAGE_ADDED" />
-                <action android:name="android.intent.action.PACKAGE_CHANGED" />
-                <action android:name="android.intent.action.PACKAGE_REPLACED" />
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
-            </intent-filter>
-        </receiver>
+<!--        <receiver-->
+<!--            android:name="io.sekretess.service.BootHandlerService"-->
+<!--            android:exported="true"-->
+<!--            android:enabled="true">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.BOOT_COMPLETED" />-->
+<!--                <action android:name="android.intent.action.PACKAGE_ADDED" />-->
+<!--                <action android:name="android.intent.action.PACKAGE_CHANGED" />-->
+<!--                <action android:name="android.intent.action.PACKAGE_REPLACED" />-->
+<!--                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />-->
+<!--            </intent-filter>-->
+<!--        </receiver>-->
     </application>
 
 </manifest>

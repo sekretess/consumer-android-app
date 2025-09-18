@@ -4,6 +4,10 @@ import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.DatabaseErrorHandler;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 
@@ -28,10 +32,6 @@ import io.sekretess.model.SessionStoreEntity;
 import io.sekretess.model.SignedPreKeyRecordStoreEntity;
 
 import net.openid.appauth.AuthState;
-import net.sqlcipher.Cursor;
-import net.sqlcipher.DatabaseErrorHandler;
-import net.sqlcipher.database.SQLiteDatabase;
-import net.sqlcipher.database.SQLiteOpenHelper;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.json.JSONException;
@@ -79,21 +79,12 @@ public class DbHelper extends SQLiteOpenHelper {
     public DbHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
         this.mContext = context;
-        SQLiteDatabase.loadLibs(this.mContext);
+//        SQLiteDatabase.loadLibs(this.mContext);
         try {
-            String p = p();
-            if (p == null || p.isBlank() || p.isEmpty()) {
-                p = cp();
-            }
-            Log.i("DbHelper", "db path: " + mContext.getDatabasePath(DATABASE_NAME));
+//            String p = p();
+//            Log.i("DbHelper", "db path: " + mContext.getDatabasePath(DATABASE_NAME));
 
-            SQLiteDatabase.openOrCreateDatabase(mContext.getDatabasePath(DATABASE_NAME), p,
-                    null, null, new DatabaseErrorHandler() {
-                        @Override
-                        public void onCorruption(SQLiteDatabase sqLiteDatabase) {
-                            Log.i("DbHelper", "Error occurred during create db");
-                        }
-                    });
+//            SQLiteDatabase.openOrCreateDatabase(mContext.getDatabasePath(DATABASE_NAME), null);
             Log.i("DbHelper", "DbCreated");
         } catch (Exception e) {
             Log.e("DBHelper", "Db initialization failed. ", e);
@@ -115,7 +106,8 @@ public class DbHelper extends SQLiteOpenHelper {
             return executorService.submit(() -> {
                 Cursor cursor = null;
                 try {
-                    cursor = getWritableDatabase(p()).query(IdentityKeyPairStoreEntity.TABLE_NAME,
+
+                    cursor = getWritableDatabase().query(IdentityKeyPairStoreEntity.TABLE_NAME,
                             new String[]{IdentityKeyPairStoreEntity._ID, IdentityKeyPairStoreEntity.COLUMN_IKP},
                             null, null, null, null, null);
                     if (cursor.moveToNext()) {
@@ -142,7 +134,7 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(IdentityKeyPairStoreEntity.COLUMN_CREATED_AT, dateTimeFormatter.format(Instant.now()));
 
         executorService.submit(() -> {
-            getWritableDatabase(p()).insert(IdentityKeyPairStoreEntity.TABLE_NAME, null, contentValues);
+            getWritableDatabase().insert(IdentityKeyPairStoreEntity.TABLE_NAME, null, contentValues);
         });
 
 
@@ -154,7 +146,7 @@ public class DbHelper extends SQLiteOpenHelper {
             return executorService.submit(() -> {
                 Cursor cursor = null;
                 try {
-                    cursor = getReadableDatabase(p()).query(RegistrationIdStoreEntity.TABLE_NAME,
+                    cursor = getReadableDatabase().query(RegistrationIdStoreEntity.TABLE_NAME,
                             new String[]{RegistrationIdStoreEntity._ID, RegistrationIdStoreEntity.COLUMN_REG_ID, RegistrationIdStoreEntity.COLUMN_DEVICE_ID},
                             null, null, null, null, null);
                     if (cursor.getCount() == 0) {
@@ -188,7 +180,7 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(RegistrationIdStoreEntity.COLUMN_DEVICE_ID, deviceId);
         contentValues.put(RegistrationIdStoreEntity.COLUMN_CREATED_AT, dateTimeFormatter.format(Instant.now()));
         executorService.submit(() -> {
-            getWritableDatabase(p()).insert(RegistrationIdStoreEntity.TABLE_NAME, null, contentValues);
+            getWritableDatabase().insert(RegistrationIdStoreEntity.TABLE_NAME, null, contentValues);
         });
 
 
@@ -200,7 +192,7 @@ public class DbHelper extends SQLiteOpenHelper {
             return executorService.submit(() -> {
                 Cursor cursor = null;
                 try {
-                    cursor = getReadableDatabase(p()).query(SignedPreKeyRecordStoreEntity.TABLE_NAME,
+                    cursor = getReadableDatabase().query(SignedPreKeyRecordStoreEntity.TABLE_NAME,
                             new String[]{SignedPreKeyRecordStoreEntity._ID, SignedPreKeyRecordStoreEntity.COLUMN_SPK_RECORD},
                             null, null, null, null, null);
                     if (cursor.moveToNext()) {
@@ -231,7 +223,7 @@ public class DbHelper extends SQLiteOpenHelper {
                 .encodeToString(signedPreKeyRecord.serialize()));
         contentValues.put(SignedPreKeyRecordStoreEntity.COLUMN_CREATED_AT, dateTimeFormatter.format(Instant.now()));
         executorService.submit(() -> {
-            getWritableDatabase(p()).insert(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
+            getWritableDatabase().insert(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
         });
     }
 
@@ -239,18 +231,18 @@ public class DbHelper extends SQLiteOpenHelper {
         try {
             return executorService.submit(() -> {
                 try {
-                    getWritableDatabase(p()).beginTransaction();
-                    getWritableDatabase(p()).delete(IdentityKeyPairStoreEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).delete(RegistrationIdStoreEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).delete(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).delete(KyberPreKeyRecordsEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).setTransactionSuccessful();
+                    getWritableDatabase().beginTransaction();
+                    getWritableDatabase().delete(IdentityKeyPairStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().delete(RegistrationIdStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().delete(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().delete(KyberPreKeyRecordsEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().setTransactionSuccessful();
                     return true;
                 } catch (Exception e) {
                     return false;
                 } finally {
-                    getWritableDatabase(p()).endTransaction();
+                    getWritableDatabase().endTransaction();
 //            db.close();
                 }
             }).get();
@@ -264,23 +256,23 @@ public class DbHelper extends SQLiteOpenHelper {
         try {
             return executorService.submit(() -> {
                 try {
-                    getWritableDatabase(p()).beginTransaction();
-                    getWritableDatabase(p()).delete(MessageStoreEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).delete(IdentityKeyPairStoreEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).delete(RegistrationIdStoreEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).delete(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).delete(JwtStoreEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).delete(SessionStoreEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).delete(AuthStateStoreEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).delete(KyberPreKeyRecordsEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).delete(SenderKeyEntity.TABLE_NAME, null, null);
-                    getWritableDatabase(p()).setTransactionSuccessful();
+                    getWritableDatabase().beginTransaction();
+                    getWritableDatabase().delete(MessageStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().delete(IdentityKeyPairStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().delete(RegistrationIdStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().delete(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().delete(JwtStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().delete(SessionStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().delete(KyberPreKeyRecordsEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().delete(SenderKeyEntity.TABLE_NAME, null, null);
+                    getWritableDatabase().setTransactionSuccessful();
                     return true;
                 } catch (Exception e) {
                     return false;
                 } finally {
-                    getWritableDatabase(p()).endTransaction();
+                    getWritableDatabase().endTransaction();
 //            db.close();
                 }
             }).get();
@@ -295,11 +287,11 @@ public class DbHelper extends SQLiteOpenHelper {
 
         executorService.submit(() -> {
             try {
-                getWritableDatabase(p()).beginTransaction();
-                getWritableDatabase(p()).delete(AuthStateStoreEntity.TABLE_NAME, null, null);
-                getWritableDatabase(p()).setTransactionSuccessful();
+                getWritableDatabase().beginTransaction();
+                getWritableDatabase().delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+                getWritableDatabase().setTransactionSuccessful();
             } finally {
-                getWritableDatabase(p()).endTransaction();
+                getWritableDatabase().endTransaction();
 //            db.close();
             }
         });
@@ -310,7 +302,7 @@ public class DbHelper extends SQLiteOpenHelper {
         executorService.submit(() -> {
             Cursor cursor = null;
             try {
-                cursor = getReadableDatabase(p()).query(PreKeyRecordStoreEntity.TABLE_NAME,
+                cursor = getReadableDatabase().query(PreKeyRecordStoreEntity.TABLE_NAME,
                         new String[]{PreKeyRecordStoreEntity._ID, PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD},
                         null, null, null, null, null);
                 while (cursor.moveToNext()) {
@@ -330,7 +322,7 @@ public class DbHelper extends SQLiteOpenHelper {
 
     public void removePreKeyRecord(int prekeyId) {
         executorService.submit(() -> {
-            getWritableDatabase(p()).delete(PreKeyRecordStoreEntity.TABLE_NAME,
+            getWritableDatabase().delete(PreKeyRecordStoreEntity.TABLE_NAME,
                     PreKeyRecordStoreEntity.COLUMN_PREKEY_ID + "=?", new String[]{String.valueOf(prekeyId)});
         });
 
@@ -344,7 +336,7 @@ public class DbHelper extends SQLiteOpenHelper {
                     base64Encoder.encodeToString(preKeyRecord.serialize()));
             contentValues.put(PreKeyRecordStoreEntity.COLUMN_CREATED_AT,
                     dateTimeFormatter.format(Instant.now()));
-            getWritableDatabase(p()).insert(PreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
+            getWritableDatabase().insert(PreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
         });
 
     }
@@ -353,8 +345,8 @@ public class DbHelper extends SQLiteOpenHelper {
         ContentValues contentValues = new ContentValues();
         contentValues.put(KyberPreKeyRecordsEntity.COLUMN_USED, 1);
         executorService.submit(() -> {
-            getWritableDatabase(p()).update(KyberPreKeyRecordsEntity.TABLE_NAME, SQLiteDatabase.CONFLICT_REPLACE,
-                    contentValues, KyberPreKeyRecordsEntity.COLUMN_PREKEY_ID + "=?", new Object[]{kyberPreKeyId});
+            getWritableDatabase().updateWithOnConflict(KyberPreKeyRecordsEntity.TABLE_NAME,
+                    contentValues, KyberPreKeyRecordsEntity.COLUMN_PREKEY_ID + "=?", new String[]{String.valueOf(kyberPreKeyId)}, SQLiteDatabase.CONFLICT_REPLACE);
         });
 
 
@@ -369,7 +361,7 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(KyberPreKeyRecordsEntity.COLUMN_CREATED_AT,
                 dateTimeFormatter.format(Instant.now()));
         executorService.submit(() -> {
-            getWritableDatabase(p()).insert(KyberPreKeyRecordsEntity.TABLE_NAME, null, contentValues);
+            getWritableDatabase().insert(KyberPreKeyRecordsEntity.TABLE_NAME, null, contentValues);
         });
 
 
@@ -380,8 +372,8 @@ public class DbHelper extends SQLiteOpenHelper {
         values.put(AuthStateStoreEntity.COLUMN_AUTH_STATE, authState);
 
         executorService.submit(() -> {
-            getWritableDatabase(p()).delete(AuthStateStoreEntity.TABLE_NAME, null, null);
-            getWritableDatabase(p()).insert(AuthStateStoreEntity.TABLE_NAME, null, values);
+            getWritableDatabase().delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+            getWritableDatabase().insert(AuthStateStoreEntity.TABLE_NAME, null, values);
 
         });
 
@@ -389,7 +381,7 @@ public class DbHelper extends SQLiteOpenHelper {
 
     public void removeAuthState() {
         executorService.submit(() -> {
-            getWritableDatabase(p()).delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+            getWritableDatabase().delete(AuthStateStoreEntity.TABLE_NAME, null, null);
         });
     }
 
@@ -400,7 +392,7 @@ public class DbHelper extends SQLiteOpenHelper {
                 Cursor result = null;
                 SQLiteDatabase db = null;
                 try {
-                    db = getWritableDatabase(p());
+                    db = getWritableDatabase();
                     result = db
                             .query(AuthStateStoreEntity.TABLE_NAME,
                                     null,
@@ -438,7 +430,7 @@ public class DbHelper extends SQLiteOpenHelper {
         values.put(MessageStoreEntity.COLUMN_USERNAME, username);
         values.put(MessageStoreEntity.COLUMN_CREATED_AT, System.currentTimeMillis());
         executorService.submit(() -> {
-            getWritableDatabase(p()).insert(MessageStoreEntity.TABLE_NAME,
+            getWritableDatabase().insert(MessageStoreEntity.TABLE_NAME,
                     null, values);
         });
 
@@ -451,8 +443,8 @@ public class DbHelper extends SQLiteOpenHelper {
                 Cursor resultCursor = null;
                 SQLiteDatabase sqLiteDatabase = null;
                 try {
-                    sqLiteDatabase = getWritableDatabase(p());
-                    sqLiteDatabase.enableWriteAheadLogging();
+                    sqLiteDatabase = getWritableDatabase();
+                    sqLiteDatabase.disableWriteAheadLogging();
                     resultCursor = sqLiteDatabase
                             .query(MessageStoreEntity.TABLE_NAME,
                                     new String[]{MessageStoreEntity.COLUMN_SENDER,
@@ -498,7 +490,7 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(SenderKeyEntity.COLUMN_DISTRIBUTION_UUID, distributionId.toString());
         contentValues.put(SenderKeyEntity.COLUMN_SENDER_KEY_RECORD, base64Encoder.encodeToString(record.serialize()));
         executorService.submit(() -> {
-            getWritableDatabase(p()).insert(SenderKeyEntity.TABLE_NAME, null, contentValues);
+            getWritableDatabase().insert(SenderKeyEntity.TABLE_NAME, null, contentValues);
         });
 
     }
@@ -514,7 +506,7 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(SessionStoreEntity.COLUMN_SESSION,
                 base64Encoder.encodeToString(sessionRecord.serialize()));
         executorService.submit(() -> {
-            getWritableDatabase(p()).insert(SessionStoreEntity.TABLE_NAME, null, contentValues);
+            getWritableDatabase().insert(SessionStoreEntity.TABLE_NAME, null, contentValues);
         });
 
     }
@@ -525,7 +517,7 @@ public class DbHelper extends SQLiteOpenHelper {
         executorService.submit(() -> {
             Cursor result = null;
             try {
-                result = getReadableDatabase(p())
+                result = getReadableDatabase()
                         .query(KyberPreKeyRecordsEntity.TABLE_NAME, new String[]{
                                         KyberPreKeyRecordsEntity.COLUMN_PREKEY_ID, KyberPreKeyRecordsEntity.COLUMN_KPK_RECORD,
                                         KyberPreKeyRecordsEntity.COLUMN_USED},
@@ -554,7 +546,7 @@ public class DbHelper extends SQLiteOpenHelper {
         contentValues.put(GroupChatEntity.COLUMN_SENDER, sender);
         contentValues.put(GroupChatEntity.COLUMN_DISTRIBUTION_KEY, distributionKey);
         executorService.submit(() -> {
-            getWritableDatabase(p()).replace(GroupChatEntity.TABLE_NAME, null, contentValues);
+            getWritableDatabase().replace(GroupChatEntity.TABLE_NAME, null, contentValues);
         });
 
     }
@@ -565,7 +557,7 @@ public class DbHelper extends SQLiteOpenHelper {
                 List<GroupChatDto> groupChatsInfo = new ArrayList<>();
                 Cursor resultCursor = null;
                 try {
-                    resultCursor = getReadableDatabase(p())
+                    resultCursor = getReadableDatabase()
                             .query(GroupChatEntity.TABLE_NAME, new String[]{
                                     GroupChatEntity.COLUMN_SENDER, GroupChatEntity.COLUMN_DISTRIBUTION_KEY
                             }, null, null, null, null, null);
@@ -591,7 +583,7 @@ public class DbHelper extends SQLiteOpenHelper {
         try {
             return executorService.submit(() -> {
                 Cursor resultCursor = null;
-                SQLiteDatabase db = getWritableDatabase(p());
+                SQLiteDatabase db = getWritableDatabase();
                 try {
                     resultCursor = db
                             .query(MessageStoreEntity.TABLE_NAME, new String[]{
@@ -624,7 +616,7 @@ public class DbHelper extends SQLiteOpenHelper {
             return executorService.submit(() -> {
                 Cursor resultCursor = null;
                 try {
-                    resultCursor = getReadableDatabase(p())
+                    resultCursor = getReadableDatabase()
                             .query(MessageStoreEntity.TABLE_NAME, new String[]{MessageStoreEntity._ID,
                                             MessageStoreEntity.COLUMN_SENDER,
                                             MessageStoreEntity.COLUMN_MESSAGE_BODY,
@@ -697,7 +689,7 @@ public class DbHelper extends SQLiteOpenHelper {
         executorService.submit(() -> {
             Cursor result = null;
             try {
-                result = getReadableDatabase(p())
+                result = getReadableDatabase()
                         .query(SessionStoreEntity.TABLE_NAME, new String[]{SessionStoreEntity.COLUMN_SESSION,
                                         SessionStoreEntity.COLUMN_SERVICE_ID, SessionStoreEntity.COLUMN_ADDRESS_NAME,
                                         SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID}, null, null,
@@ -726,31 +718,19 @@ public class DbHelper extends SQLiteOpenHelper {
 
     public void removeSession(SignalProtocolAddress address) {
         executorService.submit(() -> {
-            getWritableDatabase(p()).delete(SessionStoreEntity.TABLE_NAME,
+            getWritableDatabase().delete(SessionStoreEntity.TABLE_NAME,
                     SessionStoreEntity.COLUMN_ADDRESS_NAME + "=? AND"
                             + SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID + " = ?",
-                    new Object[]{address.getName(), address.getDeviceId()});
+                    new String[]{address.getName(), String.valueOf(address.getDeviceId())});
 
         });
 
-    }
-
-    private String cp() {
-        SharedPreferences encryptedSharedPreferences =
-                mContext.getSharedPreferences("secret_shared_prefs", Context.MODE_PRIVATE);
-
-        String p = RandomStringUtils.randomAlphanumeric(15);
-        encryptedSharedPreferences.edit().putString("801d0837-c9c3-4a4c-bfcc-67197551d030", p)
-                .apply();
-        Log.i("DBHelper", "Create password " + p);
-        return p;
     }
 
     private String p() {
 
         SharedPreferences encryptedSharedPreferences =
                 mContext.getSharedPreferences("secret_shared_prefs", Context.MODE_PRIVATE);
-
 
         return encryptedSharedPreferences
                 .getString("801d0837-c9c3-4a4c-bfcc-67197551d030", "");
@@ -807,7 +787,7 @@ public class DbHelper extends SQLiteOpenHelper {
 
     public void deleteMessage(Long messageId) {
         executorService.submit(() -> {
-            getWritableDatabase(p()).delete(MessageStoreEntity.TABLE_NAME,
+            getWritableDatabase().delete(MessageStoreEntity.TABLE_NAME,
                     MessageStoreEntity._ID + "=?", new String[]{String.valueOf(messageId)});
 
         });

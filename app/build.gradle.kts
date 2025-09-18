@@ -13,8 +13,8 @@ android {
         applicationId = "io.sekretess"
         minSdk = 30
         targetSdk = 35
-        versionCode = 22
-        versionName = "1.0.22"
+        versionCode = 25
+        versionName = "1.0.25"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -112,7 +112,7 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
-    implementation("net.zetetic:android-database-sqlcipher:4.5.4")//Encrypted database
+//    implementation("net.zetetic:android-database-sqlcipher:4.5.4")//Encrypted database
     implementation("com.auth0.android:jwtdecode:2.0.2")
     implementation("net.openid:appauth:0.11.1")
     implementation("com.squareup.picasso:picasso:2.71828")

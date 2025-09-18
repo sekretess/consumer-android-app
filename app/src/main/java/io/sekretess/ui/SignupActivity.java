@@ -22,7 +22,7 @@ public class SignupActivity extends AppCompatActivity {
         btnSignup.setOnClickListener(v -> broadcastSignup());
     }
 
-    private void broadcastSignup() {
+    private void broadcastSignup (){
 
         String email = ((EditText) findViewById(R.id.txtSignupEmail)).getText().toString();
 

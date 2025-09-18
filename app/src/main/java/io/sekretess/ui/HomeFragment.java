@@ -43,9 +43,9 @@ public class HomeFragment extends Fragment {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.i("ChatsFragment", "new-incoming-message event received");
-            String username = new DbHelper(getContext()).getUserNameFromJwt();
+            String username = new DbHelper(context).getUserNameFromJwt();
             List<MessageBriefDto> messageBriefs = new DbHelper(context).getMessageBriefs(username);
-            SendersAdapter sendersAdapter = updateMessageAdapter();
+            SendersAdapter sendersAdapter = updateMessageAdapter(context);
             messagesRecycleView.setAdapter(sendersAdapter);
             sendersAdapter.notifyItemInserted(messageBriefs.size());
         }
@@ -82,7 +82,7 @@ public class HomeFragment extends Fragment {
 
     private void renderMessagesRecycleView() {
         messagesRecycleView = fragmentView.findViewById(R.id.chat);
-        messagesRecycleView.setAdapter(updateMessageAdapter());
+        messagesRecycleView.setAdapter(updateMessageAdapter(getContext()));
         messagesRecycleView.setLayoutManager(new LinearLayoutManager(getContext()));
 
     }
@@ -106,8 +106,8 @@ public class HomeFragment extends Fragment {
     }
 
 
-    private SendersAdapter updateMessageAdapter() {
-        String username = new DbHelper(getContext()).getUserNameFromJwt();
+    private SendersAdapter updateMessageAdapter(Context context) {
+        String username = new DbHelper(context).getUserNameFromJwt();
         List<MessageBriefDto> messageBriefs = new DbHelper(getContext()).getMessageBriefs(username);
         return new SendersAdapter(getContext(), messageBriefs, (sender) -> {
             try {

@@ -9,10 +9,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.hardware.biometrics.BiometricPrompt;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.PersistableBundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -24,11 +26,14 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.auth0.android.jwt.JWT;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import net.openid.appauth.AuthState;
+
+import org.apache.commons.lang3.RandomStringUtils;
 
 import java.io.File;
 import java.util.List;
@@ -36,7 +41,7 @@ import java.util.Optional;
 
 import io.sekretess.repository.DbHelper;
 import io.sekretess.service.RefreshTokenServiceAbstract;
-import io.sekretess.service.SekretessAbstractRabbitMqService;
+import io.sekretess.service.SekretessRabbitMqService;
 import io.sekretess.ui.HomeFragment;
 import io.sekretess.ui.BusinessesFragment;
 import io.sekretess.ui.LoginActivity;
@@ -57,15 +62,28 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void createDbPassword(Context context) {
+        SharedPreferences encryptedSharedPreferences =
+                context.getSharedPreferences("secret_shared_prefs", Context.MODE_PRIVATE);
+
+        if (!encryptedSharedPreferences.contains("801d0837-c9c3-4a4c-bfcc-67197551d030")) {
+            String p = RandomStringUtils.secureStrong().next(15);
+            encryptedSharedPreferences.edit().putString("801d0837-c9c3-4a4c-bfcc-67197551d030", p)
+                    .apply();
+            Log.i("MainActivity", "Create password " + p);
+        }
+    }
+
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
+    protected void onPostCreate(@Nullable Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
-        super.onCreate(savedInstanceState);
-        showBiometricLogin();
+        checkForegroundServices();
+        //showBiometricLogin();
         Toast.makeText(getApplicationContext(), BuildConfig.CONSUMER_API_URL, Toast.LENGTH_LONG).show();
         prepareFileSystem();
-        checkForegroundServices();
 
+        createDbPassword(getApplicationContext());
         Log.i("MainActivity", "OnCreate");
 
         Optional<AuthState> authState = restoreState();
@@ -99,31 +117,41 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
     private void checkForegroundServices() {
         boolean isRabbitMqServiceRunning = false;
         boolean isTokenRefreshServiceRunning = false;
 
         ActivityManager activityManager = getSystemService(ActivityManager.class);
-        List<ActivityManager.RunningAppProcessInfo> runningAppProcesses = activityManager.getRunningAppProcesses();
-        for (ActivityManager.RunningAppProcessInfo runningAppProcessInfo : runningAppProcesses) {
-            if (runningAppProcessInfo.processName.equalsIgnoreCase("io.sekretess:remoterefreshtoken")) {
-                isTokenRefreshServiceRunning = true;
-            } else if (runningAppProcessInfo.processName.equalsIgnoreCase("io.sekretess:remoterabbitmq")) {
-                isRabbitMqServiceRunning = true;
+        while (!isRabbitMqServiceRunning && !isTokenRefreshServiceRunning) {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
+            List<ActivityManager.RunningAppProcessInfo> runningAppProcesses = activityManager.getRunningAppProcesses();
+            for (ActivityManager.RunningAppProcessInfo runningAppProcessInfo : runningAppProcesses) {
+                if (runningAppProcessInfo.processName.equalsIgnoreCase("io.sekretess:remoterefreshtoken")) {
+                    isTokenRefreshServiceRunning = true;
+                    Log.i("MainActivity", runningAppProcessInfo.processName + " started");
+                } else if (runningAppProcessInfo.processName.equalsIgnoreCase("io.sekretess:remoterabbitmq")) {
+                    isRabbitMqServiceRunning = true;
+                    Log.i("MainActivity", runningAppProcessInfo.processName + " started");
+                }
 
-            Log.i("MainActivity", "Running service " + runningAppProcessInfo.processName);
-        }
+                if (!isRabbitMqServiceRunning) {
+                    Log.i("MainActivity", "Starting sekrtess SekretessRabbitMqService...");
+                    ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), SekretessRabbitMqService.class));
+                    Log.i("MainActivity", "Started sekrtess SekretessRabbitMqService.");
+                }
+                if (!isTokenRefreshServiceRunning) {
+                    Log.i("MainActivity", "Starting sekrtess RefreshTokenService...");
+                    ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), RefreshTokenServiceAbstract.class));
+                    Log.i("MainActivity", "Started sekrtess RefreshTokenService.");
+                }
 
-        if (!isRabbitMqServiceRunning) {
-            Log.i("MainActivity", "Starting sekrtess SekretessRabbitMqService...");
-            ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), SekretessAbstractRabbitMqService.class));
-            Log.i("MainActivity", "Started sekrtess SekretessRabbitMqService.");
-        }
-        if (!isTokenRefreshServiceRunning) {
-            Log.i("MainActivity", "Starting sekrtess RefreshTokenService...");
-            ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), RefreshTokenServiceAbstract.class));
-            Log.i("MainActivity", "Started sekrtess RefreshTokenService.");
+                Log.i("MainActivity", "Running service " + runningAppProcessInfo.processName);
+            }
         }
     }
 
@@ -155,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
     private Optional<AuthState> restoreState() {
         Log.i("StartupActivity", "Restoring Authstate...");
         DbHelper dbHelper = new DbHelper(getApplicationContext());
-        if(dbHelper != null) {
+        if (dbHelper != null) {
             AuthState authState = dbHelper.getAuthState();
             if (authState == null) {
                 Log.i("StartupActivity", "Auth state is not found");
@@ -163,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
             }
             Log.i("StartupActivity", "State restored.");
             return Optional.ofNullable(authState);
-        }else{
+        } else {
             return Optional.empty();
         }
     }

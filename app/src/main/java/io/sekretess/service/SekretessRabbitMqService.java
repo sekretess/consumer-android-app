@@ -85,6 +85,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -92,7 +94,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-public class SekretessAbstractRabbitMqService extends SekretessAbstractBackgroundService {
+public class SekretessRabbitMqService extends SekretessAbstractBackgroundService {
     private final int SIGNAL_KEY_COUNT = 15;
     private static final Base64.Encoder base64Encoder = Base64.getEncoder();
     private static SekretessSignalProtocolStore signalProtocolStore;
@@ -108,44 +110,53 @@ public class SekretessAbstractRabbitMqService extends SekretessAbstractBackgroun
     public static final AtomicInteger serviceInstances = new AtomicInteger(0);
     private Thread rabbitMqConnectorThread;
     private ScheduledExecutorService rabbitMqConnectionGuard;
-
+    private String userName;
 
     private final BroadcastReceiver loginBroadcastEventReceiver =
             new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
                     Log.i("SekretessRabbitMqService", "Login event received");
-                    String userName = new DbHelper(getApplicationContext()).getUserNameFromJwt();
-
+                    userName = intent.getStringExtra("userName");
+                    startRabbitMqConnectionGuard();
                     initProtocolStorage(userName);
                 }
             };
 
     private void closeRabbitMqConnections() {
-        if (rabbitMqChannel != null) {
-            try {
-                rabbitMqChannel.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            } catch (TimeoutException e) {
-                Log.i("SekretessRabbitMqService", "RabbitMqChannel close failed", e);
-            }
-        }
-        if (rabbitMqConnection != null) {
-            try {
-                rabbitMqConnection.close();
-            } catch (IOException e) {
-                Log.i("SekretessRabbitMqService", "RabbitMqConnection close failed", e);
-            }
+        try {
+            Executors.newSingleThreadExecutor().submit(() -> {
+                if (rabbitMqChannel != null) {
+                    try {
+                        rabbitMqChannel.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    } catch (TimeoutException e) {
+                        Log.i("SekretessRabbitMqService", "RabbitMqChannel close failed", e);
+                    }
+                }
+                if (rabbitMqConnection != null) {
+                    try {
+                        rabbitMqConnection.close();
+                    } catch (IOException e) {
+                        Log.i("SekretessRabbitMqService", "RabbitMqConnection close failed", e);
+                    }
 
-            if (rabbitMqConnectorThread != null)
-                rabbitMqConnectorThread.interrupt();
-            rabbitMqConnectorThread = null;
 
-            if (rabbitMqConnectionGuard != null)
-                rabbitMqConnectionGuard.shutdownNow();
-            rabbitMqConnectionGuard = null;
+                }
+            }).get();
+        } catch (Throwable e) {
+            Log.i("SekretessRabbitMqService", "RabbitMqConnection close failed", e);
         }
+
+
+        if (rabbitMqConnectorThread != null)
+            rabbitMqConnectorThread.interrupt();
+        rabbitMqConnectorThread = null;
+
+        if (rabbitMqConnectionGuard != null)
+            rabbitMqConnectionGuard.shutdownNow();
+        rabbitMqConnectionGuard = null;
 
 
     }
@@ -169,6 +180,7 @@ public class SekretessAbstractRabbitMqService extends SekretessAbstractBackgroun
     public void destroyed() {
         Log.i(this.getClass().getName(), "Destroyed");
         serviceInstances.getAndSet(0);
+        unregisterBroadcastReceiver();
         Executors.newSingleThreadExecutor().submit(this::closeRabbitMqConnections);
     }
 
@@ -179,8 +191,6 @@ public class SekretessAbstractRabbitMqService extends SekretessAbstractBackgroun
 
         registerBroadcastReceivers();
         closeRabbitMqConnections();
-
-        startRabbitMqConnectionGuard();
 
         initSignalProtocol();
     }
@@ -201,8 +211,8 @@ public class SekretessAbstractRabbitMqService extends SekretessAbstractBackgroun
         try {
             DbHelper dbHelper = new DbHelper(getApplicationContext());
             String amqpConnectionUrl = BuildConfig.RABBIT_MQ_URI;
-            String username = dbHelper.getUserNameFromJwt();
-            amqpConnectionUrl = String.format(amqpConnectionUrl, username, dbHelper.getAuthState().getAccessToken());
+
+            amqpConnectionUrl = String.format(amqpConnectionUrl, userName, dbHelper.getAuthState().getAccessToken());
             Log.i(TAG, "Connecting with URI: " + amqpConnectionUrl);
             connectionFactory.setUri(amqpConnectionUrl);
             connectionFactory.setCredentialsProvider(new CredentialsProvider() {
@@ -231,7 +241,7 @@ public class SekretessAbstractRabbitMqService extends SekretessAbstractBackgroun
             rabbitMqChannel.confirmSelect();
 
             Log.i(TAG, "RabbitMq Consumer connection established.");
-            rabbitMqChannel.basicConsume(username.concat(Constants.RABBIT_MQ_CONSUMER_QUEUE_SUFFIX), true, new DefaultConsumer(rabbitMqChannel) {
+            rabbitMqChannel.basicConsume(userName.concat(Constants.RABBIT_MQ_CONSUMER_QUEUE_SUFFIX), true, new DefaultConsumer(rabbitMqChannel) {
                 @Override
                 public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) {
                     try {
@@ -313,6 +323,7 @@ public class SekretessAbstractRabbitMqService extends SekretessAbstractBackgroun
             }
         } catch (Exception e) {
             Log.e("SignalProtocolService", "Something wrong gone during handle login event. No cryptographic env initialized!", e);
+            sendBroadcast(new Intent(Constants.EVENT_TOKEN_ISSUE));
 
         }
     }
@@ -360,13 +371,20 @@ public class SekretessAbstractRabbitMqService extends SekretessAbstractBackgroun
     }
 
     private void startLoginActivity() {
-        Intent loginActivityIntent = new Intent(SekretessAbstractRabbitMqService.this, LoginActivity.class);
+        Intent loginActivityIntent = new Intent(SekretessRabbitMqService.this, LoginActivity.class);
         loginActivityIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(loginActivityIntent);
     }
 
+    private void unregisterBroadcastReceiver() {
+        unregisterReceiver(loginBroadcastEventReceiver);
+    }
+
     private void registerBroadcastReceivers() {
         try {
+            Log.i("SignalProtocolService", "All broadcast receivers registered");
+            IntentFilter keyUpdateFilter = new IntentFilter(Constants.EVENT_UPDATE_KEY);
+            keyUpdateFilter.setPriority(100);
             registerReceiver(new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
@@ -377,9 +395,11 @@ public class SekretessAbstractRabbitMqService extends SekretessAbstractBackgroun
                         Log.e("SignalProtocolService", "Error occurred during update OPK", e);
                     }
                 }
-            }, new IntentFilter(Constants.EVENT_UPDATE_KEY), RECEIVER_EXPORTED);
+            }, keyUpdateFilter, RECEIVER_EXPORTED);
 
-            registerReceiver(loginBroadcastEventReceiver, new IntentFilter(Constants.EVENT_LOGIN), RECEIVER_EXPORTED);
+            IntentFilter newLoginFilter = new IntentFilter(Constants.EVENT_LOGIN);
+            newLoginFilter.setPriority(100);
+            registerReceiver(loginBroadcastEventReceiver, newLoginFilter, RECEIVER_EXPORTED);
 
             registerReceiver(new BroadcastReceiver() {
                 @Override
@@ -460,6 +480,7 @@ public class SekretessAbstractRabbitMqService extends SekretessAbstractBackgroun
                 signalProtocolStore = new SekretessSignalProtocolStore(getApplicationContext(), identityKeyPair, registrationId);
 
                 storeKyberPreKeyRecords(kyberPreKeyRecords);
+                storePreKeyRecords(opk);
                 storeSignedPreKey(signedPreKeyRecord);
             }
 
@@ -467,6 +488,7 @@ public class SekretessAbstractRabbitMqService extends SekretessAbstractBackgroun
         } catch (Exception e) {
             Log.i("SekretessRabbitMqService", "KeyMaterial generation failed", e);
             Toast.makeText(getApplicationContext(), "KeyMaterial generation failed " + e.getMessage(), Toast.LENGTH_LONG).show();
+            sendBroadcast(new Intent(Constants.EVENT_TOKEN_ISSUE));
         }
     }
 
@@ -490,14 +512,6 @@ public class SekretessAbstractRabbitMqService extends SekretessAbstractBackgroun
         return kyberPreKeyRecord;
     }
 
-    private void persistsKeys(KyberPreKeyRecords kyberPreKeyRecords, PreKeyRecord[] preKeyRecords, SignedPreKeyRecord signedPreKeyRecord) {
-        //Store KyberPreKey
-        storeKyberPreKeyRecords(kyberPreKeyRecords);
-        //Store PreKey
-        storePreKeyRecords(preKeyRecords);
-        //Store signedPreKey
-        storeSignedPreKey(signedPreKeyRecord);
-    }
 
     private void storeKyberPreKeyRecords(KyberPreKeyRecords kyberPreKeyRecords) {
         DbHelper dbHelper = new DbHelper(this);
@@ -632,7 +646,7 @@ public class SekretessAbstractRabbitMqService extends SekretessAbstractBackgroun
 
     private void publishNotification(String sender, String text) {
         Intent intent = new Intent();
-        var notification = new NotificationCompat.Builder(SekretessAbstractRabbitMqService.this, Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME).setContentTitle("Message from " + sender).setSilent(false).setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_notif_sekretess)).setContentText(text.substring(0, Math.min(10, text.length())).concat("...")).setSmallIcon(R.drawable.ic_notif_sekretess).setAutoCancel(true).setPriority(NotificationCompat.PRIORITY_HIGH).setContentIntent(PendingIntent.getActivity(getApplicationContext(), 0, intent, PendingIntent.FLAG_IMMUTABLE)).setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+        var notification = new NotificationCompat.Builder(SekretessRabbitMqService.this, Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME).setContentTitle("Message from " + sender).setSilent(false).setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_notif_sekretess)).setContentText(text.substring(0, Math.min(10, text.length())).concat("...")).setSmallIcon(R.drawable.ic_notif_sekretess).setAutoCancel(true).setPriority(NotificationCompat.PRIORITY_HIGH).setContentIntent(PendingIntent.getActivity(getApplicationContext(), 0, intent, PendingIntent.FLAG_IMMUTABLE)).setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
         int m = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
 
@@ -662,6 +676,7 @@ public class SekretessAbstractRabbitMqService extends SekretessAbstractBackgroun
         intent.setFlags(Intent.FLAG_DEBUG_LOG_RESOLUTION);
         intent.setAction(Constants.EVENT_NEW_INCOMING_MESSAGE);
         sendBroadcast(intent);
-
     }
+
+
 }
