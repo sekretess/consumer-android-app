@@ -72,33 +72,12 @@ public class DbHelper extends SQLiteOpenHelper {
     public static final String DATABASE_NAME = "sekretessencrypt.db";
     private static final Base64.Encoder base64Encoder = Base64.getEncoder();
     private static final Base64.Decoder base64Decoder = Base64.getDecoder();
-    private Context mContext;
-    private static volatile DbHelper mInstance;
-    private static ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private static final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     public DbHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
-        this.mContext = context;
-//        SQLiteDatabase.loadLibs(this.mContext);
-        try {
-//            String p = p();
-//            Log.i("DbHelper", "db path: " + mContext.getDatabasePath(DATABASE_NAME));
-
-//            SQLiteDatabase.openOrCreateDatabase(mContext.getDatabasePath(DATABASE_NAME), null);
-            Log.i("DbHelper", "DbCreated");
-        } catch (Exception e) {
-            Log.e("DBHelper", "Db initialization failed. ", e);
-        }
     }
 
-//    public static synchronized DbHelper getInstance(Context context) {
-//        synchronized (DbHelper.class) {
-//            if (mInstance == null) {
-//                mInstance = new DbHelper(context.getApplicationContext());
-//            }
-//            return mInstance;
-//        }
-//    }
 
     @SuppressLint("Range")
     public IdentityKeyPair getIdentityKeyPair() {
@@ -725,16 +704,6 @@ public class DbHelper extends SQLiteOpenHelper {
 
         });
 
-    }
-
-    private String p() {
-
-        SharedPreferences encryptedSharedPreferences =
-                mContext.getSharedPreferences("secret_shared_prefs", Context.MODE_PRIVATE);
-
-        return encryptedSharedPreferences
-                .getString("801d0837-c9c3-4a4c-bfcc-67197551d030", "");
-//        Log.i("DBHelper", "Get database passwords " + p);
     }
 
     @Override

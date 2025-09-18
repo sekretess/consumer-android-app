@@ -62,37 +62,19 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void createDbPassword(Context context) {
-        SharedPreferences encryptedSharedPreferences =
-                context.getSharedPreferences("secret_shared_prefs", Context.MODE_PRIVATE);
-
-        if (!encryptedSharedPreferences.contains("801d0837-c9c3-4a4c-bfcc-67197551d030")) {
-            String p = RandomStringUtils.secureStrong().next(15);
-            encryptedSharedPreferences.edit().putString("801d0837-c9c3-4a4c-bfcc-67197551d030", p)
-                    .apply();
-            Log.i("MainActivity", "Create password " + p);
-        }
-    }
-
     @Override
-    protected void onPostCreate(@Nullable Bundle savedInstanceState) {
-        super.onPostCreate(savedInstanceState);
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
         checkForegroundServices();
         //showBiometricLogin();
-        Toast.makeText(getApplicationContext(), BuildConfig.CONSUMER_API_URL, Toast.LENGTH_LONG).show();
         prepareFileSystem();
-
-        createDbPassword(getApplicationContext());
         Log.i("MainActivity", "OnCreate");
-
         Optional<AuthState> authState = restoreState();
         if (authState.isPresent()) {
             String username = new JWT(authState.get().getAccessToken()).getClaim(Constants.USERNAME_CLAIM).asString();
-
             registerReceiver(tokenRefreshBroadcastReceiver,
                     new IntentFilter(Constants.EVENT_TOKEN_ISSUE), RECEIVER_EXPORTED);
-
             setContentView(R.layout.activity_main);
             Toolbar myToolbar = findViewById(R.id.my_toolbar);
             myToolbar.setNavigationIcon(R.drawable.ic_notif_sekretess);
@@ -115,6 +97,12 @@ public class MainActivity extends AppCompatActivity {
             Log.i("MainActivity", "Starting login activity");
             startLoginActivity();
         }
+    }
+
+    @Override
+    protected void onPostCreate(@Nullable Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+
     }
 
 
@@ -181,15 +169,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private Optional<AuthState> restoreState() {
-        Log.i("StartupActivity", "Restoring Authstate...");
+        Log.i("MainActivity", "Restoring Authstate...");
         DbHelper dbHelper = new DbHelper(getApplicationContext());
         if (dbHelper != null) {
             AuthState authState = dbHelper.getAuthState();
             if (authState == null) {
-                Log.i("StartupActivity", "Auth state is not found");
+                Log.i("MainActivity", "Auth state is not found");
                 return Optional.empty();
             }
-            Log.i("StartupActivity", "State restored.");
+            Log.i("MainActivity", "State restored.");
             return Optional.ofNullable(authState);
         } else {
             return Optional.empty();

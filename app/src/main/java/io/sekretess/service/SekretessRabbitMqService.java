@@ -430,7 +430,7 @@ public class SekretessRabbitMqService extends SekretessAbstractBackgroundService
                 }
             } else {
                 Log.i("SignalProtocolService", "SignalProtocolStore is null. Starting logging in process");
-                startLoginActivity();
+//                startLoginActivity();
             }
         }
     }
