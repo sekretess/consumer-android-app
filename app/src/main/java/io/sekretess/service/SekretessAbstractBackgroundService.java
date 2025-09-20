@@ -9,14 +9,17 @@ import android.graphics.Color;
 import android.os.Build;
 import android.util.Log;
 
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+
 import io.sekretess.R;
 
 public abstract class SekretessAbstractBackgroundService extends Service {
 
     @Override
     public final void onCreate() {
-        Log.i("SekretessBackgroundService", "onCreate" + getChannelId());
-        startForeground(getNotificationId(), notifyUserThatLocationServiceStarted());
+        Log.i("SekretessBackgroundService", "onCreate" + getChannelId() + " " + getClass().getName());
+        startForeground(getNotificationId(), notifyServiceStarted());
         Log.i("SekretessBackgroundService", "foreground service started:" + getChannelId());
     }
 
@@ -42,23 +45,31 @@ public abstract class SekretessAbstractBackgroundService extends Service {
 
     public abstract void destroyed();
 
-    private Notification notifyUserThatLocationServiceStarted() {
-        String CHANNEL_ID = getChannelId();
+    private Notification notifyServiceStarted() {
+        String CHANNEL_ID = "Sekretess";
         NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, CHANNEL_ID, NotificationManager.IMPORTANCE_LOW);
-        mChannel.enableLights(true);
+        mChannel.enableLights(false);
         mChannel.setLightColor(Color.BLUE);
+        mChannel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
+        mChannel.setImportance(NotificationManager.IMPORTANCE_LOW);
         notificationManager.createNotificationChannel(mChannel);
         final Notification.Builder builder;
         builder = new Notification.Builder(getApplicationContext(), CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_notif_sekretess)
-                .setContentTitle("Sekretess")
-                .setContentText("Sekretess")
+                .setOngoing(true)
+                .setVisibility(Notification.VISIBILITY_PRIVATE)
+                .setPriority(Notification.PRIORITY_MIN)
+//                .setContentTitle("Sekretess test")
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                .setAutoCancel(true)
+//                .setContentText("Sekretess test ")
                 .setWhen(System.currentTimeMillis());
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
         }
+
         return builder.build();
     }
 }

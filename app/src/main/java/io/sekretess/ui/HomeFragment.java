@@ -4,12 +4,17 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 
+
+import androidx.appcompat.widget.SearchView;
+import androidx.appcompat.widget.SearchView.SearchAutoComplete;
 import androidx.appcompat.widget.Toolbar;
 
 import androidx.annotation.NonNull;
@@ -29,14 +34,13 @@ import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.TrustedSender;
 import io.sekretess.repository.DbHelper;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class HomeFragment extends Fragment {
 
     private RecyclerView messagesRecycleView;
+    private SendersAdapter sendersAdapter;
     private View fragmentView;
 
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
@@ -45,7 +49,7 @@ public class HomeFragment extends Fragment {
             Log.i("ChatsFragment", "new-incoming-message event received");
             String username = new DbHelper(context).getUserNameFromJwt();
             List<MessageBriefDto> messageBriefs = new DbHelper(context).getMessageBriefs(username);
-            SendersAdapter sendersAdapter = updateMessageAdapter(context);
+            sendersAdapter= updateMessageAdapter(context);
             messagesRecycleView.setAdapter(sendersAdapter);
             sendersAdapter.notifyItemInserted(messageBriefs.size());
         }
@@ -69,6 +73,29 @@ public class HomeFragment extends Fragment {
         renderMessagesRecycleView();
         Toolbar toolbar = getActivity().findViewById(R.id.my_toolbar);
         toolbar.setTitle("Home");
+        SearchView searchView = fragmentView.findViewById(R.id.searchView);
+        SearchAutoComplete viewById = searchView.findViewById(androidx.appcompat.R.id.search_src_text);
+        viewById.setTextColor(Color.WHITE);
+
+        // To change magnifier icon color
+        ImageView searchIcon= searchView.findViewById(androidx.appcompat.R.id.search_mag_icon);
+        searchIcon.setColorFilter(Color.WHITE);
+        // To change close button icon color
+        ImageView searchCloseIcon = searchView.findViewById(androidx.appcompat.R.id.search_close_btn);
+        searchCloseIcon.setColorFilter(Color.WHITE);
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                sendersAdapter.getFilter().filter(newText);
+                return false;
+            }
+        });
         return fragmentView;
     }
 
@@ -82,7 +109,8 @@ public class HomeFragment extends Fragment {
 
     private void renderMessagesRecycleView() {
         messagesRecycleView = fragmentView.findViewById(R.id.chat);
-        messagesRecycleView.setAdapter(updateMessageAdapter(getContext()));
+        sendersAdapter = updateMessageAdapter(getContext());
+        messagesRecycleView.setAdapter(sendersAdapter);
         messagesRecycleView.setLayoutManager(new LinearLayoutManager(getContext()));
 
     }

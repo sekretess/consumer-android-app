@@ -76,6 +76,12 @@ public class ProfileFragment extends Fragment {
             dbHelper.logout();
             logout(idToken);
         });
+
+//      Update Keys action
+        AppCompatButton btnUpdateKeys = view.findViewById(R.id.btnResetKeys);
+        btnUpdateKeys.setOnClickListener(v -> {
+            broadcastUpdateKeys();
+        });
         return view;
     }
 
@@ -98,7 +104,6 @@ public class ProfileFragment extends Fragment {
         getActivity().sendBroadcast(intent);
         Log.i("ProfileFragment", "Sent update_key event broadcast result : ");
     }
-
 
 
 }

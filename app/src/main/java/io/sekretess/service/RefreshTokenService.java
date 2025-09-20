@@ -16,7 +16,7 @@ import io.sekretess.repository.DbHelper;
 import net.openid.appauth.AuthState;
 import net.openid.appauth.AuthorizationService;
 
-public class RefreshTokenServiceAbstract extends SekretessAbstractBackgroundService {
+public class RefreshTokenService extends SekretessAbstractBackgroundService {
     public static final int REFRESH_TOKEN_SERVICE_NOTIFICATION = 3;
 
     private boolean running;

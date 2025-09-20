@@ -4,6 +4,7 @@ import android.content.Context;
 
 import org.signal.libsignal.protocol.IdentityKeyPair;
 import org.signal.libsignal.protocol.SignalProtocolAddress;
+import org.signal.libsignal.protocol.ecc.ECPublicKey;
 import org.signal.libsignal.protocol.groups.state.SenderKeyRecord;
 import org.signal.libsignal.protocol.state.KyberPreKeyRecord;
 import org.signal.libsignal.protocol.state.SessionRecord;
