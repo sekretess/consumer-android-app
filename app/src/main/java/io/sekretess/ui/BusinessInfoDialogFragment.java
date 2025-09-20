@@ -44,14 +44,15 @@ public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
 
         SwitchCompat swSubscription = view.findViewById(R.id.swSubscription);
         swSubscription.setChecked(subscribed);
-        swSubscription.setOnClickListener(v -> {
-            if (subscribed) {
-                if (ApiClient.unSubscribeFromBusiness(getContext(), businessName)) {
-                    businessesAdapter.notifyItemChanged(position, new BusinessDto(businessName, icon, false));
-                }
-            } else {
+        swSubscription.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
                 if (ApiClient.subscribeToBusiness(getContext(), businessName)) {
                     businessesAdapter.notifyItemChanged(position, new BusinessDto(businessName, icon, true));
+                }
+
+            } else {
+                if (ApiClient.unSubscribeFromBusiness(getContext(), businessName)) {
+                    businessesAdapter.notifyItemChanged(position, new BusinessDto(businessName, icon, false));
                 }
             }
         });
@@ -74,9 +75,9 @@ public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
         swVibration.setChecked(NotificationPreferencesUtils
                 .getVibrationPreferences(getContext(), businessName));
 
-        swVibration.setOnClickListener(v -> {
+        swVibration.setOnCheckedChangeListener((buttonView, isChecked) -> {
             NotificationPreferencesUtils
-                    .setVibrationPreferences(getContext(), businessName, swVibration.isChecked());
+                    .setVibrationPreferences(getContext(), businessName, isChecked);
         });
     }
 
@@ -85,9 +86,9 @@ public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
         swSoundAlerts.setChecked(NotificationPreferencesUtils
                 .getSoundAlertsPreferences(getContext(), businessName));
 
-        swSoundAlerts.setOnClickListener(v -> {
+        swSoundAlerts.setOnCheckedChangeListener(((buttonView, isChecked) -> {
             NotificationPreferencesUtils
-                    .setSoundAlertsPreferences(getContext(), businessName, swSoundAlerts.isChecked());
-        });
+                    .setSoundAlertsPreferences(getContext(), businessName, isChecked);
+        }));
     }
 }
