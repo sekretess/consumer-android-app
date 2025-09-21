@@ -4,10 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="io.sekretess.ui.LoginActivity"
+    android:background="#121212"
     android:focusable="true"
-    android:background="#0D0D0D"
-    android:focusableInTouchMode="true">
+    android:focusableInTouchMode="true"
+    tools:context="io.sekretess.ui.LoginActivity">
 
     <Button
         android:id="@+id/btnLogin"
@@ -33,18 +33,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/btnLogin" />
 
-        <com.google.android.material.imageview.ShapeableImageView
-            app:shapeAppearanceOverlay="@style/circleImageView10"
-            android:id="@+id/imageView"
-            android:layout_width="194dp"
-            android:layout_height="180dp"
-            android:layout_marginBottom="36dp"
-            android:scaleType="centerCrop"
-            app:layout_constraintBottom_toTopOf="@+id/btnLogin"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.497"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="1.0"
-            app:srcCompat="@drawable/logo_social_media_background" />
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/imageView"
+        android:layout_width="194dp"
+        android:layout_height="180dp"
+        android:layout_marginBottom="36dp"
+        android:scaleType="centerCrop"
+        app:layout_constraintBottom_toTopOf="@+id/btnLogin"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0"
+        app:shapeAppearanceOverlay="@style/circleImageView10"
+        app:srcCompat="@drawable/logo_social_media_background3" />
 </androidx.constraintlayout.widget.ConstraintLayout>
