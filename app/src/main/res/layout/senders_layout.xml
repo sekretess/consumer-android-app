@@ -23,9 +23,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:shapeAppearanceOverlay="@style/circleImageView"
         app:strokeColor="@color/white"
-        app:strokeWidth="2dp">
-
-    </com.google.android.material.imageview.ShapeableImageView>
+        app:strokeWidth="2dp"/>
 
     <TextView
         android:id="@+id/txtSenderName"

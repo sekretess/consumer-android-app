@@ -2,17 +2,18 @@ package io.sekretess.ui;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
+import android.widget.ImageView;
 
 import io.sekretess.adapters.BusinessesAdapter;
 import io.sekretess.R;
@@ -29,7 +30,7 @@ import java.util.stream.Collectors;
  */
 public class BusinessesFragment extends Fragment {
     private RecyclerView subscribedBusinessesRecycler;
-
+    private BusinessesAdapter businessesAdapter;
 
     @Nullable
     @Override
@@ -38,7 +39,7 @@ public class BusinessesFragment extends Fragment {
         toolbar.setTitle("Businesses");
 
         View view = inflater.inflate(R.layout.businesses_fragment, container, false);
-        DbHelper dbHelper =new DbHelper(getActivity().getApplicationContext());
+        DbHelper dbHelper = new DbHelper(getActivity().getApplicationContext());
 
         subscribedBusinessesRecycler = view.findViewById(R.id.businessesRecycler);
         List<String> subscribedBusinesses = ApiClient
@@ -51,10 +52,12 @@ public class BusinessesFragment extends Fragment {
                         .setSubscribed(isSubscribed(businessDto.getBusinessName(), subscribedBusinesses)))
                 .collect(Collectors.toList());
 
-        BusinessesAdapter businessesAdapter =
-                new BusinessesAdapter(getContext(), businessList, getParentFragmentManager());
+        businessesAdapter = new BusinessesAdapter(getContext(), businessList, getParentFragmentManager());
         subscribedBusinessesRecycler.setAdapter(businessesAdapter);
         subscribedBusinessesRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
+
+        SearchView searchView = view.findViewById(R.id.searchView);
+        prepareSearchView(searchView);
         return view;
     }
 
@@ -66,6 +69,31 @@ public class BusinessesFragment extends Fragment {
             }
         }
         return false;
+    }
+
+    private void prepareSearchView(SearchView searchView) {
+        SearchView.SearchAutoComplete viewById = searchView.findViewById(androidx.appcompat.R.id.search_src_text);
+        viewById.setTextColor(Color.WHITE);
+
+        // To change magnifier icon color
+        ImageView searchIcon = searchView.findViewById(androidx.appcompat.R.id.search_mag_icon);
+        searchIcon.setColorFilter(Color.WHITE);
+        // To change close button icon color
+        ImageView searchCloseIcon = searchView.findViewById(androidx.appcompat.R.id.search_close_btn);
+        searchCloseIcon.setColorFilter(Color.WHITE);
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                businessesAdapter.getFilter().filter(newText);
+                return false;
+            }
+        });
     }
 
 }

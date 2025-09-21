@@ -47,12 +47,14 @@ public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
         swSubscription.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 if (ApiClient.subscribeToBusiness(getContext(), businessName)) {
-                    businessesAdapter.notifyItemChanged(position, new BusinessDto(businessName, icon, true));
+                    businessesAdapter.subscribed(businessName);
+                    businessesAdapter.notifyDataSetChanged();
                 }
 
             } else {
                 if (ApiClient.unSubscribeFromBusiness(getContext(), businessName)) {
-                    businessesAdapter.notifyItemChanged(position, new BusinessDto(businessName, icon, false));
+                    businessesAdapter.unsubscribed(businessName);
+                    businessesAdapter.notifyDataSetChanged();
                 }
             }
         });

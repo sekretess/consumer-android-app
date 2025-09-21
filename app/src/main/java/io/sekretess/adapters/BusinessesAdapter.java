@@ -8,6 +8,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
@@ -23,14 +25,18 @@ import io.sekretess.view.holders.BusinessesViewHolder;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 
-public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder> {
+public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder> implements Filterable {
 
     private final List<BusinessDto> mBusinessDtos;
+    private final List<BusinessDto> filteredList = new ArrayList<>();
     private final FragmentManager fragmentManager;
     private final Context context;
+    private boolean filtered;
 
     public BusinessesAdapter(Context context, List<BusinessDto> mBusinessDtos,
                              FragmentManager fragmentManager) {
@@ -48,18 +54,21 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
         return new BusinessesViewHolder(subscriptionView);
     }
 
-    @Override
-    public void onBindViewHolder(@NonNull BusinessesViewHolder holder, int position, @NonNull List<Object> payloads) {
-        if (payloads != null && !payloads.isEmpty()) {
-            mBusinessDtos.remove(position);
-            mBusinessDtos.add(position,(BusinessDto) payloads.get(0));
-        }
-        super.onBindViewHolder(holder, position, payloads);
-    }
+//    @Override
+//    public void onBindViewHolder(@NonNull BusinessesViewHolder holder, int position, @NonNull List<Object> payloads) {
+//        if (payloads != null && !payloads.isEmpty()) {
+//            mBusinessDtos.remove(position);
+//            mBusinessDtos.add(position, (BusinessDto) payloads.get(0));
+//        }
+//        super.onBindViewHolder(holder, position, payloads);
+//    }
 
     @Override
     public void onBindViewHolder(@NonNull BusinessesViewHolder holder, int position) {
-        BusinessDto businessDto = mBusinessDtos.get(position);
+        List<BusinessDto> source = filtered ? filteredList : mBusinessDtos;
+        if(position >= source.size())
+            return;
+        BusinessDto businessDto = source.get(position);
         holder.getTxtBusinessName().setText(businessDto.getBusinessName());
         String imageBase64 = businessDto.getIcon();
         if (imageBase64 != null && !imageBase64.isEmpty()) {
@@ -75,6 +84,8 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
             } catch (Exception e) {
                 Log.e("BusinessAdapter", "Error saving image: ", e);
             }
+        }else{
+            holder.getImgBusiness().setImageResource(R.drawable.round_add_moderator_24);
         }
 
         if (businessDto.isSubscribed()) {
@@ -84,14 +95,65 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
         }
         BusinessViewOnClickListener businessViewOnClickListener =
                 new BusinessViewOnClickListener(businessDto, position, this, fragmentManager);
-        holder.itemView.findViewById(R.id.businesses_layout).setOnClickListener(businessViewOnClickListener );
+        holder.itemView.findViewById(R.id.businesses_layout).setOnClickListener(businessViewOnClickListener);
         holder.getImgBusiness().setOnClickListener(businessViewOnClickListener);
     }
 
     @Override
     public int getItemCount() {
-        return mBusinessDtos == null ? 0 : mBusinessDtos.size();
+        return filtered ? filteredList.size() : mBusinessDtos == null ? 0 : mBusinessDtos.size();
     }
 
 
+    @Override
+    public Filter getFilter() {
+        return new Filter() {
+            @Override
+            protected FilterResults performFiltering(CharSequence constraint) {
+                FilterResults results = new FilterResults();
+                List<BusinessDto> filteredList = new ArrayList<>();
+                if (constraint == null || constraint.length() == 0) {
+                    filtered = false;
+                    results.values = mBusinessDtos;
+                    return results;
+                } else {
+                    filtered = true;
+                    String filterPattern = constraint.toString().toLowerCase().trim();
+                    for (BusinessDto businessDto : mBusinessDtos) {
+                        if (businessDto.getBusinessName().toLowerCase().contains(filterPattern)) {
+                            filteredList.add(businessDto);
+                        }
+                    }
+                    results.values = filteredList;
+                    return results;
+                }
+            }
+
+            @Override
+            protected void publishResults(CharSequence constraint, FilterResults results) {
+                filteredList.clear();
+                filteredList.addAll((List<BusinessDto>) results.values);
+                notifyDataSetChanged();
+            }
+        };
+    }
+
+    private Optional<BusinessDto> findBusinessByName(String name){
+        return mBusinessDtos
+                .stream()
+                .filter(businessDto -> businessDto
+                        .getBusinessName()
+                        .equalsIgnoreCase(name))
+                .findFirst();
+    }
+
+    public void subscribed(String businessName) {
+        findBusinessByName(businessName)
+                .ifPresent(businessDto -> businessDto.setSubscribed(true));
+    }
+
+    public void unsubscribed(String businessName) {
+        findBusinessByName(businessName)
+                .ifPresent(businessDto -> businessDto.setSubscribed(false));
+    }
 }

@@ -49,7 +49,7 @@ public class HomeFragment extends Fragment {
             Log.i("ChatsFragment", "new-incoming-message event received");
             String username = new DbHelper(context).getUserNameFromJwt();
             List<MessageBriefDto> messageBriefs = new DbHelper(context).getMessageBriefs(username);
-            sendersAdapter= updateMessageAdapter(context);
+            sendersAdapter = updateMessageAdapter(context);
             messagesRecycleView.setAdapter(sendersAdapter);
             sendersAdapter.notifyItemInserted(messageBriefs.size());
         }
@@ -74,11 +74,16 @@ public class HomeFragment extends Fragment {
         Toolbar toolbar = getActivity().findViewById(R.id.my_toolbar);
         toolbar.setTitle("Home");
         SearchView searchView = fragmentView.findViewById(R.id.searchView);
+        prepareSearchView(searchView);
+        return fragmentView;
+    }
+
+    private void prepareSearchView(SearchView searchView) {
         SearchAutoComplete viewById = searchView.findViewById(androidx.appcompat.R.id.search_src_text);
         viewById.setTextColor(Color.WHITE);
 
         // To change magnifier icon color
-        ImageView searchIcon= searchView.findViewById(androidx.appcompat.R.id.search_mag_icon);
+        ImageView searchIcon = searchView.findViewById(androidx.appcompat.R.id.search_mag_icon);
         searchIcon.setColorFilter(Color.WHITE);
         // To change close button icon color
         ImageView searchCloseIcon = searchView.findViewById(androidx.appcompat.R.id.search_close_btn);
@@ -96,7 +101,6 @@ public class HomeFragment extends Fragment {
                 return false;
             }
         });
-        return fragmentView;
     }
 
     private void renderTrustedSendersRecycleView() {
