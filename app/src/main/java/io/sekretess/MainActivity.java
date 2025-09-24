@@ -4,7 +4,6 @@ import static android.hardware.biometrics.BiometricManager.Authenticators.BIOMET
 import static android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -39,7 +38,6 @@ import java.util.List;
 import java.util.Optional;
 
 import io.sekretess.repository.DbHelper;
-import io.sekretess.service.RefreshTokenService;
 import io.sekretess.service.SekretessRabbitMqService;
 import io.sekretess.ui.HomeFragment;
 import io.sekretess.ui.BusinessesFragment;

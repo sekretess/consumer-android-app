@@ -208,8 +208,7 @@ public class SekretessRabbitMqService extends SekretessAbstractBackgroundService
     private void startRabbitMqConnection() {
         ConnectionFactory connectionFactory = new ConnectionFactory();
         connectionFactory.setVirtualHost("sekretess");
-        try {
-            DbHelper dbHelper = new DbHelper(getApplicationContext());
+        try (DbHelper dbHelper = new DbHelper(getApplicationContext())) {
             String amqpConnectionUrl = BuildConfig.RABBIT_MQ_URI;
 
             amqpConnectionUrl = String.format(amqpConnectionUrl, userName, dbHelper.getAuthState().getAccessToken());
@@ -304,7 +303,7 @@ public class SekretessRabbitMqService extends SekretessAbstractBackgroundService
                 IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
                 if (identityKeyPair == null) {
                     Log.w("SignalProtocolService", "No cryptographic keys found. Initializing keys...");
-                    initializeSecretKeys(keyMaterial -> ApiClient.upsertKeyStore(getApplicationContext(), keyMaterial, dbHelper.getAuthState().getIdToken()));
+                    initializeSecretKeys(keyMaterial -> ApiClient.upsertKeyStore(getApplicationContext(), keyMaterial));
                 } else {
                     Log.w("SignalProtocolService", "Cryptographic keys found. Loading from database...");
                     loadCryptoKeysFromDb(getApplicationContext());
@@ -327,14 +326,6 @@ public class SekretessRabbitMqService extends SekretessAbstractBackgroundService
 
         }
     }
-
-
-    private void upsertKeyStore(KeyMaterial keyMaterial, String jwtToken) {
-        if (ApiClient.upsertKeyStore(getApplicationContext(), keyMaterial, jwtToken)) {
-
-        }
-    }
-
 
     private void loadCryptoKeysFromDb(Context context) throws InvalidMessageException {
         DbHelper dbHelper = new DbHelper(this);
@@ -447,7 +438,6 @@ public class SekretessRabbitMqService extends SekretessAbstractBackgroundService
         }
     }
 
-
     private void initializeSecretKeys(Function<KeyMaterial, Boolean> f) {
         try {
             ECKeyPair ecKeyPair = ECKeyPair.generate();
@@ -458,8 +448,6 @@ public class SekretessRabbitMqService extends SekretessAbstractBackgroundService
             ECKeyPair signedPreKeyPair = ECKeyPair.generate();
 
             byte[] signature = identityKeyPair.getPrivateKey().calculateSignature(signedPreKeyPair.getPublicKey().serialize());
-            ;
-
 
             //Generate one-time prekeys
             PreKeyRecord[] opk = generatePreKeys();

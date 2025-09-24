@@ -53,9 +53,9 @@ public class ProfileFragment extends Fragment {
         AppCompatButton btnDeleteAccount = view.findViewById(R.id.btnDeleteAccount);
         btnDeleteAccount.setOnClickListener(v -> {
             var dbHelper = new DbHelper(getContext());
-            var idToken = dbHelper.getAuthState().getIdToken();
+            var authState = dbHelper.getAuthState();
             boolean deleteSuccess = false;
-            if (deleteSuccess = ApiClient.deleteUser(getContext(), idToken)) {
+            if (deleteSuccess = ApiClient.deleteUser(getContext(), authState)) {
                 if (deleteSuccess = dbHelper.clearUserData()) {
                     startActivity(new Intent(ProfileFragment.this.getContext(), LoginActivity.class));
                 }
@@ -63,7 +63,7 @@ public class ProfileFragment extends Fragment {
 
             if (!deleteSuccess) {
                 Toast.makeText(getContext(), "Account delete failed", LENGTH_LONG).show();
-                logout(idToken);
+                logout(authState.getIdToken());
             }
         });
 

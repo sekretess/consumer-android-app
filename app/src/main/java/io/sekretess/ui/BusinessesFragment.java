@@ -43,7 +43,7 @@ public class BusinessesFragment extends Fragment {
 
         subscribedBusinessesRecycler = view.findViewById(R.id.businessesRecycler);
         List<String> subscribedBusinesses = ApiClient
-                .getSubscribedBusinesses(getContext(), dbHelper.getAuthState().getIdToken());
+                .getSubscribedBusinesses(getContext());
 
         List<BusinessDto> businessList = ApiClient
                 .getBusinesses(getContext())

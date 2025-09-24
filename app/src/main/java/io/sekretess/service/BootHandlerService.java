@@ -11,7 +11,7 @@ import androidx.core.content.ContextCompat;
 import java.util.List;
 
 public class BootHandlerService extends BroadcastReceiver {
-    public BootHandlerService(){
+    public BootHandlerService() {
         Log.i("BootHandlerService", "BootHandlerService created");
     }
 
@@ -29,18 +29,13 @@ public class BootHandlerService extends BroadcastReceiver {
     }
 
 
-
-
     private void checkForegroundServices(Context context) {
         boolean isRabbitMqServiceRunning = false;
-        boolean isTokenRefreshServiceRunning = false;
 
         ActivityManager activityManager = context.getSystemService(ActivityManager.class);
         List<ActivityManager.RunningAppProcessInfo> runningAppProcesses = activityManager.getRunningAppProcesses();
         for (ActivityManager.RunningAppProcessInfo runningAppProcessInfo : runningAppProcesses) {
-            if (runningAppProcessInfo.processName.equalsIgnoreCase("io.sekretess:remoterefreshtoken")) {
-                isTokenRefreshServiceRunning = true;
-            } else if (runningAppProcessInfo.processName.equalsIgnoreCase("io.sekretess:remoterabbitmq")) {
+            if (runningAppProcessInfo.processName.equalsIgnoreCase("io.sekretess:remoterabbitmq")) {
                 isRabbitMqServiceRunning = true;
             }
 
@@ -51,11 +46,6 @@ public class BootHandlerService extends BroadcastReceiver {
             Log.i("BootHandlerService", "Starting sekrtess SekretessRabbitMqService...");
             ContextCompat.startForegroundService(context, new Intent(context, SekretessRabbitMqService.class));
             Log.i("BootHandlerService", "Started sekrtess SekretessRabbitMqService.");
-        }
-        if (!isTokenRefreshServiceRunning) {
-            Log.i("BootHandlerService", "Starting sekrtess RefreshTokenService...");
-            ContextCompat.startForegroundService(context, new Intent(context, RefreshTokenService.class));
-            Log.i("BootHandlerService", "Started sekrtess RefreshTokenService.");
         }
     }
 
