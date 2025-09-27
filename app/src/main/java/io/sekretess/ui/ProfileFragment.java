@@ -29,6 +29,7 @@ import net.openid.appauth.EndSessionRequest;
 
 import io.sekretess.BuildConfig;
 import io.sekretess.Constants;
+import io.sekretess.MainActivity;
 import io.sekretess.R;
 import io.sekretess.repository.DbHelper;
 import io.sekretess.utils.ApiClient;
@@ -45,7 +46,7 @@ public class ProfileFragment extends Fragment {
         toolbar.setTitle("Profile");
         View view = inflater.inflate(R.layout.profile_fragment, container, false);
         TextView txtUserName = view.findViewById(R.id.txtUsername);
-        SharedPreferences globalVariables = getContext().getApplicationContext()
+        SharedPreferences globalVariables = getContext()
                 .getSharedPreferences("global-variables", 0);
         String username = globalVariables.getString("username", "N/A");
         txtUserName.setText(username);
@@ -80,7 +81,8 @@ public class ProfileFragment extends Fragment {
 //      Update Keys action
         AppCompatButton btnUpdateKeys = view.findViewById(R.id.btnResetKeys);
         btnUpdateKeys.setOnClickListener(v -> {
-            broadcastUpdateKeys();
+            Log.i("ProfileFragment", "Updating one time keys ");
+            MainActivity.getSekretessCryptographicService().updateOneTimeKeys();
         });
         return view;
     }
@@ -98,12 +100,4 @@ public class ProfileFragment extends Fragment {
                     startActivity(endSessionRequestIntent);
                 });
     }
-
-    private void broadcastUpdateKeys() {
-        Intent intent = new Intent(Constants.EVENT_UPDATE_KEY);
-        getActivity().sendBroadcast(intent);
-        Log.i("ProfileFragment", "Sent update_key event broadcast result : ");
-    }
-
-
 }

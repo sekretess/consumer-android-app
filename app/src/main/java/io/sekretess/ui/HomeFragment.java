@@ -48,10 +48,10 @@ public class HomeFragment extends Fragment {
         public void onReceive(Context context, Intent intent) {
             Log.i("ChatsFragment", "new-incoming-message event received");
             String username = new DbHelper(context).getUserNameFromJwt();
-            List<MessageBriefDto> messageBriefs = new DbHelper(context).getMessageBriefs(username);
+            //List<MessageBriefDto> messageBriefs = new DbHelper(context).getMessageBriefs(username);
             sendersAdapter = updateMessageAdapter(context);
             messagesRecycleView.setAdapter(sendersAdapter);
-            sendersAdapter.notifyItemInserted(messageBriefs.size());
+            //sendersAdapter.notifyItemInserted(messageBriefs.size());
         }
     };
 
@@ -59,9 +59,6 @@ public class HomeFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //TODO Mock data - remove on production
-        Log.i("ChatsActivity", "Registering receiver. Context: " + getActivity().getApplicationContext());
-        Log.i("ChatsActivity", "Registering receiver. Context: " + getActivity().getBaseContext());
-        Log.i("ChatsActivity", "Registering receiver. Context: " + getContext());
         ContextCompat.registerReceiver(getContext(), broadcastReceiver,
                 new IntentFilter(Constants.EVENT_NEW_INCOMING_MESSAGE), ContextCompat.RECEIVER_EXPORTED);
     }
@@ -139,22 +136,24 @@ public class HomeFragment extends Fragment {
 
 
     private SendersAdapter updateMessageAdapter(Context context) {
-        String username = new DbHelper(context).getUserNameFromJwt();
-        List<MessageBriefDto> messageBriefs = new DbHelper(getContext()).getMessageBriefs(username);
-        return new SendersAdapter(getContext(), messageBriefs, (sender) -> {
-            try {
-                Bundle bundle = new Bundle();
-                bundle.putString("from", sender);
-                AppCompatActivity activity = (AppCompatActivity) fragmentView.getContext();
-                MessagesFromSenderFragment fragment = new MessagesFromSenderFragment();
-                fragment.setArguments(bundle);
-                activity.getSupportFragmentManager().beginTransaction().replace(R.id.frame_layout, fragment).commit();
-                Toolbar toolbar = activity.findViewById(R.id.my_toolbar);
-                toolbar.setTitle(sender);
-            } catch (Exception e) {
-                Log.e("ChatsFragment", "Error", e);
-            }
-        });
+        try (DbHelper db = new DbHelper(context)) {
+            String username = db.getUserNameFromJwt();
+            List<MessageBriefDto> messageBriefs = db.getMessageBriefs(username);
+            return new SendersAdapter(getContext(), messageBriefs, (sender) -> {
+                try {
+                    Bundle bundle = new Bundle();
+                    bundle.putString("from", sender);
+                    AppCompatActivity activity = (AppCompatActivity) fragmentView.getContext();
+                    MessagesFromSenderFragment fragment = new MessagesFromSenderFragment();
+                    fragment.setArguments(bundle);
+                    activity.getSupportFragmentManager().beginTransaction().replace(R.id.frame_layout, fragment).commit();
+                    Toolbar toolbar = activity.findViewById(R.id.my_toolbar);
+                    toolbar.setTitle(sender);
+                } catch (Exception e) {
+                    Log.e("ChatsFragment", "Error", e);
+                }
+            });
+        }
     }
 
     @Override

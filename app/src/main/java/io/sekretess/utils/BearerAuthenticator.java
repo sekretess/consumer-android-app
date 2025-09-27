@@ -32,7 +32,6 @@ public class BearerAuthenticator implements Authenticator {
     @Override
     public Request authenticate(Route route, Response response) throws IOException {
         if (response.code() == HttpURLConnection.HTTP_UNAUTHORIZED || response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
-
             if (authState != null) {
                 authState.performActionWithFreshTokens(new AuthorizationService(context), this::action);
             }
@@ -43,6 +42,7 @@ public class BearerAuthenticator implements Authenticator {
     private void action(String accessToken, String idToken, AuthorizationException ex) {
         try (DbHelper dbHelper = new DbHelper(context)) {
             if (ex != null) {
+                Log.e("RefreshTokenService", "Token refresh failed. Removing auth state", ex);
                 dbHelper.removeAuthState();
                 context.sendBroadcast(new Intent(Constants.EVENT_TOKEN_ISSUE));
             } else {

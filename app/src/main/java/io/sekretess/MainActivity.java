@@ -36,8 +36,10 @@ import net.openid.appauth.AuthState;
 import java.io.File;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import io.sekretess.repository.DbHelper;
+import io.sekretess.service.SekretessCryptographicService;
 import io.sekretess.service.SekretessRabbitMqService;
 import io.sekretess.ui.HomeFragment;
 import io.sekretess.ui.BusinessesFragment;
@@ -46,6 +48,8 @@ import io.sekretess.ui.ProfileFragment;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static SekretessCryptographicService sekretessCryptographicService;
+    private static SekretessRabbitMqService sekretessRabbitMqService;
     private final BroadcastReceiver tokenRefreshBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -62,28 +66,32 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+            Log.i("MainActivity", "Extras found");
+            extras.keySet().forEach(s -> System.out.println(s + ":" + extras.get(s)));
+        }
+
+        sekretessCryptographicService = new SekretessCryptographicService(getApplicationContext());
+        sekretessRabbitMqService = new SekretessRabbitMqService(getApplicationContext(), sekretessCryptographicService);
         setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light_NoActionBar);
         FirebaseMessaging.getInstance().getToken()
-                .addOnCompleteListener(new OnCompleteListener<String>() {
-                    @Override
-                    public void onComplete(@NonNull Task<String> task) {
-                        if (!task.isSuccessful()) {
-                            Log.w("MainActivity", "Fetching FCM registration token failed", task.getException());
-                            return;
-                        }
-
-                        // Get new FCM registration token
-                        String token = task.getResult();
-
-                        // Log and toast
-
-                        Log.d("MainActivity", "FCM Token " +token);
-
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful()) {
+                        Log.w("MainActivity", "Fetching FCM registration token failed", task.getException());
+                        return;
                     }
+
+                    // Get new FCM registration token
+                    String token = task.getResult();
+
+                    // Log and toast
+
+                    Log.d("MainActivity", "FCM Token " + token);
+
                 });
 
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
-        checkForegroundServices();
         //showBiometricLogin();
         prepareFileSystem();
         Log.i("MainActivity", "OnCreate");
@@ -99,6 +107,7 @@ public class MainActivity extends AppCompatActivity {
             BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
 
             Log.i("MainActivity", "Notify login...");
+            sekretessRabbitMqService.startRabbitMqConnectionGuard();
             broadcastLoginEvent(username);
             replaceFragment(new HomeFragment());
             bottomNavigationView.setOnItemSelectedListener(item -> {
@@ -120,44 +129,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPostCreate(@Nullable Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
-    }
-
-
-    private void checkForegroundServices() {
-        boolean isRabbitMqServiceRunning = false;
-        boolean isTokenRefreshServiceRunning = false;
-
-        ActivityManager activityManager = getSystemService(ActivityManager.class);
-        while (!isRabbitMqServiceRunning && !isTokenRefreshServiceRunning) {
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            List<ActivityManager.RunningAppProcessInfo> runningAppProcesses = activityManager.getRunningAppProcesses();
-            for (ActivityManager.RunningAppProcessInfo runningAppProcessInfo : runningAppProcesses) {
-                if (runningAppProcessInfo.processName.equalsIgnoreCase("io.sekretess:remoterefreshtoken")) {
-                    isTokenRefreshServiceRunning = true;
-                    Log.i("MainActivity", runningAppProcessInfo.processName + " started");
-                } else if (runningAppProcessInfo.processName.equalsIgnoreCase("io.sekretess:remoterabbitmq")) {
-                    isRabbitMqServiceRunning = true;
-                    Log.i("MainActivity", runningAppProcessInfo.processName + " started");
-                }
-
-                if (!isRabbitMqServiceRunning) {
-                    Log.i("MainActivity", "Starting sekrtess SekretessRabbitMqService...");
-                    ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), SekretessRabbitMqService.class));
-                    Log.i("MainActivity", "Started sekrtess SekretessRabbitMqService.");
-                }
-                if (!isTokenRefreshServiceRunning) {
-                    Log.i("MainActivity", "Starting sekrtess RefreshTokenService...");
-                    ContextCompat.startForegroundService(getApplicationContext(), new Intent(getApplicationContext(), RefreshTokenService.class));
-                    Log.i("MainActivity", "Started sekrtess RefreshTokenService.");
-                }
-
-                Log.i("MainActivity", "Running service " + runningAppProcessInfo.processName);
-            }
-        }
     }
 
 
@@ -201,22 +172,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public static SekretessCryptographicService getSekretessCryptographicService() {
+        return sekretessCryptographicService;
+    }
+
+    public static SekretessRabbitMqService getSekretessRabbitMqService() {
+        return sekretessRabbitMqService;
+    }
 
     private void broadcastLoginEvent(String userName) {
         Intent intent = new Intent(Constants.EVENT_LOGIN);
         intent.putExtra("userName", userName);
         sendBroadcast(intent);
-    }
-
-    private void showBiometricLogin() {
-        var promptInfo = new BiometricPrompt.Builder(getApplicationContext())
-                .setTitle("Biometric login for my app")
-                .setSubtitle("Log in using your biometric credential")
-                .setAllowedAuthenticators(BIOMETRIC_STRONG | DEVICE_CREDENTIAL)
-                .build();
-        promptInfo.authenticate(new CancellationSignal(), getApplicationContext().getMainExecutor(), new BiometricPrompt.AuthenticationCallback() {
-
-        });
-
     }
 }
