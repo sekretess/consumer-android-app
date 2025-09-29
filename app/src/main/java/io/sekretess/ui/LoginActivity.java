@@ -3,8 +3,12 @@ package io.sekretess.ui;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
+import android.text.util.Linkify;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -82,11 +86,13 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         dbHelper = new DbHelper(getApplicationContext());
         setContentView(R.layout.activity_login);
-        Button btnSignup = findViewById(R.id.btnSignup);
+
         Button btnLogin = findViewById(R.id.btnLogin);
 
-        btnSignup.setOnClickListener(v ->
-                startActivity(new Intent(this, SignupActivity.class)));
+        TextView textView = findViewById(R.id.txtSignupLink);
+        textView.setOnClickListener(v -> {
+            startActivity(new Intent(this, SignupActivity.class));
+        });
 
         btnLogin.setOnClickListener(v -> {
             authorizeUser();

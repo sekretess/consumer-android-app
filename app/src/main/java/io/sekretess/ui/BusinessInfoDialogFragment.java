@@ -40,7 +40,6 @@ public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
         String icon = args.getString("businessIcon");
         String businessName = args.getString("businessName");
         boolean subscribed = args.getBoolean("subscribed");
-        int position = args.getInt("position");
 
         SwitchCompat swSubscription = view.findViewById(R.id.swSubscription);
         swSubscription.setChecked(subscribed);
@@ -48,12 +47,14 @@ public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
             if (isChecked) {
                 if (ApiClient.subscribeToBusiness(getContext(), businessName)) {
                     businessesAdapter.subscribed(businessName);
+                    businessesAdapter.rearrangeData();
                     businessesAdapter.notifyDataSetChanged();
                 }
 
             } else {
                 if (ApiClient.unSubscribeFromBusiness(getContext(), businessName)) {
                     businessesAdapter.unsubscribed(businessName);
+                    businessesAdapter.rearrangeData();
                     businessesAdapter.notifyDataSetChanged();
                 }
             }

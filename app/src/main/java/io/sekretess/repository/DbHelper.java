@@ -537,7 +537,7 @@ public class DbHelper extends SQLiteOpenHelper {
                                         MessageStoreEntity.COLUMN_CREATED_AT
                                 },
                                 "sender=?",
-                                new String[]{from}, null, null, null)) {
+                                new String[]{from}, null, null, "created_at ASC")) {
                     List<MessageRecordDto> resultArray = new ArrayList<>();
                     String dateTimeText = "";
                     while (resultCursor.moveToNext()) {
@@ -558,8 +558,8 @@ public class DbHelper extends SQLiteOpenHelper {
                         } else {
                             resultArray.add(new MessageRecordDto(id, sender, null, createdAt,
                                     dateTimeAsText, ItemType.HEADER));
-                            resultArray.add(new MessageRecordDto(id, sender, messageBody, createdAt,
-                                    dateTimeAsText, ItemType.ITEM));
+//                            resultArray.add(new MessageRecordDto(id, sender, messageBody, createdAt,
+//                                    dateTimeAsText, ItemType.ITEM));
                             dateTimeText = dateTimeAsText;
                         }
                     }

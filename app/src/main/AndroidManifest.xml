@@ -30,7 +30,14 @@
         <activity
             android:name="io.sekretess.ui.SignupActivity"
             android:exported="true"
-            android:noHistory="true" />
+            android:noHistory="true" >
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="sekretess" android:host="signupactivity"/>
+            </intent-filter>
+        </activity>
         <activity
             android:name="io.sekretess.ui.LoginActivity"
             android:exported="true"
@@ -69,29 +76,6 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name="io.sekretess.service.SekretessRabbitMqService"
-            android:foregroundServiceType="remoteMessaging"
-            android:process=":remoterabbitmq"
-            android:stopWithTask="false" />
-        <service
-            android:name="io.sekretess.service.RefreshTokenService"
-            android:foregroundServiceType="dataSync"
-            android:process=":remoterefreshtoken"
-            android:stopWithTask="false" />
-
-<!--        <receiver-->
-<!--            android:name="io.sekretess.service.BootHandlerService"-->
-<!--            android:exported="true"-->
-<!--            android:enabled="true">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.BOOT_COMPLETED" />-->
-<!--                <action android:name="android.intent.action.PACKAGE_ADDED" />-->
-<!--                <action android:name="android.intent.action.PACKAGE_CHANGED" />-->
-<!--                <action android:name="android.intent.action.PACKAGE_REPLACED" />-->
-<!--                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />-->
-<!--            </intent-filter>-->
-<!--        </receiver>-->
     </application>
 
 </manifest>

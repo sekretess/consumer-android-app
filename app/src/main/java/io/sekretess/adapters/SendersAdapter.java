@@ -51,8 +51,8 @@ public class SendersAdapter extends RecyclerView.Adapter<SenderViewHolder> imple
 
     @Override
     public void onBindViewHolder(@NonNull SenderViewHolder holder, int position) {
-        List<MessageBriefDto> source = filtered ? filteredList : mMessageBriefs;
-        if(position >= source.size())
+        List<MessageBriefDto> source = findSource();
+        if (position >= source.size())
             return;
         MessageBriefDto messageBriefDto = source.get(position);
         holder.getTxtSenderName().setText(messageBriefDto.getSender());
@@ -73,9 +73,14 @@ public class SendersAdapter extends RecyclerView.Adapter<SenderViewHolder> imple
         holder.getTxtMessageBrief().setText(messageText);
     }
 
+    private List<MessageBriefDto> findSource() {
+        return filtered ? filteredList : mMessageBriefs;
+    }
+
     @Override
     public int getItemCount() {
-        return filtered ? filteredList.size() : mMessageBriefs.size();
+        List<MessageBriefDto> source = findSource();
+        return source == null ? 0 : source.size();
     }
 
     @Override

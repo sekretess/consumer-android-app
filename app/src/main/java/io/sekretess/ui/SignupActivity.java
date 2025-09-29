@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -23,6 +24,11 @@ public class SignupActivity extends AppCompatActivity {
         setContentView(R.layout.activity_signup);
         Button btnSignup = findViewById(R.id.btnSignUp);
         btnSignup.setOnClickListener(v -> broadcastSignup());
+
+        TextView txtLoginLink = findViewById(R.id.txtLoginLink);
+        txtLoginLink.setOnClickListener(v->{
+            startActivity(new Intent(this, LoginActivity.class));
+        });
     }
 
     private void broadcastSignup() {
@@ -63,6 +69,12 @@ public class SignupActivity extends AppCompatActivity {
             return false;
         }
         return true;
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.i("SignupActivity", "New intent received");
     }
 
     private boolean validatePassword(EditText passwordEdit) {

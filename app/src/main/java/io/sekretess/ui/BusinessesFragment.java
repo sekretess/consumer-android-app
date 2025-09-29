@@ -18,10 +18,12 @@ import android.widget.ImageView;
 import io.sekretess.adapters.BusinessesAdapter;
 import io.sekretess.R;
 import io.sekretess.dto.BusinessDto;
+import io.sekretess.enums.ItemType;
 import io.sekretess.repository.DbHelper;
 import io.sekretess.utils.ApiClient;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -39,17 +41,27 @@ public class BusinessesFragment extends Fragment {
         toolbar.setTitle("Businesses");
 
         View view = inflater.inflate(R.layout.businesses_fragment, container, false);
-        DbHelper dbHelper = new DbHelper(getActivity());
 
         subscribedBusinessesRecycler = view.findViewById(R.id.businessesRecycler);
         List<String> subscribedBusinesses = ApiClient
                 .getSubscribedBusinesses(getContext());
 
+        //We ordering by subscription status, in case any subscriptions it should be first in list
+        final AtomicBoolean subscribed = new AtomicBoolean(false);
         List<BusinessDto> businessList = ApiClient
                 .getBusinesses(getContext())
                 .stream()
-                .peek(businessDto -> businessDto
-                        .setSubscribed(isSubscribed(businessDto.getBusinessName(), subscribedBusinesses)))
+                .peek(businessDto -> {
+                    businessDto
+                            .setSubscribed(isSubscribed(businessDto.getBusinessName(), subscribedBusinesses));
+                })
+                .sorted((o1, o2) -> o1.isSubscribed() ? -1 : 1)
+                .peek(businessDto -> {
+                    if (subscribed.get() != businessDto.isSubscribed()) {
+                        subscribed.set(businessDto.isSubscribed());
+                        businessDto.setItemType(ItemType.HEADER);
+                    }
+                })
                 .collect(Collectors.toList());
 
         businessesAdapter = new BusinessesAdapter(getContext(), businessList, getParentFragmentManager());
