@@ -32,7 +32,6 @@ public class SekretessSignalProtocolStore extends InMemorySignalProtocolStore {
         dbHelper.storeSenderKey(sender, distributionId, record);
     }
 
-
     @Override
     public void markKyberPreKeyUsed(int kyberPreKeyId) {
         super.markKyberPreKeyUsed(kyberPreKeyId);
@@ -44,12 +43,6 @@ public class SekretessSignalProtocolStore extends InMemorySignalProtocolStore {
         if (used) {
             super.markKyberPreKeyUsed(kyberPreKeyId);
         }
-    }
-
-    @Override
-    public void storeKyberPreKey(int kyberPreKeyId, KyberPreKeyRecord record) {
-        super.storeKyberPreKey(kyberPreKeyId, record);
-        dbHelper.storeKyberPreKey(record);
     }
 
     @Override

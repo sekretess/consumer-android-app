@@ -229,7 +229,8 @@ public class ApiClient {
             KeyBundleDto keyBundleDto = Mappers.toKeyBundleDto(keyMaterial);
             String json = objectMapper.writeValueAsString(keyBundleDto);
 
-            Request request = new Request.Builder().url(new URL(BuildConfig.CONSUMER_API_URL + "/keystores")).put(RequestBody.create(MediaType.parse("application/json"), json)).build();
+            Request request = new Request.Builder().url(new URL(BuildConfig.CONSUMER_API_URL + "/keystores"))
+                    .put(RequestBody.create(MediaType.parse("application/json"), json)).build();
 
             try (Response response = httpClient.newCall(request).execute()) {
                 if (response.isSuccessful()) {
@@ -267,7 +268,8 @@ public class ApiClient {
 
             String jsonObject = objectMapper.writeValueAsString(oneTimeKeyBundleDto);
             OkHttpClient httpClient = httpClient(authState, context);
-            Request request = new Request.Builder().post(RequestBody.create(MediaType.parse("application/json"), jsonObject)).url(new URL(BuildConfig.CONSUMER_API_URL + "/onetimekeystores")).build();
+            Request request = new Request.Builder().post(RequestBody.create(MediaType.parse("application/json"), jsonObject))
+                    .url(new URL(BuildConfig.CONSUMER_API_URL + "/onetimekeystores")).build();
 
             try (Response response = httpClient.newCall(request).execute()) {
                 if (response.isSuccessful()) {
@@ -307,7 +309,9 @@ public class ApiClient {
             userDto.setPassword(password);
             String jsonObject = objectMapper.writeValueAsString(userDto);
 
-            Request request = new Request.Builder().url(new URL(BuildConfig.CONSUMER_API_URL)).post(RequestBody.create(MediaType.parse("application/json"), jsonObject)).build();
+            Request request = new Request.Builder().url(new URL(BuildConfig.CONSUMER_API_URL))
+                    .post(RequestBody.create(MediaType.parse("application/json"), jsonObject))
+                    .build();
             largeLog("ApiClient", jsonObject);
 
             try (Response response = httpClient.newCall(request).execute()) {

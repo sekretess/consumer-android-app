@@ -34,6 +34,7 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import net.openid.appauth.AuthState;
 
 import java.io.File;
+import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -41,6 +42,7 @@ import java.util.Set;
 import io.sekretess.repository.DbHelper;
 import io.sekretess.service.SekretessCryptographicService;
 import io.sekretess.service.SekretessRabbitMqService;
+import io.sekretess.service.SekretessWebSocketClient;
 import io.sekretess.ui.HomeFragment;
 import io.sekretess.ui.BusinessesFragment;
 import io.sekretess.ui.LoginActivity;
@@ -50,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static SekretessCryptographicService sekretessCryptographicService;
     private static SekretessRabbitMqService sekretessRabbitMqService;
+    private static SekretessWebSocketClient sekretessWebSocketClient;
     private final BroadcastReceiver tokenRefreshBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -73,7 +76,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         sekretessCryptographicService = new SekretessCryptographicService(getApplicationContext());
-        sekretessRabbitMqService = new SekretessRabbitMqService(getApplicationContext(), sekretessCryptographicService);
+        sekretessWebSocketClient = new SekretessWebSocketClient(sekretessCryptographicService);
+        sekretessWebSocketClient.startWebSocket(new URL());
         setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light_NoActionBar);
         FirebaseMessaging.getInstance().getToken()
                 .addOnCompleteListener(task -> {
@@ -143,6 +147,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        sekretessWebSocketClient.destroy();
     }
 
     private void replaceFragment(Fragment fragment) {
@@ -174,10 +179,6 @@ public class MainActivity extends AppCompatActivity {
 
     public static SekretessCryptographicService getSekretessCryptographicService() {
         return sekretessCryptographicService;
-    }
-
-    public static SekretessRabbitMqService getSekretessRabbitMqService() {
-        return sekretessRabbitMqService;
     }
 
     private void broadcastLoginEvent(String userName) {

@@ -1,22 +1,37 @@
 package io.sekretess.service;
 
+import android.Manifest;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.signal.libsignal.protocol.DuplicateMessageException;
 import org.signal.libsignal.protocol.IdentityKey;
 import org.signal.libsignal.protocol.IdentityKeyPair;
 import org.signal.libsignal.protocol.InvalidKeyException;
+import org.signal.libsignal.protocol.InvalidKeyIdException;
 import org.signal.libsignal.protocol.InvalidMessageException;
+import org.signal.libsignal.protocol.InvalidVersionException;
 import org.signal.libsignal.protocol.LegacyMessageException;
 import org.signal.libsignal.protocol.NoSessionException;
 import org.signal.libsignal.protocol.SessionCipher;
 import org.signal.libsignal.protocol.SignalProtocolAddress;
+import org.signal.libsignal.protocol.UntrustedIdentityException;
 import org.signal.libsignal.protocol.UsePqRatchet;
 import org.signal.libsignal.protocol.ecc.ECKeyPair;
 import org.signal.libsignal.protocol.ecc.ECPrivateKey;
@@ -34,6 +49,7 @@ import org.signal.libsignal.protocol.util.Medium;
 
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -42,13 +58,17 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import io.sekretess.Constants;
+import io.sekretess.R;
 import io.sekretess.dto.GroupChatDto;
 import io.sekretess.dto.KeyMaterial;
 import io.sekretess.dto.KyberPreKeyRecords;
+import io.sekretess.dto.MessageDto;
 import io.sekretess.dto.RegistrationAndDeviceId;
+import io.sekretess.enums.MessageType;
 import io.sekretess.repository.DbHelper;
 import io.sekretess.repository.SekretessSignalProtocolStore;
 import io.sekretess.utils.ApiClient;
+import io.sekretess.utils.NotificationPreferencesUtils;
 
 
 public class SekretessCryptographicService {
@@ -61,6 +81,7 @@ public class SekretessCryptographicService {
     private final String TAG = "SekretessCryptographicService";
     private final Context context;
     private final int deviceId = 1;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public SekretessCryptographicService(Context context) {
         this.context = context;
@@ -246,9 +267,10 @@ public class SekretessCryptographicService {
 
     public void initializeSecretKeys(Function<KeyMaterial, Boolean> f) {
         try {
-            ECKeyPair ecKeyPair = ECKeyPair.generate();
-            IdentityKey identityKey = new IdentityKey(ecKeyPair.getPublicKey());
-            IdentityKeyPair identityKeyPair = new IdentityKeyPair(identityKey, ecKeyPair.getPrivateKey());
+//            ECKeyPair ecKeyPair = ECKeyPair.generate();
+//            IdentityKey identityKey = new IdentityKey(ecKeyPair.getPublicKey());
+//            IdentityKeyPair identityKeyPair = new IdentityKeyPair(identityKey, ecKeyPair.getPrivateKey());
+            IdentityKeyPair identityKeyPair = IdentityKeyPair.generate();
 
             int registrationId = KeyHelper.generateRegistrationId(false);
             ECKeyPair signedPreKeyPair = ECKeyPair.generate();
@@ -306,8 +328,114 @@ public class SekretessCryptographicService {
         }
     }
 
-    public void handleAdvertisementMessage(String sender, String base64Message,
-                                           String exchangeName, Consumer<String> supplier) throws NoSessionException, InvalidMessageException, DuplicateMessageException, LegacyMessageException {
+    public void decryptMessage(String messageText) {
+        try {
+            String exchangeName = "";
+            Log.i(TAG, "Received payload:" + messageText + " ExchangeName :");
+            MessageDto message = objectMapper.readValue(messageText, MessageDto.class);
+            String encryptedText = message.getText();
+            MessageType messageType = MessageType.getInstance(message.getType());
+            String sender = "";
+            switch (messageType) {
+                case ADVERTISEMENT:
+                    exchangeName = message.getBusinessExchange();
+                    processAdvertisementMessage(encryptedText, exchangeName);
+                    break;
+                case KEY_DISTRIBUTION:
+                case PRIVATE:
+                    exchangeName = message.getConsumerExchange();
+                    sender = message.getSender();
+                    Log.i(TAG, "Private message received. Sender:" + sender + " Exchange:" + exchangeName);
+                    processPrivateMessage(encryptedText, sender, messageType);
+                    break;
+            }
+            Log.i(TAG, "Encoded message received : " + message);
+        } catch (Throwable e) {
+            Log.e(TAG, e.getMessage(), e);
+        }
+    }
+
+    public void decryptMessage(byte[] body) {
+        this.decryptMessage(new String(body));
+    }
+
+    private void processAdvertisementMessage(String base64Message, String exchangeName) throws NoSessionException, InvalidMessageException, DuplicateMessageException, LegacyMessageException {
+        String sender = exchangeName.split("_")[0];
+        handleAdvertisementMessage(sender, base64Message, exchangeName, (message) -> {
+            Log.i("SignalProtocolService", "Decrypted advertisement message: " + message);
+            try (DbHelper dbHelper = new DbHelper(context)) {
+                dbHelper.storeDecryptedMessage(sender, message);
+                broadcastNewMessageReceived();
+                publishNotification(sender, message);
+            }
+        });
+    }
+
+    private void processPrivateMessage(String base64Message, String sender, MessageType messageType) throws InvalidMessageException, InvalidVersionException, LegacyMessageException, InvalidKeyException, UntrustedIdentityException, DuplicateMessageException, InvalidKeyIdException {
+        handlePrivateMessage(sender, base64Message, (message) -> {
+            try (DbHelper dbHelper = new DbHelper(context)) {
+                if (messageType == MessageType.KEY_DISTRIBUTION) {
+                    processKeyDistributionMessage(sender, message);
+                    //Store group chat info
+                    dbHelper.storeGroupChatInfo(message, sender);
+                } else {
+                    Log.i("SignalProtocolService", "Decrypted private message: " + message);
+                    dbHelper.storeDecryptedMessage(sender, message);
+                    publishNotification(sender, message);
+                    broadcastNewMessageReceived();
+                }
+            }
+        });
+    }
+
+    private void publishNotification(String sender, String text) {
+        Intent intent = new Intent();
+        var notification = new NotificationCompat
+                .Builder(context, Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME)
+                .setContentTitle("Message from " + sender)
+                .setSilent(false)
+                .setLargeIcon(BitmapFactory
+                        .decodeResource(context.getResources(), R.drawable.ic_notif_sekretess))
+                .setContentText(text.substring(0, Math.min(10, text.length())).concat("..."))
+                .setSmallIcon(R.drawable.ic_notif_sekretess)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(PendingIntent
+                        .getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE))
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+        int m = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
+
+        NotificationChannel channel = new NotificationChannel(Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME, "New message", NotificationManager.IMPORTANCE_HIGH);
+        channel.setAllowBubbles(true);
+        channel.enableVibration(NotificationPreferencesUtils.getVibrationPreferences(context, sender));
+        boolean soundAlerts = NotificationPreferencesUtils.getSoundAlertsPreferences(context, sender);
+        Log.i("SekretessRabbitMqService", "soundAlerts:" + soundAlerts + "sender:" + sender);
+        if (!soundAlerts) {
+            notification.setSilent(true);
+            channel.setImportance(NotificationManager.IMPORTANCE_LOW);
+        } else {
+            notification.setDefaults(0);
+            notification.setSilent(false);
+        }
+        notificationManager.createNotificationChannel(channel);
+
+
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+            notificationManager.notify(m, notification.build());
+        }
+    }
+
+    private void broadcastNewMessageReceived() {
+        Log.i("SignalProtocolService", "Sending new-incoming-message event");
+        Intent intent = new Intent();
+        intent.setFlags(Intent.FLAG_DEBUG_LOG_RESOLUTION);
+        intent.setAction(Constants.EVENT_NEW_INCOMING_MESSAGE);
+        context.sendBroadcast(intent);
+    }
+
+    private void handleAdvertisementMessage(String sender, String base64Message,
+                                            String exchangeName, Consumer<String> supplier) throws NoSessionException, InvalidMessageException, DuplicateMessageException, LegacyMessageException {
         GroupCipher groupCipher = groupCipherTable.get(sender);
         Log.i(TAG, "Decrypted advertisement exchangeName: " + exchangeName + " sender :" + sender);
         if (groupCipher != null) {
@@ -322,7 +450,7 @@ public class SekretessCryptographicService {
         }
     }
 
-    public void handlePrivateMessage(String sender, String base64Message, Consumer<String> consumer) {
+    private void handlePrivateMessage(String sender, String base64Message, Consumer<String> consumer) {
         try {
             PreKeySignalMessage preKeySignalMessage = new PreKeySignalMessage(base64Decoder.decode(base64Message));
             SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(sender, 1);
@@ -330,7 +458,7 @@ public class SekretessCryptographicService {
             Log.i(TAG, "" + signalProtocolStore);
             String message = new String(sessionCipher.decrypt(preKeySignalMessage, UsePqRatchet.YES));
             consumer.accept(message);
-        }catch (Exception e){
+        } catch (Exception e) {
             Log.e(TAG, "Error during decrypt private message", e);
             Toast.makeText(context, "Error during decrypt private message" + e.getMessage(), Toast.LENGTH_LONG).show();
         }
