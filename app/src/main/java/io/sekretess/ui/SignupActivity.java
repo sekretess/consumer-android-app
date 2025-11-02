@@ -10,7 +10,6 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import io.sekretess.Constants;
-import io.sekretess.MainActivity;
 import io.sekretess.R;
 import io.sekretess.utils.ApiClient;
 

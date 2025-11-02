@@ -12,12 +12,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.openid.appauth.AuthState;
 
+import org.signal.libsignal.protocol.InvalidKeyException;
+import org.signal.libsignal.protocol.state.KyberPreKeyRecord;
+import org.signal.libsignal.protocol.state.PreKeyRecord;
+
 import io.sekretess.BuildConfig;
 import io.sekretess.Constants;
 import io.sekretess.R;
 import io.sekretess.dto.BusinessDto;
 import io.sekretess.dto.KeyBundleDto;
 import io.sekretess.dto.KeyMaterial;
+import io.sekretess.dto.KyberPreKeyRecords;
 import io.sekretess.dto.OneTimeKeyBundleDto;
 import io.sekretess.dto.UserDto;
 import io.sekretess.repository.DbHelper;
@@ -36,6 +41,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -50,7 +56,7 @@ import javax.net.ssl.X509TrustManager;
 public class ApiClient {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
-
+    private static final Base64.Encoder base64Encoder = Base64.getEncoder();
 
     public static boolean deleteUser(Context context, AuthState authState) {
         try {
@@ -253,9 +259,14 @@ public class ApiClient {
     }
 
 
-    public static boolean updateOneTimeKeys(Context context, AuthState authState, String[] preKeyRecords, String[] kyberPreKeyRecords) {
+    public static boolean updateOneTimeKeys(Context context, AuthState authState, PreKeyRecord[] preKeyRecords, KyberPreKeyRecords kyberPreKeyRecords) {
         try {
-            return Executors.newSingleThreadExecutor().submit(() -> updateOpksInternal(context, authState, preKeyRecords, kyberPreKeyRecords)).get();
+
+            String[] strPreKeyRecords = serializeSignedPreKeys(preKeyRecords);
+            String[] strKyberPreKeyRecords = serializeKyberPreKeys(kyberPreKeyRecords.getKyberPreKeyRecords());
+
+            return Executors.newSingleThreadExecutor().submit(() -> updateOpksInternal(context, authState,
+                    strPreKeyRecords, strKyberPreKeyRecords)).get();
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred while updateOneTimeKeys", e);
             return false;
@@ -354,5 +365,29 @@ public class ApiClient {
         try (DbHelper dbHelper = new DbHelper(context)) {
             return dbHelper.getAuthState();
         }
+    }
+
+    private static String[] serializeSignedPreKeys(PreKeyRecord[] preKeyRecords) throws InvalidKeyException {
+        String[] serializedOneTimePreKeys = new String[preKeyRecords.length];
+
+        int idx = 0;
+        for (PreKeyRecord preKeyRecord : preKeyRecords) {
+            serializedOneTimePreKeys[idx++] = preKeyRecord.getId() + ":" + base64Encoder.encodeToString(preKeyRecord.getKeyPair().getPublicKey().serialize());
+        }
+        return serializedOneTimePreKeys;
+    }
+
+
+    private static String serializeKyberPreKey(KyberPreKeyRecord kyberPreKeyRecord) throws InvalidKeyException {
+        return kyberPreKeyRecord.getId() + ":" + base64Encoder.encodeToString(kyberPreKeyRecord.getKeyPair().getPublicKey().serialize()) + ":" + base64Encoder.encodeToString(kyberPreKeyRecord.getSignature());
+    }
+
+    private static String[] serializeKyberPreKeys(KyberPreKeyRecord[] kyberPreKeyRecords) throws InvalidKeyException {
+        String[] serializedKyberPreKeys = new String[kyberPreKeyRecords.length];
+        int idx = 0;
+        for (KyberPreKeyRecord kyberPreKeyRecord : kyberPreKeyRecords) {
+            serializedKyberPreKeys[idx++] = serializeKyberPreKey(kyberPreKeyRecord);
+        }
+        return serializedKyberPreKeys;
     }
 }

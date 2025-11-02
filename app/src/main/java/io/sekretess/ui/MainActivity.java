@@ -1,33 +1,23 @@
-package io.sekretess;
-
-import static android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG;
-import static android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+package io.sekretess.ui;
 
 import android.Manifest;
-import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.hardware.biometrics.BiometricPrompt;
 import android.os.Bundle;
-import android.os.CancellationSignal;
 import android.os.PersistableBundle;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.auth0.android.jwt.JWT;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.messaging.FirebaseMessaging;
 
@@ -35,18 +25,14 @@ import net.openid.appauth.AuthState;
 
 import java.io.File;
 import java.net.URL;
-import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
+import io.sekretess.Constants;
+import io.sekretess.R;
 import io.sekretess.repository.DbHelper;
 import io.sekretess.service.SekretessCryptographicService;
 import io.sekretess.service.SekretessRabbitMqService;
 import io.sekretess.service.SekretessWebSocketClient;
-import io.sekretess.ui.HomeFragment;
-import io.sekretess.ui.BusinessesFragment;
-import io.sekretess.ui.LoginActivity;
-import io.sekretess.ui.ProfileFragment;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -94,7 +80,6 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("MainActivity", "FCM Token " + token);
 
                 });
-
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
         //showBiometricLogin();
         prepareFileSystem();

@@ -1,15 +1,11 @@
 package io.sekretess.ui;
 
-import static android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG;
-import static android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL;
 import static android.widget.Toast.LENGTH_LONG;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.hardware.biometrics.BiometricPrompt;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.CancellationSignal;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -28,8 +24,6 @@ import net.openid.appauth.AuthorizationServiceConfiguration;
 import net.openid.appauth.EndSessionRequest;
 
 import io.sekretess.BuildConfig;
-import io.sekretess.Constants;
-import io.sekretess.MainActivity;
 import io.sekretess.R;
 import io.sekretess.repository.DbHelper;
 import io.sekretess.utils.ApiClient;

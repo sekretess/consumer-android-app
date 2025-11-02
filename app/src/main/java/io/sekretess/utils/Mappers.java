@@ -1,5 +1,7 @@
 package io.sekretess.utils;
 
+import androidx.annotation.WorkerThread;
+
 import org.signal.libsignal.protocol.InvalidKeyException;
 
 import java.util.Base64;

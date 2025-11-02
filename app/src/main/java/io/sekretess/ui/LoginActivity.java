@@ -3,9 +3,6 @@ package io.sekretess.ui;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.text.Html;
-import android.text.method.LinkMovementMethod;
-import android.text.util.Linkify;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
@@ -18,7 +15,6 @@ import com.auth0.android.jwt.JWT;
 
 import io.sekretess.BuildConfig;
 import io.sekretess.Constants;
-import io.sekretess.MainActivity;
 import io.sekretess.R;
 import io.sekretess.repository.DbHelper;
 

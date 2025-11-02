@@ -4,9 +4,7 @@ import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
@@ -21,7 +19,6 @@ import androidx.core.app.NotificationManagerCompat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.signal.libsignal.protocol.DuplicateMessageException;
-import org.signal.libsignal.protocol.IdentityKey;
 import org.signal.libsignal.protocol.IdentityKeyPair;
 import org.signal.libsignal.protocol.InvalidKeyException;
 import org.signal.libsignal.protocol.InvalidKeyIdException;
@@ -50,7 +47,6 @@ import org.signal.libsignal.protocol.util.Medium;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,14 +55,12 @@ import java.util.function.Function;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
-import io.sekretess.dto.GroupChatDto;
+import io.sekretess.SekretessApplication;
 import io.sekretess.dto.KeyMaterial;
 import io.sekretess.dto.KyberPreKeyRecords;
 import io.sekretess.dto.MessageDto;
-import io.sekretess.dto.RegistrationAndDeviceId;
 import io.sekretess.enums.MessageType;
-import io.sekretess.repository.DbHelper;
-import io.sekretess.repository.SekretessSignalProtocolStore;
+import io.sekretess.cryptography.storage.SekretessSignalProtocolStore;
 import io.sekretess.utils.ApiClient;
 import io.sekretess.utils.NotificationPreferencesUtils;
 
@@ -77,30 +71,30 @@ public class SekretessCryptographicService {
     private static final Base64.Encoder base64Encoder = Base64.getEncoder();
     private static final Base64.Decoder base64Decoder = Base64.getDecoder();
     private static final Map<String, GroupCipher> groupCipherTable = new ConcurrentHashMap<>();
+    private SekretessSignalProtocolStore sekretessSignalProtocolStore;
 
     private final String TAG = "SekretessCryptographicService";
-    private final Context context;
     private final int deviceId = 1;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final SekretessApplication application;
 
-    public SekretessCryptographicService(Context context) {
-        this.context = context;
+    public SekretessCryptographicService(SekretessApplication application) {
+        this.application = application;
         initSignalProtocol();
     }
 
     public void updateOneTimeKeys() {
-        try (DbHelper dbHelper = new DbHelper(context)) {
-            IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
-            PreKeyRecord[] preKeyRecords = generatePreKeys();
-            KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
-            String[] strPreKeyRecords = serializeSignedPreKeys(preKeyRecords);
-            String[] strKyberPreKeyRecords = serializeKyberPreKeys(kyberPreKeyRecords.getKyberPreKeyRecords());
-            if (ApiClient.updateOneTimeKeys(context, dbHelper.getAuthState(), strPreKeyRecords, strKyberPreKeyRecords)) {
+        IdentityKeyPair identityKeyPair = signalProtocolStore.getIdentityKeyPair();
+        PreKeyRecord[] preKeyRecords = generatePreKeys();
+        KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
+        try {
+            if (ApiClient.updateOneTimeKeys(context, dbHelper.getAuthState(), preKeyRecords, kyberPreKeyRecords)) {
                 storePreKeyRecords(preKeyRecords);
                 storeKyberPreKeyRecords(kyberPreKeyRecords);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error during update one time keys", e);
+            Toast.makeText(context, "Error during update one time keys" + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -125,41 +119,6 @@ public class SekretessCryptographicService {
         return kyberPreKeyRecord;
     }
 
-    public void initProtocolStorage(String username) {
-        Log.i(TAG, "Login event received");
-        try (DbHelper dbHelper = new DbHelper(context)) {
-            SharedPreferences globalVariables = context.getSharedPreferences("global-variables", Context.MODE_PRIVATE);
-            globalVariables.edit().putString("username", username).apply();
-
-            if (signalProtocolStore == null) {
-                Log.w(TAG, "Signal protocol store is null. Initializing protocolStore...");
-                IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
-                if (identityKeyPair == null) {
-                    Log.w(TAG, "No cryptographic keys found. Initializing keys...");
-                    initializeSecretKeys(keyMaterial -> ApiClient.upsertKeyStore(context, keyMaterial));
-                } else {
-                    Log.w(TAG, "Cryptographic keys found. Loading from database...");
-                    loadCryptoKeysFromDb(context);
-                }
-            } else {
-                for (SignedPreKeyRecord signedPreKeyRecord : signalProtocolStore.loadSignedPreKeys()) {
-                    Log.i(TAG, "SignedPrekeyRecordLoaded. Id:" + signedPreKeyRecord.getId());
-                    Log.i(TAG, "SignedPrekeyRecordLoaded. Signature:" + base64Encoder.encodeToString(signedPreKeyRecord.getSignature()));
-                }
-            }
-            if (groupCipherTable.isEmpty()) {
-                List<GroupChatDto> groupChatsInfo = dbHelper.getGroupChatsInfo();
-                for (GroupChatDto groupChatDto : groupChatsInfo) {
-                    processKeyDistributionMessage(groupChatDto.getSender(), groupChatDto.getDistributionKey());
-                }
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Something wrong gone during handle login event. No cryptographic env initialized!", e);
-            context.sendBroadcast(new Intent(Constants.EVENT_TOKEN_ISSUE));
-
-        }
-    }
-
     public void processKeyDistributionMessage(String name, String base64Key) {
         try {
             Log.i(TAG, "base64 keyDistributionMessage: " + base64Key);
@@ -175,52 +134,27 @@ public class SekretessCryptographicService {
     }
 
     private void initSignalProtocol() {
-        try (DbHelper dbHelper = new DbHelper(context)) {
-            Log.i(TAG, "All broadcast receivers registered");
-            Log.i(TAG, "signalProtocolStore = " + signalProtocolStore);
-            if (signalProtocolStore == null) {
-                if (dbHelper.getIdentityKeyPair() != null) {
-                    Log.i(TAG, "SignalProtocolStore is null. Loading data from db");
-                    try {
-                        loadCryptoKeysFromDb(context);
-                    } catch (Exception e) {
-                        Log.e(TAG, "SignalProtocolStore is null. Error on load from DB.", e);
-                        broadcastTokenIssue();
-                    }
-                } else {
-                    Log.i(TAG, "SignalProtocolStore is null. Starting logging in process");
-                }
-            }
+        this.sekretessSignalProtocolStore = new SekretessSignalProtocolStore(application);
+        if (sekretessSignalProtocolStore.getIdentityKeyPair() == null) {
+
         }
     }
 
     private void storeKyberPreKeyRecords(KyberPreKeyRecords kyberPreKeyRecords) {
-        try (DbHelper dbHelper = new DbHelper(context)) {
-
-            for (KyberPreKeyRecord kyberPreKeyRecord : kyberPreKeyRecords.getKyberPreKeyRecords()) {
-                dbHelper.storeKyberPreKey(kyberPreKeyRecord);
-                signalProtocolStore.storeKyberPreKey(kyberPreKeyRecord.getId(), kyberPreKeyRecord);
-            }
-
-            dbHelper.storeKyberPreKey(kyberPreKeyRecords.getLastResortKyberPreKeyRecord());
-            signalProtocolStore.storeKyberPreKey(kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId(), kyberPreKeyRecords.getLastResortKyberPreKeyRecord());
+        for (KyberPreKeyRecord kyberPreKeyRecord : kyberPreKeyRecords.getKyberPreKeyRecords()) {
+            signalProtocolStore.storeKyberPreKey(kyberPreKeyRecord.getId(), kyberPreKeyRecord);
         }
+        signalProtocolStore.storeKyberPreKey(kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId(), kyberPreKeyRecords.getLastResortKyberPreKeyRecord());
     }
 
     private void storePreKeyRecords(PreKeyRecord[] preKeyRecords) {
-        try (DbHelper dbHelper = new DbHelper(context)) {
-            for (PreKeyRecord preKeyRecord : preKeyRecords) {
-                signalProtocolStore.storePreKey(preKeyRecord.getId(), preKeyRecord);
-                dbHelper.storePreKeyRecord(preKeyRecord);
-            }
+        for (PreKeyRecord preKeyRecord : preKeyRecords) {
+            signalProtocolStore.storePreKey(preKeyRecord.getId(), preKeyRecord);
         }
     }
 
     private void storeSignedPreKey(SignedPreKeyRecord signedPreKeyRecord) {
-        try (DbHelper dbHelper = new DbHelper(context)) {
-            signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
-            dbHelper.storeSignedPreKeyRecord(signedPreKeyRecord);
-        }
+        signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
     }
 
     private SignedPreKeyRecord generateSignedPreKey(ECKeyPair keyPair, byte[] signature) {
@@ -241,41 +175,15 @@ public class SekretessCryptographicService {
         return preKeyRecords;
     }
 
-    private String[] serializeSignedPreKeys(PreKeyRecord[] preKeyRecords) throws InvalidKeyException {
-        String[] serializedOneTimePreKeys = new String[preKeyRecords.length];
-
-        int idx = 0;
-        for (PreKeyRecord preKeyRecord : preKeyRecords) {
-            serializedOneTimePreKeys[idx++] = preKeyRecord.getId() + ":" + base64Encoder.encodeToString(preKeyRecord.getKeyPair().getPublicKey().serialize());
-        }
-        return serializedOneTimePreKeys;
-    }
-
-
-    private String serializeKyberPreKey(KyberPreKeyRecord kyberPreKeyRecord) throws InvalidKeyException {
-        return kyberPreKeyRecord.getId() + ":" + base64Encoder.encodeToString(kyberPreKeyRecord.getKeyPair().getPublicKey().serialize()) + ":" + base64Encoder.encodeToString(kyberPreKeyRecord.getSignature());
-    }
-
-    private String[] serializeKyberPreKeys(KyberPreKeyRecord[] kyberPreKeyRecords) throws InvalidKeyException {
-        String[] serializedKyberPreKeys = new String[kyberPreKeyRecords.length];
-        int idx = 0;
-        for (KyberPreKeyRecord kyberPreKeyRecord : kyberPreKeyRecords) {
-            serializedKyberPreKeys[idx++] = serializeKyberPreKey(kyberPreKeyRecord);
-        }
-        return serializedKyberPreKeys;
-    }
-
     public void initializeSecretKeys(Function<KeyMaterial, Boolean> f) {
         try {
-//            ECKeyPair ecKeyPair = ECKeyPair.generate();
-//            IdentityKey identityKey = new IdentityKey(ecKeyPair.getPublicKey());
-//            IdentityKeyPair identityKeyPair = new IdentityKeyPair(identityKey, ecKeyPair.getPrivateKey());
-            IdentityKeyPair identityKeyPair = IdentityKeyPair.generate();
-
-            int registrationId = KeyHelper.generateRegistrationId(false);
+            this.sekretessSignalProtocolStore = new SekretessSignalProtocolStore(application);
             ECKeyPair signedPreKeyPair = ECKeyPair.generate();
+            IdentityKeyPair identityKeyPair = sekretessSignalProtocolStore.getIdentityKeyPair();
+            int registrationId = sekretessSignalProtocolStore.getLocalRegistrationId();
 
-            byte[] signature = identityKeyPair.getPrivateKey().calculateSignature(signedPreKeyPair.getPublicKey().serialize());
+            byte[] signature = identityKeyPair.getPrivateKey().calculateSignature(signedPreKeyPair
+                    .getPublicKey().serialize());
 
             //Generate one-time prekeys
             PreKeyRecord[] opk = generatePreKeys();
@@ -283,20 +191,21 @@ public class SekretessCryptographicService {
             SignedPreKeyRecord signedPreKeyRecord = generateSignedPreKey(signedPreKeyPair, signature);
             KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
 
-            KeyMaterial keyMaterial = new KeyMaterial(registrationId, serializeSignedPreKeys(opk), signedPreKeyRecord, identityKeyPair, signature, serializeKyberPreKeys(kyberPreKeyRecords.getKyberPreKeyRecords()), base64Encoder.encodeToString(kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getKeyPair().getPublicKey().serialize()), kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getSignature(), kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId());
+            base64Encoder.encodeToString(kyberPreKeyRecords.getLastResortKyberPreKeyRecord()
+                    .getKeyPair().getPublicKey().serialize())
+
+            KeyMaterial keyMaterial = new KeyMaterial(registrationId, opk, signedPreKeyRecord,
+                    identityKeyPair, signature,
+                    kyberPreKeyRecords.getKyberPreKeyRecords(),
+                    kyberPreKeyRecords.getLastResortKyberPreKeyRecord(),
+                    kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getSignature(),
+                    kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId());
 
             if (f.apply(keyMaterial)) {
-                try (DbHelper dbHelper = new DbHelper(context)) {
-                    dbHelper.clearKeyData();
-                    dbHelper.storeIdentityKeyPair(identityKeyPair);
-                    dbHelper.storeRegistrationId(registrationId, deviceId);
-
-                    signalProtocolStore = new SekretessSignalProtocolStore(context, identityKeyPair, registrationId);
-
-                    storeKyberPreKeyRecords(kyberPreKeyRecords);
-                    storePreKeyRecords(opk);
-                    storeSignedPreKey(signedPreKeyRecord);
-                }
+                dbHelper.clearKeyData();
+                storeKyberPreKeyRecords(kyberPreKeyRecords);
+                storePreKeyRecords(opk);
+                storeSignedPreKey(signedPreKeyRecord);
             }
 
 
@@ -304,27 +213,6 @@ public class SekretessCryptographicService {
             Log.i(TAG, "KeyMaterial generation failed", e);
             Toast.makeText(context, "KeyMaterial generation failed " + e.getMessage(), Toast.LENGTH_LONG).show();
             context.sendBroadcast(new Intent(Constants.EVENT_TOKEN_ISSUE));
-        }
-    }
-
-    private void loadCryptoKeysFromDb(Context context) throws InvalidMessageException {
-        try (DbHelper dbHelper = new DbHelper(context)) {
-            RegistrationAndDeviceId registrationId = dbHelper.getRegistrationId();
-            IdentityKeyPair identityKeyPair = dbHelper.getIdentityKeyPair();
-            signalProtocolStore = new SekretessSignalProtocolStore(context, identityKeyPair, registrationId.getRegistrationId());
-            SignedPreKeyRecord signedPreKeyRecord = dbHelper.getSignedPreKeyRecord();
-            Log.i(TAG, "SignedPrekeyRecordLoaded. Id:" + signedPreKeyRecord.getId());
-            Log.i(TAG, "SignedPrekeyRecordLoaded. Signature:" + base64Encoder.encodeToString(signedPreKeyRecord.getSignature()));
-            signalProtocolStore.storeSignedPreKey(signedPreKeyRecord.getId(), signedPreKeyRecord);
-
-            List<GroupChatDto> groupChatsInfo = dbHelper.getGroupChatsInfo();
-            for (GroupChatDto groupChatDto : groupChatsInfo) {
-                processKeyDistributionMessage(groupChatDto.getSender(), groupChatDto.getDistributionKey());
-            }
-
-            dbHelper.loadPreKeyRecords(signalProtocolStore);
-            dbHelper.loadSessions(signalProtocolStore);
-            dbHelper.loadKyberPreKeys(signalProtocolStore);
         }
     }
 
@@ -363,27 +251,23 @@ public class SekretessCryptographicService {
         String sender = exchangeName.split("_")[0];
         handleAdvertisementMessage(sender, base64Message, exchangeName, (message) -> {
             Log.i("SignalProtocolService", "Decrypted advertisement message: " + message);
-            try (DbHelper dbHelper = new DbHelper(context)) {
-                dbHelper.storeDecryptedMessage(sender, message);
-                broadcastNewMessageReceived();
-                publishNotification(sender, message);
-            }
+            messageRepository.storeDecryptedMessage(sender, message);
+            broadcastNewMessageReceived();
+            publishNotification(sender, message);
         });
     }
 
     private void processPrivateMessage(String base64Message, String sender, MessageType messageType) throws InvalidMessageException, InvalidVersionException, LegacyMessageException, InvalidKeyException, UntrustedIdentityException, DuplicateMessageException, InvalidKeyIdException {
         handlePrivateMessage(sender, base64Message, (message) -> {
-            try (DbHelper dbHelper = new DbHelper(context)) {
-                if (messageType == MessageType.KEY_DISTRIBUTION) {
-                    processKeyDistributionMessage(sender, message);
-                    //Store group chat info
-                    dbHelper.storeGroupChatInfo(message, sender);
-                } else {
-                    Log.i("SignalProtocolService", "Decrypted private message: " + message);
-                    dbHelper.storeDecryptedMessage(sender, message);
-                    publishNotification(sender, message);
-                    broadcastNewMessageReceived();
-                }
+            if (messageType == MessageType.KEY_DISTRIBUTION) {
+                processKeyDistributionMessage(sender, message);
+                //Store group chat info
+                dbHelper.storeGroupChatInfo(message, sender);
+            } else {
+                Log.i("SignalProtocolService", "Decrypted private message: " + message);
+                messageRepository.storeDecryptedMessage(sender, message);
+                publishNotification(sender, message);
+                broadcastNewMessageReceived();
             }
         });
     }

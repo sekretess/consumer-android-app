@@ -39,6 +39,7 @@ public class SekretessWebSocketClient {
         t = new Thread(() -> {
             try {
                 webSocket.connect();
+                webSocket.addHeader()
             } catch (Exception e) {
                 e.printStackTrace();
             }
