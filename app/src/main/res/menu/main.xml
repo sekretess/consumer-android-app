@@ -5,5 +5,5 @@
         android:id="@+id/action_refresh_token"
         android:orderInCategory="100"
         android:title="Refresh Tokens"
-        app:showAsAction="never" />
+        app:showAsAction="always" />
 </menu>

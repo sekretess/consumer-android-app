@@ -2,13 +2,16 @@ package io.sekretess.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
+import io.sekretess.utils.ApiClient;
 
 public class SignupActivity extends AppCompatActivity {
 
@@ -20,9 +23,14 @@ public class SignupActivity extends AppCompatActivity {
         setContentView(R.layout.activity_signup);
         Button btnSignup = findViewById(R.id.btnSignUp);
         btnSignup.setOnClickListener(v -> broadcastSignup());
+
+        TextView txtLoginLink = findViewById(R.id.txtLoginLink);
+        txtLoginLink.setOnClickListener(v->{
+            startActivity(new Intent(this, LoginActivity.class));
+        });
     }
 
-    private void broadcastSignup (){
+    private void broadcastSignup() {
 
         String email = ((EditText) findViewById(R.id.txtSignupEmail)).getText().toString();
 
@@ -38,16 +46,19 @@ public class SignupActivity extends AppCompatActivity {
             return;
         }
 
-        if (!confirmPasswordEdit.getText().toString().equals(passwordEdit.getText().toString())){
+        if (!confirmPasswordEdit.getText().toString().equals(passwordEdit.getText().toString())) {
             confirmPasswordEdit.setError("Not matched with password");
             return;
         }
 
-            Intent intent = new Intent(Constants.EVENT_SIGNUP);
-        intent.putExtra("email", email);
-        intent.putExtra("username", username);
-        intent.putExtra("password", password);
-        sendBroadcast(intent);
+        MainActivity.getSekretessCryptographicService().initializeSecretKeys(keyMaterial -> {
+            if (ApiClient.createUser(getApplicationContext(), username, email, password, keyMaterial)) {
+                getApplication().sendBroadcast(new Intent(Constants.EVENT_TOKEN_ISSUE));
+                return true;
+            } else {
+                return false;
+            }
+        });
     }
 
     private boolean validateUserName(EditText usernameEdit) {
@@ -57,6 +68,12 @@ public class SignupActivity extends AppCompatActivity {
             return false;
         }
         return true;
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.i("SignupActivity", "New intent received");
     }
 
     private boolean validatePassword(EditText passwordEdit) {

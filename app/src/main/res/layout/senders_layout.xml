@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginLeft="5dp"
@@ -9,54 +10,48 @@
     android:layout_marginBottom="3dp"
     android:background="@drawable/rounded_shape">
 
-    <TableRow android:paddingLeft="5dp">
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/imgBusinessIcon"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:background="#414B58"
+        android:importantForAccessibility="no"
+        android:padding="5dp"
+        android:src="@drawable/ic_business"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:shapeAppearanceOverlay="@style/circleImageView"
+        app:strokeColor="@color/white"
+        app:strokeWidth="2dp"/>
 
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/imgBusinessIcon"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:background="#414B58"
-            android:importantForAccessibility="no"
-            android:padding="5dp"
-            android:src="@drawable/ic_business"
-            app:shapeAppearanceOverlay="@style/circleImageView"
-            app:strokeColor="@color/white"
-            app:strokeWidth="2dp">
+    <TextView
+        android:id="@+id/txtSenderName"
+        android:layout_width="326dp"
+        android:layout_height="36dp"
+        android:layout_marginEnd="15dp"
+        android:padding="5dp"
+        android:text="SwedenBank"
+        android:textAlignment="textStart"
+        android:textColor="@color/white"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/txtBriefBody"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/imgBusinessIcon"
+        app:layout_constraintTop_toTopOf="parent" />
 
-        </com.google.android.material.imageview.ShapeableImageView>
+    <TextView
+        android:id="@+id/txtBriefBody"
+        android:layout_width="327dp"
+        android:layout_height="57dp"
+        android:layout_marginEnd="14dp"
+        android:layout_span="3"
+        android:padding="1dp"
+        android:text="Your otp for transaction #213432 is OTP:2233"
+        android:textColor="@color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/imgBusinessIcon" />
 
-        <TextView
-            android:id="@+id/txtSenderName"
-            android:layout_width="263dp"
-            android:layout_height="56dp"
-            android:padding="5dp"
-            android:text="SwedenBank"
-            android:textAlignment="textStart"
-            android:textColor="@color/white"
-            android:textSize="24sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/txtMessageCount"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:padding="5dp"
-            android:textAlignment="center"
-            android:textColor="@color/white"
-            android:textSize="24sp"
-            android:textStyle="bold" />
-    </TableRow>
-
-    <TableRow android:layout_width="match_parent"
-        android:paddingLeft="5dp">
-
-        <TextView
-            android:id="@+id/txtBriefBody"
-            android:layout_width="match_parent"
-            android:layout_span="3"
-            android:padding="10dp"
-            android:text="Your otp for transaction #213432 is OTP:2233"
-            android:textColor="@color/white" />
-    </TableRow>
-</TableLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

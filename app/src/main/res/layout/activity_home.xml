@@ -13,23 +13,34 @@
         android:paddingStart="3pt">
 
         <TableRow android:layout_width="match_parent">
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Trusted Senders"
                 android:textColor="@color/white"
-                android:textStyle="bold"/>
+                android:textStyle="bold"
+                android:visibility="gone" />
         </TableRow>
         <TableRow android:layout_width="match_parent">
+
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/trusted_senders"
                 android:layout_width="match_parent"
                 android:layout_height="100dp"
-                android:orientation="horizontal"
-                app:reverseLayout="true"
-                android:scrollbars="none"
+                android:background="#0D0D0D"
                 android:layoutMode="opticalBounds"
-                android:background="#0D0D0D"/>
+                android:orientation="horizontal"
+                android:scrollbars="none"
+                android:visibility="gone"
+                app:reverseLayout="true" />
+        </TableRow>
+        <TableRow>
+            <androidx.appcompat.widget.SearchView android:id="@+id/searchView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:queryHint="Search"
+                android:theme="@style/MySearchViewStyle" />
         </TableRow>
 
         <TableRow>

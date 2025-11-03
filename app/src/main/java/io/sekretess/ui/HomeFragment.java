@@ -4,12 +4,17 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 
+
+import androidx.appcompat.widget.SearchView;
+import androidx.appcompat.widget.SearchView.SearchAutoComplete;
 import androidx.appcompat.widget.Toolbar;
 
 import androidx.annotation.NonNull;
@@ -29,14 +34,13 @@ import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.TrustedSender;
 import io.sekretess.repository.DbHelper;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class HomeFragment extends Fragment {
 
     private RecyclerView messagesRecycleView;
+    private SendersAdapter sendersAdapter;
     private View fragmentView;
 
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
@@ -44,10 +48,10 @@ public class HomeFragment extends Fragment {
         public void onReceive(Context context, Intent intent) {
             Log.i("ChatsFragment", "new-incoming-message event received");
             String username = new DbHelper(context).getUserNameFromJwt();
-            List<MessageBriefDto> messageBriefs = new DbHelper(context).getMessageBriefs(username);
-            SendersAdapter sendersAdapter = updateMessageAdapter(context);
+            //List<MessageBriefDto> messageBriefs = new DbHelper(context).getMessageBriefs(username);
+            sendersAdapter = updateMessageAdapter(context);
             messagesRecycleView.setAdapter(sendersAdapter);
-            sendersAdapter.notifyItemInserted(messageBriefs.size());
+            //sendersAdapter.notifyItemInserted(messageBriefs.size());
         }
     };
 
@@ -55,9 +59,6 @@ public class HomeFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //TODO Mock data - remove on production
-        Log.i("ChatsActivity", "Registering receiver. Context: " + getActivity().getApplicationContext());
-        Log.i("ChatsActivity", "Registering receiver. Context: " + getActivity().getBaseContext());
-        Log.i("ChatsActivity", "Registering receiver. Context: " + getContext());
         ContextCompat.registerReceiver(getContext(), broadcastReceiver,
                 new IntentFilter(Constants.EVENT_NEW_INCOMING_MESSAGE), ContextCompat.RECEIVER_EXPORTED);
     }
@@ -69,7 +70,34 @@ public class HomeFragment extends Fragment {
         renderMessagesRecycleView();
         Toolbar toolbar = getActivity().findViewById(R.id.my_toolbar);
         toolbar.setTitle("Home");
+        SearchView searchView = fragmentView.findViewById(R.id.searchView);
+        prepareSearchView(searchView);
         return fragmentView;
+    }
+
+    private void prepareSearchView(SearchView searchView) {
+        SearchAutoComplete viewById = searchView.findViewById(androidx.appcompat.R.id.search_src_text);
+        viewById.setTextColor(Color.WHITE);
+
+        // To change magnifier icon color
+        ImageView searchIcon = searchView.findViewById(androidx.appcompat.R.id.search_mag_icon);
+        searchIcon.setColorFilter(Color.WHITE);
+        // To change close button icon color
+        ImageView searchCloseIcon = searchView.findViewById(androidx.appcompat.R.id.search_close_btn);
+        searchCloseIcon.setColorFilter(Color.WHITE);
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                sendersAdapter.getFilter().filter(newText);
+                return false;
+            }
+        });
     }
 
     private void renderTrustedSendersRecycleView() {
@@ -82,7 +110,8 @@ public class HomeFragment extends Fragment {
 
     private void renderMessagesRecycleView() {
         messagesRecycleView = fragmentView.findViewById(R.id.chat);
-        messagesRecycleView.setAdapter(updateMessageAdapter(getContext()));
+        sendersAdapter = updateMessageAdapter(getContext());
+        messagesRecycleView.setAdapter(sendersAdapter);
         messagesRecycleView.setLayoutManager(new LinearLayoutManager(getContext()));
 
     }
@@ -107,22 +136,24 @@ public class HomeFragment extends Fragment {
 
 
     private SendersAdapter updateMessageAdapter(Context context) {
-        String username = new DbHelper(context).getUserNameFromJwt();
-        List<MessageBriefDto> messageBriefs = new DbHelper(getContext()).getMessageBriefs(username);
-        return new SendersAdapter(getContext(), messageBriefs, (sender) -> {
-            try {
-                Bundle bundle = new Bundle();
-                bundle.putString("from", sender);
-                AppCompatActivity activity = (AppCompatActivity) fragmentView.getContext();
-                MessagesFromSenderFragment fragment = new MessagesFromSenderFragment();
-                fragment.setArguments(bundle);
-                activity.getSupportFragmentManager().beginTransaction().replace(R.id.frame_layout, fragment).commit();
-                Toolbar toolbar = activity.findViewById(R.id.my_toolbar);
-                toolbar.setTitle(sender);
-            } catch (Exception e) {
-                Log.e("ChatsFragment", "Error", e);
-            }
-        });
+        try (DbHelper db = new DbHelper(context)) {
+            String username = db.getUserNameFromJwt();
+            List<MessageBriefDto> messageBriefs = db.getMessageBriefs(username);
+            return new SendersAdapter(getContext(), messageBriefs, (sender) -> {
+                try {
+                    Bundle bundle = new Bundle();
+                    bundle.putString("from", sender);
+                    AppCompatActivity activity = (AppCompatActivity) fragmentView.getContext();
+                    MessagesFromSenderFragment fragment = new MessagesFromSenderFragment();
+                    fragment.setArguments(bundle);
+                    activity.getSupportFragmentManager().beginTransaction().replace(R.id.frame_layout, fragment).commit();
+                    Toolbar toolbar = activity.findViewById(R.id.my_toolbar);
+                    toolbar.setTitle(sender);
+                } catch (Exception e) {
+                    Log.e("ChatsFragment", "Error", e);
+                }
+            });
+        }
     }
 
     @Override
