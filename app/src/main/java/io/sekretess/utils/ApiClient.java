@@ -259,11 +259,10 @@ public class ApiClient {
     }
 
 
-    public static boolean updateOneTimeKeys(Context context, AuthState authState, PreKeyRecord[] preKeyRecords, KyberPreKeyRecords kyberPreKeyRecords) {
+    public static boolean updateOneTimeKeys(Context context, PreKeyRecord[] preKeyRecords, KyberPreKeyRecords kyberPreKeyRecords) {
         try {
-
-            String[] strPreKeyRecords = serializeSignedPreKeys(preKeyRecords);
-            String[] strKyberPreKeyRecords = serializeKyberPreKeys(kyberPreKeyRecords.getKyberPreKeyRecords());
+            String[] strPreKeyRecords = SerializationUtils.serializeSignedPreKeys(preKeyRecords);
+            String[] strKyberPreKeyRecords = SerializationUtils.serializeKyberPreKeys(kyberPreKeyRecords.getKyberPreKeyRecords());
 
             return Executors.newSingleThreadExecutor().submit(() -> updateOpksInternal(context, authState,
                     strPreKeyRecords, strKyberPreKeyRecords)).get();
@@ -300,9 +299,9 @@ public class ApiClient {
         }
     }
 
-    public static boolean createUser(Context context, String username, String email, String password, KeyMaterial keyMaterial) {
+    public static boolean createUser(Context context, String username, String email, String password) {
         try {
-            Future<Boolean> future = Executors.newSingleThreadExecutor().submit(() -> createUserInternal(context, username, email, password, keyMaterial));
+            Future<Boolean> future = Executors.newSingleThreadExecutor().submit(() -> createUserInternal(context, username, email, password));
             return future.get(20, TimeUnit.SECONDS);
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during signup", e);
@@ -311,10 +310,10 @@ public class ApiClient {
         }
     }
 
-    private static boolean createUserInternal(Context context, String username, String email, String password, KeyMaterial keyMaterial) {
+    private static boolean createUserInternal(Context context, String username, String email, String password) {
         OkHttpClient httpClient = httpClient(authState(context), context);
         try {
-            UserDto userDto = Mappers.toUserDto(keyMaterial);
+            UserDto userDto = new UserDto();
             userDto.setUsername(username);
             userDto.setEmail(email);
             userDto.setPassword(password);
@@ -358,36 +357,14 @@ public class ApiClient {
     }
 
     private static OkHttpClient httpClient(AuthState authState, Context context) {
-        return new OkHttpClient.Builder().addInterceptor(new SekretessHttpInterceptor(authState.getIdToken())).authenticator(new BearerAuthenticator(authState, context)).build();
+        return new OkHttpClient.Builder()
+                .addInterceptor(new SekretessHttpInterceptor(authState.getIdToken()))
+                .authenticator(new BearerAuthenticator(authState, context)).build();
     }
 
     private static AuthState authState(Context context) {
         try (DbHelper dbHelper = new DbHelper(context)) {
             return dbHelper.getAuthState();
         }
-    }
-
-    private static String[] serializeSignedPreKeys(PreKeyRecord[] preKeyRecords) throws InvalidKeyException {
-        String[] serializedOneTimePreKeys = new String[preKeyRecords.length];
-
-        int idx = 0;
-        for (PreKeyRecord preKeyRecord : preKeyRecords) {
-            serializedOneTimePreKeys[idx++] = preKeyRecord.getId() + ":" + base64Encoder.encodeToString(preKeyRecord.getKeyPair().getPublicKey().serialize());
-        }
-        return serializedOneTimePreKeys;
-    }
-
-
-    private static String serializeKyberPreKey(KyberPreKeyRecord kyberPreKeyRecord) throws InvalidKeyException {
-        return kyberPreKeyRecord.getId() + ":" + base64Encoder.encodeToString(kyberPreKeyRecord.getKeyPair().getPublicKey().serialize()) + ":" + base64Encoder.encodeToString(kyberPreKeyRecord.getSignature());
-    }
-
-    private static String[] serializeKyberPreKeys(KyberPreKeyRecord[] kyberPreKeyRecords) throws InvalidKeyException {
-        String[] serializedKyberPreKeys = new String[kyberPreKeyRecords.length];
-        int idx = 0;
-        for (KyberPreKeyRecord kyberPreKeyRecord : kyberPreKeyRecords) {
-            serializedKyberPreKeys[idx++] = serializeKyberPreKey(kyberPreKeyRecord);
-        }
-        return serializedKyberPreKeys;
     }
 }

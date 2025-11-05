@@ -11,21 +11,23 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
+import io.sekretess.SekretessApplication;
 import io.sekretess.utils.ApiClient;
 
 public class SignupActivity extends AppCompatActivity {
-
+    private SekretessApplication sekretessApplication;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        this.sekretessApplication = (SekretessApplication) getApplication();
 
         setContentView(R.layout.activity_signup);
         Button btnSignup = findViewById(R.id.btnSignUp);
         btnSignup.setOnClickListener(v -> broadcastSignup());
 
         TextView txtLoginLink = findViewById(R.id.txtLoginLink);
-        txtLoginLink.setOnClickListener(v->{
+        txtLoginLink.setOnClickListener(v -> {
             startActivity(new Intent(this, LoginActivity.class));
         });
     }
@@ -51,14 +53,7 @@ public class SignupActivity extends AppCompatActivity {
             return;
         }
 
-        MainActivity.getSekretessCryptographicService().initializeSecretKeys(keyMaterial -> {
-            if (ApiClient.createUser(getApplicationContext(), username, email, password, keyMaterial)) {
-                getApplication().sendBroadcast(new Intent(Constants.EVENT_TOKEN_ISSUE));
-                return true;
-            } else {
-                return false;
-            }
-        });
+        ApiClient.createUser(getApplicationContext(), username, email, password);
     }
 
     private boolean validateUserName(EditText usernameEdit) {

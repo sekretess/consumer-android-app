@@ -31,7 +31,8 @@ public class BearerAuthenticator implements Authenticator {
 
     @Override
     public Request authenticate(Route route, Response response) throws IOException {
-        if (response.code() == HttpURLConnection.HTTP_UNAUTHORIZED || response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
+        if (response.code() == HttpURLConnection.HTTP_UNAUTHORIZED ||
+                response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
             if (authState != null) {
                 authState.performActionWithFreshTokens(new AuthorizationService(context), this::action);
             }

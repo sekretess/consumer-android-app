@@ -16,6 +16,7 @@ import com.auth0.android.jwt.JWT;
 import io.sekretess.BuildConfig;
 import io.sekretess.Constants;
 import io.sekretess.R;
+import io.sekretess.SekretessApplication;
 import io.sekretess.repository.DbHelper;
 
 import net.openid.appauth.AuthState;
@@ -30,7 +31,7 @@ import net.openid.appauth.TokenRequest;
 public class LoginActivity extends AppCompatActivity {
 
     private DbHelper dbHelper;
-
+    private SekretessApplication sekretessApplication;
 
     int RC_AUTH = 1717275371;
 
@@ -69,6 +70,7 @@ public class LoginActivity extends AppCompatActivity {
                                 String username = jwt.getClaim(Constants.USERNAME_CLAIM).asString();
                                 Log.i("LoginActivity", "Login successful. Broadcast event.");
                                 dbHelper.storeAuthState(authState.jsonSerializeString());
+                                sekretessApplication.getSekretessCryptographicService().init();
                                 startActivity(new Intent(this, MainActivity.class));
                             }
                         });
@@ -80,6 +82,8 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        this.sekretessApplication = (SekretessApplication) getApplication();
+
         dbHelper = new DbHelper(getApplicationContext());
         setContentView(R.layout.activity_login);
 

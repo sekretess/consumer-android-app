@@ -28,6 +28,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
+import io.sekretess.SekretessApplication;
 import io.sekretess.adapters.SendersAdapter;
 import io.sekretess.adapters.TrustedSendersAdapter;
 import io.sekretess.dto.MessageBriefDto;
@@ -42,6 +43,7 @@ public class HomeFragment extends Fragment {
     private RecyclerView messagesRecycleView;
     private SendersAdapter sendersAdapter;
     private View fragmentView;
+    private SekretessApplication sekretessApplication;
 
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -58,6 +60,7 @@ public class HomeFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        this.sekretessApplication = (SekretessApplication) requireActivity().getApplication();
         //TODO Mock data - remove on production
         ContextCompat.registerReceiver(getContext(), broadcastReceiver,
                 new IntentFilter(Constants.EVENT_NEW_INCOMING_MESSAGE), ContextCompat.RECEIVER_EXPORTED);
@@ -118,7 +121,7 @@ public class HomeFragment extends Fragment {
 
     private TrustedSendersAdapter updateTrustedSendersAdapter() {
         DbHelper dbHelper = new DbHelper(getContext());
-        List<TrustedSender> trustedSenders = dbHelper.getTopSenders()
+        List<TrustedSender> trustedSenders = sekretessApplication.getSekretessMessageService().getTopSenders()
                 .stream()
                 .distinct()
                 .map(businessName -> new TrustedSender(businessName))

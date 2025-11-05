@@ -29,16 +29,15 @@ import java.util.Optional;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
+import io.sekretess.SekretessApplication;
 import io.sekretess.repository.DbHelper;
 import io.sekretess.service.SekretessCryptographicService;
 import io.sekretess.service.SekretessRabbitMqService;
 import io.sekretess.service.SekretessWebSocketClient;
 
 public class MainActivity extends AppCompatActivity {
-
-    private static SekretessCryptographicService sekretessCryptographicService;
-    private static SekretessRabbitMqService sekretessRabbitMqService;
     private static SekretessWebSocketClient sekretessWebSocketClient;
+    private SekretessApplication application;
     private final BroadcastReceiver tokenRefreshBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -55,14 +54,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Bundle extras = getIntent().getExtras();
-        if (extras != null) {
-            Log.i("MainActivity", "Extras found");
-            extras.keySet().forEach(s -> System.out.println(s + ":" + extras.get(s)));
-        }
+        this.application = (SekretessApplication) getApplication();
 
-        sekretessCryptographicService = new SekretessCryptographicService(getApplicationContext());
-        sekretessWebSocketClient = new SekretessWebSocketClient(sekretessCryptographicService);
+        sekretessWebSocketClient = new SekretessWebSocketClient(application.get);
         sekretessWebSocketClient.startWebSocket(new URL());
         setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light_NoActionBar);
         FirebaseMessaging.getInstance().getToken()
@@ -160,10 +154,6 @@ public class MainActivity extends AppCompatActivity {
         } else {
             return Optional.empty();
         }
-    }
-
-    public static SekretessCryptographicService getSekretessCryptographicService() {
-        return sekretessCryptographicService;
     }
 
     private void broadcastLoginEvent(String userName) {

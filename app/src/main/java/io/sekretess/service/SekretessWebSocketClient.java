@@ -10,12 +10,12 @@ import com.neovisionaries.ws.client.WebSocketFactory;
 import com.neovisionaries.ws.client.WebSocketFrame;
 
 public class SekretessWebSocketClient {
-    private final SekretessCryptographicService sekretessCryptographicService;
+    private final SekretessMessageService sekretessMessageService;
     private WebSocket webSocket;
     private Thread t;
 
-    public SekretessWebSocketClient(SekretessCryptographicService sekretessCryptographicService) {
-        this.sekretessCryptographicService = sekretessCryptographicService;
+    public SekretessWebSocketClient(SekretessMessageService sekretessMessageService) {
+        this.sekretessMessageService = sekretessMessageService;
     }
 
     public void startWebSocket(URL url) throws IOException {
@@ -23,7 +23,7 @@ public class SekretessWebSocketClient {
                 .addListener(new WebSocketAdapter() {
                     @Override
                     public void onTextMessage(WebSocket websocket, String text) throws Exception {
-                        sekretessCryptographicService.decryptMessage(text);
+                        sekretessMessageService.handleMessage(text);
                     }
 
                     @Override
@@ -39,7 +39,7 @@ public class SekretessWebSocketClient {
         t = new Thread(() -> {
             try {
                 webSocket.connect();
-                webSocket.addHeader()
+                webSocket.addHeader();
             } catch (Exception e) {
                 e.printStackTrace();
             }

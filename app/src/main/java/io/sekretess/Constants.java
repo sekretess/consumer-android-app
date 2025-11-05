@@ -11,7 +11,7 @@ public interface Constants {
 
 
     String SEKRETESS_NOTIFICATION_CHANNEL_NAME = "sekretess_notif";
-    String EVENT_TOKEN_ISSUE = "token-issue-event";
+//    String EVENT_TOKEN_ISSUE = "token-issue-event";
 
     String EVENT_NEW_INCOMING_MESSAGE = "new-incoming-mesage-event";
     String RABBIT_MQ_CONSUMER_QUEUE_SUFFIX = "_consumer";

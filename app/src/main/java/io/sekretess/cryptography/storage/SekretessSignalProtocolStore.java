@@ -20,8 +20,12 @@ import java.util.List;
 import java.util.UUID;
 
 import io.sekretess.SekretessApplication;
+import io.sekretess.repository.IdentityKeyRepository;
 import io.sekretess.repository.KyberPreKeyRepository;
 import io.sekretess.repository.PreKeyRepository;
+import io.sekretess.repository.RegistrationRepository;
+import io.sekretess.repository.SenderKeyRepository;
+import io.sekretess.repository.SessionRepository;
 
 public class SekretessSignalProtocolStore implements SignalProtocolStore {
     private final SekretessIdentityKeyStore identityKeyStore;
@@ -33,14 +37,25 @@ public class SekretessSignalProtocolStore implements SignalProtocolStore {
     private final SekretessSenderKeyStore senderKeyStore;
 
     private final SekretessKyberPreKeyStore kyberPreKeyStore;
+    private int minKeysThreshold = 5;
 
-    public SekretessSignalProtocolStore(SekretessApplication application) {
-        this.identityKeyStore = new SekretessIdentityKeyStore(application.getIdentityKeyRepository(), application.getRegistrationRepository());
-        this.preKeyStore = new SekretessPreKeyStore(application.getPreKeyRepository());
-        this.sessionStore = new SekretessSessionStore(application.getSessionRepository());
-        this.signedPreKeyStore = new SekretessSignedPreKeyStore(application.getPreKeyRepository());
-        this.senderKeyStore = new SekretessSenderKeyStore(application.getSenderKeyRepository());
-        this.kyberPreKeyStore = new SekretessKyberPreKeyStore(application.getKyberPreKeyRepository());
+    public SekretessSignalProtocolStore(SekretessApplication application,
+                                        IdentityKeyRepository identityKeyRepository,
+                                        RegistrationRepository registrationRepository,
+                                        PreKeyRepository preKeyRepository,
+                                        SessionRepository sessionRepository,
+                                        SenderKeyRepository senderKeyRepository,
+                                        KyberPreKeyRepository kyberPreKeyRepository) {
+        this.identityKeyStore = new SekretessIdentityKeyStore(identityKeyRepository, registrationRepository);
+        this.preKeyStore = new SekretessPreKeyStore(preKeyRepository);
+        this.sessionStore = new SekretessSessionStore(sessionRepository);
+        this.signedPreKeyStore = new SekretessSignedPreKeyStore(preKeyRepository);
+        this.senderKeyStore = new SekretessSenderKeyStore(senderKeyRepository);
+        this.kyberPreKeyStore = new SekretessKyberPreKeyStore(kyberPreKeyRepository);
+    }
+
+    public boolean registrationRequired() {
+        return identityKeyStore.registrationRequired();
     }
 
     @Override
@@ -181,5 +196,9 @@ public class SekretessSignalProtocolStore implements SignalProtocolStore {
     @Override
     public void removeSignedPreKey(int signedPreKeyId) {
         signedPreKeyStore.removeSignedPreKey(signedPreKeyId);
+    }
+
+    public boolean updateKeysRequired() {
+        return loadSignedPreKeys().size() > minKeysThreshold;
     }
 }

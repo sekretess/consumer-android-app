@@ -60,4 +60,8 @@ public class SekretessIdentityKeyStore implements IdentityKeyStore {
     public IdentityKey getIdentity(SignalProtocolAddress address) {
         return identityKeyRepository.getIdentity(address);
     }
+
+    public boolean registrationRequired() {
+        return !(registrationRepository.getRegistrationId()  > 0 && identityKeyRepository != null);
+    }
 }
