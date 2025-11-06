@@ -111,6 +111,9 @@ android {
 }
 
 dependencies {
+    constraints {
+        implementation("com.squareup.okio:okio:1.17.6")
+    }
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 //    implementation("net.zetetic:android-database-sqlcipher:4.5.4")//Encrypted database
     implementation("com.auth0.android:jwtdecode:2.0.2")
