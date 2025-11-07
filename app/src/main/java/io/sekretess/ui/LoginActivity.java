@@ -18,6 +18,7 @@ import io.sekretess.Constants;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
 import io.sekretess.repository.DbHelper;
+import io.sekretess.service.SekretessWebSocketClient;
 
 import net.openid.appauth.AuthState;
 import net.openid.appauth.AuthorizationException;
@@ -27,6 +28,8 @@ import net.openid.appauth.AuthorizationService;
 import net.openid.appauth.AuthorizationServiceConfiguration;
 import net.openid.appauth.ResponseTypeValues;
 import net.openid.appauth.TokenRequest;
+
+import java.net.URL;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -70,13 +73,23 @@ public class LoginActivity extends AppCompatActivity {
                                 String username = jwt.getClaim(Constants.USERNAME_CLAIM).asString();
                                 Log.i("LoginActivity", "Login successful. Broadcast event.");
                                 dbHelper.storeAuthState(authState.jsonSerializeString());
-                                sekretessApplication.getSekretessCryptographicService().init();
-                                startActivity(new Intent(this, MainActivity.class));
+                                try {
+                                    initializeApplication();
+                                    startActivity(new Intent(this, MainActivity.class));
+                                } catch (Exception e) {
+                                    Toast.makeText(getApplicationContext(), "KeyMaterial generation failed "
+                                            + e.getMessage(), Toast.LENGTH_LONG).show();
+                                }
                             }
                         });
             }
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void initializeApplication() throws Exception {
+        sekretessApplication.getSekretessWebSocketClient().startWebSocket();
+        sekretessApplication.getSekretessCryptographicService().init();
     }
 
     @Override

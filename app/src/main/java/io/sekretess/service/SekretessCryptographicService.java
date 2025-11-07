@@ -157,93 +157,38 @@ public class SekretessCryptographicService {
     }
 
 
-    public void init() {
-        try {
-            if (sekretessSignalProtocolStore.registrationRequired()) {
-                ECKeyPair signedPreKeyPair = ECKeyPair.generate();
-                IdentityKeyPair identityKeyPair = sekretessSignalProtocolStore.getIdentityKeyPair();
-                int registrationId = sekretessSignalProtocolStore.getLocalRegistrationId();
+    public void init() throws Exception {
+        if (sekretessSignalProtocolStore.registrationRequired()) {
+            ECKeyPair signedPreKeyPair = ECKeyPair.generate();
+            IdentityKeyPair identityKeyPair = sekretessSignalProtocolStore.getIdentityKeyPair();
+            int registrationId = sekretessSignalProtocolStore.getLocalRegistrationId();
 
-                byte[] signature = identityKeyPair.getPrivateKey().calculateSignature(signedPreKeyPair
-                        .getPublicKey().serialize());
+            byte[] signature = identityKeyPair.getPrivateKey().calculateSignature(signedPreKeyPair
+                    .getPublicKey().serialize());
 
-                //Generate one-time prekeys
-                PreKeyRecord[] opk = generatePreKeys();
+            //Generate one-time prekeys
+            PreKeyRecord[] opk = generatePreKeys();
 
-                SignedPreKeyRecord signedPreKeyRecord = generateSignedPreKey(signedPreKeyPair, signature);
-                KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
+            SignedPreKeyRecord signedPreKeyRecord = generateSignedPreKey(signedPreKeyPair, signature);
+            KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
 
-                KeyMaterial keyMaterial = new KeyMaterial(registrationId, opk, signedPreKeyRecord,
-                        identityKeyPair, signature,
-                        kyberPreKeyRecords.getKyberPreKeyRecords(),
-                        kyberPreKeyRecords.getLastResortKyberPreKeyRecord(),
-                        kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getSignature(),
-                        kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId());
+            KeyMaterial keyMaterial = new KeyMaterial(registrationId, opk, signedPreKeyRecord,
+                    identityKeyPair, signature,
+                    kyberPreKeyRecords.getKyberPreKeyRecords(),
+                    kyberPreKeyRecords.getLastResortKyberPreKeyRecord(),
+                    kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getSignature(),
+                    kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId());
 
 
-                if (ApiClient.upsertKeyStore(application.getApplicationContext(), keyMaterial)) {
-                    application.getDbHelper().clearKeyData();
-                    storeKyberPreKeyRecords(kyberPreKeyRecords);
-                    storePreKeyRecords(opk);
-                    storeSignedPreKey(signedPreKeyRecord);
-                }
-            } else if (sekretessSignalProtocolStore.updateKeysRequired()) {
-                updateOneTimeKeys();
+            if (ApiClient.upsertKeyStore(application.getApplicationContext(), keyMaterial)) {
+                application.getDbHelper().clearKeyData();
+                storeKyberPreKeyRecords(kyberPreKeyRecords);
+                storePreKeyRecords(opk);
+                storeSignedPreKey(signedPreKeyRecord);
             }
-
-
-        } catch (Exception e) {
-            Log.i(TAG, "KeyMaterial generation failed", e);
-            Toast.makeText(application.getApplicationContext(), "KeyMaterial generation failed "
-                    + e.getMessage(), Toast.LENGTH_LONG).show();
-            application.getApplicationContext().sendBroadcast(new Intent(Constants.EVENT_TOKEN_ISSUE));
+        } else if (sekretessSignalProtocolStore.updateKeysRequired()) {
+            updateOneTimeKeys();
         }
-    }
-
-    private void publishNotification(String sender, String text) {
-        Intent intent = new Intent();
-        var notification = new NotificationCompat
-                .Builder(application.getApplicationContext(), Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME)
-                .setContentTitle("Message from " + sender)
-                .setSilent(false)
-                .setLargeIcon(BitmapFactory
-                        .decodeResource(application.getApplicationContext().getResources(), R.drawable.ic_notif_sekretess))
-                .setContentText(text.substring(0, Math.min(10, text.length())).concat("..."))
-                .setSmallIcon(R.drawable.ic_notif_sekretess)
-                .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setContentIntent(PendingIntent
-                        .getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE))
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-        int m = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
-
-        NotificationChannel channel = new NotificationChannel(Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME, "New message", NotificationManager.IMPORTANCE_HIGH);
-        channel.setAllowBubbles(true);
-        channel.enableVibration(NotificationPreferencesUtils.getVibrationPreferences(context, sender));
-        boolean soundAlerts = NotificationPreferencesUtils.getSoundAlertsPreferences(context, sender);
-        Log.i("SekretessRabbitMqService", "soundAlerts:" + soundAlerts + "sender:" + sender);
-        if (!soundAlerts) {
-            notification.setSilent(true);
-            channel.setImportance(NotificationManager.IMPORTANCE_LOW);
-        } else {
-            notification.setDefaults(0);
-            notification.setSilent(false);
-        }
-        notificationManager.createNotificationChannel(channel);
-
-
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-            notificationManager.notify(m, notification.build());
-        }
-    }
-
-    private void broadcastNewMessageReceived() {
-        Log.i("SignalProtocolService", "Sending new-incoming-message event");
-        Intent intent = new Intent();
-        intent.setFlags(Intent.FLAG_DEBUG_LOG_RESOLUTION);
-        intent.setAction(Constants.EVENT_NEW_INCOMING_MESSAGE);
-        context.sendBroadcast(intent);
     }
 
     public Optional<String> decryptGroupChatMessage(String sender, String base64Message) {
@@ -269,9 +214,5 @@ public class SekretessCryptographicService {
                     "Error during decrypt private message" + e.getMessage(), Toast.LENGTH_LONG).show();
             return Optional.empty();
         }
-    }
-
-    private void broadcastTokenIssue() {
-        application.getApplicationContext().sendBroadcast(new Intent(Constants.EVENT_TOKEN_ISSUE));
     }
 }

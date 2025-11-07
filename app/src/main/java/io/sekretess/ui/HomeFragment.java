@@ -141,7 +141,8 @@ public class HomeFragment extends Fragment {
     private SendersAdapter updateMessageAdapter(Context context) {
         try (DbHelper db = new DbHelper(context)) {
             String username = db.getUserNameFromJwt();
-            List<MessageBriefDto> messageBriefs = db.getMessageBriefs(username);
+            List<MessageBriefDto> messageBriefs = sekretessApplication.getSekretessMessageService()
+                    .getMessageBriefs(username);
             return new SendersAdapter(getContext(), messageBriefs, (sender) -> {
                 try {
                     Bundle bundle = new Bundle();

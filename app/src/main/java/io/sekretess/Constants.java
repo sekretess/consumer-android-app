@@ -5,10 +5,6 @@ import android.net.Uri;
 public interface Constants {
 
     String USERNAME_CLAIM = "preferred_username";
-    String EVENT_LOGIN = "login-event";
-    String EVENT_SIGNUP = "signup-event";
-    String EVENT_UPDATE_KEY = "update-key-event";
-
 
     String SEKRETESS_NOTIFICATION_CHANNEL_NAME = "sekretess_notif";
 //    String EVENT_TOKEN_ISSUE = "token-issue-event";

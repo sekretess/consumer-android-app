@@ -42,13 +42,10 @@ public class MessageRepository {
         values.put(MessageStoreEntity.COLUMN_CREATED_AT, System.currentTimeMillis());
         dbHelper.getWritableDatabase().insert(MessageStoreEntity.TABLE_NAME,
                 null, values);
-
-
     }
 
     public List<MessageBriefDto> getMessageBriefs(String username) {
         try {
-
             List<MessageBriefDto> resultArray;
             try (SQLiteDatabase sqLiteDatabase = dbHelper.getWritableDatabase();
                  Cursor resultCursor = sqLiteDatabase

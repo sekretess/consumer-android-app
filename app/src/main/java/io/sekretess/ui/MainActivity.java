@@ -4,7 +4,6 @@ import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.util.Log;
@@ -24,19 +23,14 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import net.openid.appauth.AuthState;
 
 import java.io.File;
-import java.net.URL;
 import java.util.Optional;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
 import io.sekretess.repository.DbHelper;
-import io.sekretess.service.SekretessCryptographicService;
-import io.sekretess.service.SekretessRabbitMqService;
-import io.sekretess.service.SekretessWebSocketClient;
 
 public class MainActivity extends AppCompatActivity {
-    private static SekretessWebSocketClient sekretessWebSocketClient;
     private SekretessApplication application;
     private final BroadcastReceiver tokenRefreshBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -56,8 +50,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         this.application = (SekretessApplication) getApplication();
 
-        sekretessWebSocketClient = new SekretessWebSocketClient(application.get);
-        sekretessWebSocketClient.startWebSocket(new URL());
+
         setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light_NoActionBar);
         FirebaseMessaging.getInstance().getToken()
                 .addOnCompleteListener(task -> {
@@ -81,8 +74,6 @@ public class MainActivity extends AppCompatActivity {
         Optional<AuthState> authState = restoreState();
         if (authState.isPresent()) {
             String username = new JWT(authState.get().getAccessToken()).getClaim(Constants.USERNAME_CLAIM).asString();
-            registerReceiver(tokenRefreshBroadcastReceiver,
-                    new IntentFilter(Constants.EVENT_TOKEN_ISSUE), RECEIVER_EXPORTED);
             setContentView(R.layout.activity_main);
             Toolbar myToolbar = findViewById(R.id.my_toolbar);
 //            myToolbar.setNavigationIcon(R.drawable.ic_notif_sekretess);
@@ -90,8 +81,6 @@ public class MainActivity extends AppCompatActivity {
             BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
 
             Log.i("MainActivity", "Notify login...");
-            sekretessRabbitMqService.startRabbitMqConnectionGuard();
-            broadcastLoginEvent(username);
             replaceFragment(new HomeFragment());
             bottomNavigationView.setOnItemSelectedListener(item -> {
                 if (item.getItemId() == R.id.menu_item_business) {
@@ -126,7 +115,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        sekretessWebSocketClient.destroy();
     }
 
     private void replaceFragment(Fragment fragment) {
@@ -154,11 +142,5 @@ public class MainActivity extends AppCompatActivity {
         } else {
             return Optional.empty();
         }
-    }
-
-    private void broadcastLoginEvent(String userName) {
-        Intent intent = new Intent(Constants.EVENT_LOGIN);
-        intent.putExtra("userName", userName);
-        sendBroadcast(intent);
     }
 }

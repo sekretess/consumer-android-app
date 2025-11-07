@@ -218,13 +218,8 @@ public class ApiClient {
     }
 
 
-    public static boolean upsertKeyStore(Context context, KeyMaterial keyMaterial) {
-        try {
-            return Executors.newSingleThreadExecutor().submit(() -> internalUpsertKeyStore(context, keyMaterial)).get();
-        } catch (Exception e) {
-            Log.e("ApiClient", "Error occurred while upsertKeyStore", e);
-            return false;
-        }
+    public static boolean upsertKeyStore(Context context, KeyMaterial keyMaterial) throws Exception {
+        return Executors.newSingleThreadExecutor().submit(() -> internalUpsertKeyStore(context, keyMaterial)).get();
     }
 
     private static boolean internalUpsertKeyStore(Context context, KeyMaterial keyMaterial) {
@@ -257,7 +252,6 @@ public class ApiClient {
         }
 
     }
-
 
     public static boolean updateOneTimeKeys(Context context, PreKeyRecord[] preKeyRecords, KyberPreKeyRecords kyberPreKeyRecords) {
         try {

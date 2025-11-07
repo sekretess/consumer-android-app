@@ -2,6 +2,9 @@ package io.sekretess;
 
 import android.app.Application;
 
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+
 import io.sekretess.cryptography.storage.SekretessSignalProtocolStore;
 import io.sekretess.repository.DbHelper;
 import io.sekretess.repository.IdentityKeyRepository;
@@ -13,11 +16,14 @@ import io.sekretess.repository.SenderKeyRepository;
 import io.sekretess.repository.SessionRepository;
 import io.sekretess.service.SekretessCryptographicService;
 import io.sekretess.service.SekretessMessageService;
+import io.sekretess.service.SekretessWebSocketClient;
 
 public class SekretessApplication extends Application {
 
     private SekretessCryptographicService sekretessCryptographicService;
     private SekretessMessageService sekretessMessageService;
+    private final MutableLiveData<String> messageEventsLiveData = new MutableLiveData<>();
+    private SekretessWebSocketClient sekretessWebSocketClient;
     private DbHelper dbHelper;
 
     @Override
@@ -31,7 +37,9 @@ public class SekretessApplication extends Application {
         RegistrationRepository registrationRepository = new RegistrationRepository(dbHelper);
         SenderKeyRepository senderKeyRepository = new SenderKeyRepository(dbHelper);
         SessionRepository sessionRepository = new SessionRepository(dbHelper);
-        this.sekretessMessageService = new SekretessMessageService(messageRepository, sekretessCryptographicService);
+        this.sekretessMessageService = new SekretessMessageService(messageRepository,
+                sekretessCryptographicService, this);
+        this.sekretessWebSocketClient = new SekretessWebSocketClient(sekretessMessageService);
 
         SekretessSignalProtocolStore sekretessSignalProtocolStore =
                 new SekretessSignalProtocolStore(this, identityKeyRepository,
@@ -39,6 +47,12 @@ public class SekretessApplication extends Application {
                         senderKeyRepository, kyberPreKeyRepository);
         this.sekretessCryptographicService =
                 new SekretessCryptographicService(this, sekretessSignalProtocolStore);
+    }
+
+    @Override
+    public void onTerminate() {
+        super.onTerminate();
+        sekretessWebSocketClient.destroy();
     }
 
     public DbHelper getDbHelper() {
@@ -51,5 +65,13 @@ public class SekretessApplication extends Application {
 
     public SekretessMessageService getSekretessMessageService() {
         return sekretessMessageService;
+    }
+
+    public MutableLiveData<String> getMessageEventsLiveData() {
+        return messageEventsLiveData;
+    }
+
+    public SekretessWebSocketClient getSekretessWebSocketClient() {
+        return sekretessWebSocketClient;
     }
 }
