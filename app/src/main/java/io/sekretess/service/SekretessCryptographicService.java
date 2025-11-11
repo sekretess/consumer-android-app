@@ -1,20 +1,7 @@
 package io.sekretess.service;
 
-import android.Manifest;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.graphics.BitmapFactory;
 import android.util.Log;
 import android.widget.Toast;
-
-import androidx.core.app.ActivityCompat;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
-
-import net.openid.appauth.AuthState;
 
 import org.signal.libsignal.protocol.DuplicateMessageException;
 import org.signal.libsignal.protocol.IdentityKeyPair;
@@ -39,18 +26,13 @@ import org.signal.libsignal.protocol.util.Medium;
 
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.Date;
 import java.util.Optional;
 import java.util.Random;
 
-import io.sekretess.Constants;
-import io.sekretess.R;
 import io.sekretess.SekretessApplication;
 import io.sekretess.dto.KeyMaterial;
 import io.sekretess.dto.KyberPreKeyRecords;
 import io.sekretess.cryptography.storage.SekretessSignalProtocolStore;
-import io.sekretess.utils.ApiClient;
-import io.sekretess.utils.NotificationPreferencesUtils;
 
 
 public class SekretessCryptographicService {
@@ -72,8 +54,7 @@ public class SekretessCryptographicService {
         PreKeyRecord[] preKeyRecords = generatePreKeys();
         KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
         try {
-            if (ApiClient.updateOneTimeKeys(application.getApplicationContext(), preKeyRecords,
-                    kyberPreKeyRecords)) {
+            if (application.getApiClient().updateOneTimeKeys(preKeyRecords, kyberPreKeyRecords)) {
                 storePreKeyRecords(preKeyRecords);
                 storeKyberPreKeyRecords(kyberPreKeyRecords);
             }
@@ -180,7 +161,7 @@ public class SekretessCryptographicService {
                     kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId());
 
 
-            if (ApiClient.upsertKeyStore(application.getApplicationContext(), keyMaterial)) {
+            if (application.getApiClient().upsertKeyStore(keyMaterial)) {
                 application.getDbHelper().clearKeyData();
                 storeKyberPreKeyRecords(kyberPreKeyRecords);
                 storePreKeyRecords(opk);

@@ -33,8 +33,7 @@ public class MessageRepository {
         this.dbHelper = dbHelper;
     }
 
-    public void storeDecryptedMessage(String sender, String message) {
-        String username = getUserNameFromJwt();
+    public void storeDecryptedMessage(String sender, String message, String username) {
         ContentValues values = new ContentValues();
         values.put(MessageStoreEntity.COLUMN_SENDER, sender);
         values.put(MessageStoreEntity.COLUMN_MESSAGE_BODY, message);

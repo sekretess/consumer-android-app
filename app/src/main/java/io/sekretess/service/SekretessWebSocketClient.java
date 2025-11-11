@@ -12,10 +12,12 @@ import com.neovisionaries.ws.client.WebSocketFrame;
 public class SekretessWebSocketClient {
     private final SekretessMessageService sekretessMessageService;
     private WebSocket webSocket;
+    private final AuthService authService;
     private Thread t;
 
-    public SekretessWebSocketClient(SekretessMessageService sekretessMessageService) {
+    public SekretessWebSocketClient(SekretessMessageService sekretessMessageService, AuthService authService) {
         this.sekretessMessageService = sekretessMessageService;
+        this.authService = authService;
     }
 
     public void startWebSocket(URL url) throws IOException {
@@ -39,7 +41,8 @@ public class SekretessWebSocketClient {
         t = new Thread(() -> {
             try {
                 webSocket.connect();
-                webSocket.addHeader();
+                webSocket.addHeader("Authorization", "Bearer " + authService.getAccessToken().toString());
+                webSocket.sendText("");
             } catch (Exception e) {
                 e.printStackTrace();
             }

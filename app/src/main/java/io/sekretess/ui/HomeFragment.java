@@ -49,9 +49,7 @@ public class HomeFragment extends Fragment {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.i("ChatsFragment", "new-incoming-message event received");
-            String username = new DbHelper(context).getUserNameFromJwt();
-            //List<MessageBriefDto> messageBriefs = new DbHelper(context).getMessageBriefs(username);
-            sendersAdapter = updateMessageAdapter(context);
+            sendersAdapter = updateMessageAdapter();
             messagesRecycleView.setAdapter(sendersAdapter);
             //sendersAdapter.notifyItemInserted(messageBriefs.size());
         }
@@ -113,7 +111,7 @@ public class HomeFragment extends Fragment {
 
     private void renderMessagesRecycleView() {
         messagesRecycleView = fragmentView.findViewById(R.id.chat);
-        sendersAdapter = updateMessageAdapter(getContext());
+        sendersAdapter = updateMessageAdapter();
         messagesRecycleView.setAdapter(sendersAdapter);
         messagesRecycleView.setLayoutManager(new LinearLayoutManager(getContext()));
 
@@ -138,26 +136,23 @@ public class HomeFragment extends Fragment {
     }
 
 
-    private SendersAdapter updateMessageAdapter(Context context) {
-        try (DbHelper db = new DbHelper(context)) {
-            String username = db.getUserNameFromJwt();
-            List<MessageBriefDto> messageBriefs = sekretessApplication.getSekretessMessageService()
-                    .getMessageBriefs(username);
-            return new SendersAdapter(getContext(), messageBriefs, (sender) -> {
-                try {
-                    Bundle bundle = new Bundle();
-                    bundle.putString("from", sender);
-                    AppCompatActivity activity = (AppCompatActivity) fragmentView.getContext();
-                    MessagesFromSenderFragment fragment = new MessagesFromSenderFragment();
-                    fragment.setArguments(bundle);
-                    activity.getSupportFragmentManager().beginTransaction().replace(R.id.frame_layout, fragment).commit();
-                    Toolbar toolbar = activity.findViewById(R.id.my_toolbar);
-                    toolbar.setTitle(sender);
-                } catch (Exception e) {
-                    Log.e("ChatsFragment", "Error", e);
-                }
-            });
-        }
+    private SendersAdapter updateMessageAdapter() {
+        List<MessageBriefDto> messageBriefs = sekretessApplication.getSekretessMessageService()
+                .getMessageBriefs();
+        return new SendersAdapter(getContext(), messageBriefs, (sender) -> {
+            try {
+                Bundle bundle = new Bundle();
+                bundle.putString("from", sender);
+                AppCompatActivity activity = (AppCompatActivity) fragmentView.getContext();
+                MessagesFromSenderFragment fragment = new MessagesFromSenderFragment();
+                fragment.setArguments(bundle);
+                activity.getSupportFragmentManager().beginTransaction().replace(R.id.frame_layout, fragment).commit();
+                Toolbar toolbar = activity.findViewById(R.id.my_toolbar);
+                toolbar.setTitle(sender);
+            } catch (Exception e) {
+                Log.e("ChatsFragment", "Error", e);
+            }
+        });
     }
 
     @Override

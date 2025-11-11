@@ -15,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
+import io.sekretess.SekretessApplication;
 import io.sekretess.adapters.BusinessesAdapter;
 import io.sekretess.R;
 import io.sekretess.dto.BusinessDto;
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
 public class BusinessesFragment extends Fragment {
     private RecyclerView subscribedBusinessesRecycler;
     private BusinessesAdapter businessesAdapter;
+    private SekretessApplication application;
 
     @Nullable
     @Override
@@ -40,16 +42,17 @@ public class BusinessesFragment extends Fragment {
         Toolbar toolbar = getActivity().findViewById(R.id.my_toolbar);
         toolbar.setTitle("Businesses");
 
+        this.application = (SekretessApplication) requireActivity().getApplication();
+
+
         View view = inflater.inflate(R.layout.businesses_fragment, container, false);
 
         subscribedBusinessesRecycler = view.findViewById(R.id.businessesRecycler);
-        List<String> subscribedBusinesses = ApiClient
-                .getSubscribedBusinesses(getContext());
+        List<String> subscribedBusinesses = application.getApiClient().getSubscribedBusinesses();
 
         //We ordering by subscription status, in case any subscriptions it should be first in list
         final AtomicBoolean subscribed = new AtomicBoolean(false);
-        List<BusinessDto> businessList = ApiClient
-                .getBusinesses(getContext())
+        List<BusinessDto> businessList = application.getApiClient().getBusinesses()
                 .stream()
                 .peek(businessDto -> {
                     businessDto

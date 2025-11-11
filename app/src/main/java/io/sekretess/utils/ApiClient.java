@@ -1,31 +1,33 @@
 package io.sekretess.utils;
 
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 import android.widget.Toast;
 
 import androidx.core.content.ContextCompat;
 
-import com.auth0.android.jwt.JWT;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import net.openid.appauth.AuthState;
-
-import org.signal.libsignal.protocol.InvalidKeyException;
-import org.signal.libsignal.protocol.state.KyberPreKeyRecord;
 import org.signal.libsignal.protocol.state.PreKeyRecord;
 
 import io.sekretess.BuildConfig;
-import io.sekretess.Constants;
-import io.sekretess.R;
+import io.sekretess.SekretessApplication;
+import io.sekretess.dto.AuthRequest;
+import io.sekretess.dto.AuthResponse;
 import io.sekretess.dto.BusinessDto;
 import io.sekretess.dto.KeyBundleDto;
 import io.sekretess.dto.KeyMaterial;
 import io.sekretess.dto.KyberPreKeyRecords;
 import io.sekretess.dto.OneTimeKeyBundleDto;
+import io.sekretess.dto.RefreshTokenRequestDto;
 import io.sekretess.dto.UserDto;
+import io.sekretess.exception.TokenExpiredException;
 import io.sekretess.repository.DbHelper;
+import io.sekretess.service.AuthService;
+import io.sekretess.ui.LoginActivity;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -33,176 +35,189 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.internal.Util;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+import javax.security.auth.login.LoginException;
 
 public class ApiClient {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-    private static final Base64.Encoder base64Encoder = Base64.getEncoder();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public static boolean deleteUser(Context context, AuthState authState) {
+    private static ExecutorService networkExecutors = Executors.newFixedThreadPool(3);
+    private final AuthService authService;
+    private final SekretessApplication application;
+
+    public ApiClient(AuthService authService, SekretessApplication application) {
+        this.authService = authService;
+        this.application = application;
+    }
+
+
+    public boolean deleteUser() {
         try {
-            Future<Boolean> future = Executors.newSingleThreadExecutor().submit(() -> deleteUserInternal(context, authState));
+            Future<Boolean> future = networkExecutors
+                    .submit(this::deleteUserInternal);
             return future.get(20, TimeUnit.SECONDS);
-        } catch (Exception e) {
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
             Log.e("ApiClient", "Error occurred during wait subscribe to business api result", e);
-            showToast(context, "Error occurred: " + e.getMessage());
+            showToast("Error occurred: " + e.getMessage());
             return false;
         }
     }
 
-    private static boolean deleteUserInternal(Context context, AuthState authState) {
+    private boolean deleteUserInternal() {
         Request request = new Request.Builder().delete().url(BuildConfig.CONSUMER_API_URL).build();
-        OkHttpClient httpClient = httpClient(authState, context);
+        OkHttpClient httpClient = authorizedHttpClient();
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                showToast(context, "User delete failed." + response.code() + "\n" + response.message());
+                showToast("User delete failed." + response.code() + "\n" + response.message());
                 return false;
             } else {
-                showToast(context, "User deleted.");
+                showToast("User deleted.");
                 return true;
             }
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during delete consumer ", e);
-            showToast(context, "Error occurred during delete consumer " + e.getMessage());
+            showToast("Error occurred during delete consumer " + e.getMessage());
             return false;
         }
     }
 
-    public static boolean subscribeToBusiness(Context context, String business) {
+    public boolean subscribeToBusiness(String business) {
         try {
-            Future<Boolean> future = Executors.newSingleThreadExecutor().submit(() -> subscribeToBusinessInternal(context, business));
+            Future<Boolean> future = networkExecutors.submit(() -> subscribeToBusinessInternal(business));
             return future.get(20, TimeUnit.SECONDS);
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during wait subscribe to business api result", e);
-            showToast(context, "Error occurred : " + e.getMessage());
+            showToast("Error occurred : " + e.getMessage());
             return false;
         }
     }
 
-    private static boolean subscribeToBusinessInternal(Context context, String business) {
-        AuthState authState = authState(context);
-        OkHttpClient httpClient = httpClient(authState, context);
-        Request request = new Request.Builder().url(BuildConfig.CONSUMER_API_URL + "/ads/businesses/" + business).post(Util.EMPTY_REQUEST).build();
+    private boolean subscribeToBusinessInternal(String business) {
+        OkHttpClient httpClient = authorizedHttpClient();
+        Request request = new Request
+                .Builder()
+                .url(BuildConfig.CONSUMER_API_URL + "/ads/businesses/" + business)
+                .post(Util.EMPTY_REQUEST).build();
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                showToast(context, "Subscription failed: " + response.code() + "\n" + response.message());
+                showToast("Subscription failed: " + response.code() + "\n" + response.message());
                 return false;
             } else {
-                showToast(context, "Successfully subscribed:");
+                showToast("Successfully subscribed:");
                 return true;
             }
         } catch (Exception e) {
             Log.e("ApiClient", "Error occur red during subscribe to " + business, e);
-            showToast(context, "Error occurred: " + e.getMessage());
+            showToast("Error occurred: " + e.getMessage());
             return false;
         }
     }
 
-    public static boolean unSubscribeFromBusiness(Context context, String business) {
+    public boolean unSubscribeFromBusiness(String business) {
         try {
-            Future<Boolean> future = Executors.newSingleThreadExecutor().submit(() -> unSubscribeFromBusinessInternal(context, business));
+            Future<Boolean> future = networkExecutors
+                    .submit(() -> unSubscribeFromBusinessInternal(business));
             return future.get(20, TimeUnit.SECONDS);
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during wait unsubscribe from business thread", e);
-            showToast(context, "Unsubscription failed: " + e.getMessage());
+            showToast("Unsubscription failed: " + e.getMessage());
             return false;
         }
     }
 
-    private static boolean unSubscribeFromBusinessInternal(Context context, String business) {
-        AuthState authState = authState(context);
-        OkHttpClient httpClient = httpClient(authState, context);
-        Request request = new Request.Builder().url(BuildConfig.CONSUMER_API_URL + "/ads/businesses/" + business).delete().build();
+    private boolean unSubscribeFromBusinessInternal(String business) {
+        OkHttpClient httpClient = authorizedHttpClient();
+        Request request = new Request.Builder()
+                .url(BuildConfig.CONSUMER_API_URL + "/ads/businesses/" + business)
+                .delete()
+                .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                showToast(context, "Unsubscribe failed: " + response.code() + "\n" + response.message());
+                showToast("Unsubscribe failed: " + response.code() + "\n" + response.message());
                 return false;
             } else {
-                showToast(context, "Successfully unsubscribed");
+                showToast("Successfully unsubscribed");
                 return true;
             }
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during unsubscribe from " + business, e);
-            showToast(context, "Unsubscribe failed: " + e.getMessage());
+            showToast("Unsubscribe failed: " + e.getMessage());
             return false;
         }
     }
 
-    public static List<BusinessDto> getBusinesses(Context context) {
+    public List<BusinessDto> getBusinesses() {
         try {
-            Future<List<BusinessDto>> future = Executors.newSingleThreadExecutor().submit(() -> getBusinessesInternal(context));
+            Future<List<BusinessDto>> future = networkExecutors
+                    .submit(() -> getBusinessesInternal());
             return future.get(20, TimeUnit.SECONDS);
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during get businesses.", e);
-            showToast(context, "Get businesses failed: " + e.getMessage());
+            showToast("Get businesses failed: " + e.getMessage());
         }
         return Collections.EMPTY_LIST;
     }
 
-    private static List<BusinessDto> getBusinessesInternal(Context context) {
-        AuthState authState = authState(context);
-        OkHttpClient httpClient = httpClient(authState, context);
+    private List<BusinessDto> getBusinessesInternal() {
+        OkHttpClient httpClient = authorizedHttpClient();
         Request request = new Request.Builder().url(BuildConfig.BUSINESS_API_URL)
                 .get().build();
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                Log.e("ApiClient", "HTTP error: " + response.code() + " URL: " + BuildConfig.BUSINESS_API_URL + " errorMessage: " + response.message());
-                showToast(context, "Can not get list of businesses: " + response.code() + "\n" + response.message());
+                Log.e("ApiClient", "HTTP error: " + response.code() + " URL: "
+                        + BuildConfig.BUSINESS_API_URL + " errorMessage: " + response.message());
+                showToast("Can not get list of businesses: " + response.code()
+                        + "\n" + response.message());
                 return Collections.EMPTY_LIST;
             } else {
-                List<BusinessDto> businessDtos = objectMapper.readValue(response.body().string(), new TypeReference<List<BusinessDto>>() {
-                });
+                List<BusinessDto> businessDtos = objectMapper.readValue(response.body().string(),
+                        new TypeReference<List<BusinessDto>>() {
+                        });
                 return businessDtos;
             }
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during get businesses {}", e);
-            showToast(context, "Error occurred: " + e.getMessage());
+            showToast("Error occurred: " + e.getMessage());
         }
         return Collections.EMPTY_LIST;
     }
 
-    public static List<String> getSubscribedBusinesses(Context context) {
+    public List<String> getSubscribedBusinesses() {
         try {
-            Future<List<String>> future = Executors.newSingleThreadExecutor().submit(() -> getSubscribedBusinessesInternal(context));
+            Future<List<String>> future = networkExecutors
+                    .submit(() -> getSubscribedBusinessesInternal());
             return future.get(20, TimeUnit.SECONDS);
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during get subscribed businesses.", e);
-            showToast(context, "Error occurred: " + e.getMessage());
+            showToast("Error occurred: " + e.getMessage());
         }
         return Collections.EMPTY_LIST;
     }
 
-    private static List<String> getSubscribedBusinessesInternal(Context context) {
-        AuthState authState = authState(context);
-        OkHttpClient httpClient = httpClient(authState, context);
+    private List<String> getSubscribedBusinessesInternal() {
+        OkHttpClient httpClient = authorizedHttpClient();
         Request request = new Request.Builder().url(BuildConfig.CONSUMER_API_URL + "/ads/businesses")
                 .get().build();
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                Log.e("ApiClient", "HTTP error " + response.code() + " message: " + response.message());
-                showToast(context, "Can not get subscribed businesses. " + response.code() + "\n" + response.message());
+                Log.e("ApiClient", "HTTP error " + response.code() + " message: "
+                        + response.message());
+                showToast("Can not get subscribed businesses. " + response.code() + "\n"
+                        + response.message());
                 return Collections.EMPTY_LIST;
             } else {
                 List result = objectMapper.readValue(response.body().string(), List.class);
@@ -212,75 +227,108 @@ public class ApiClient {
 
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during get businesses", e);
-            showToast(context, "Error occurred: " + e.getMessage());
+            showToast("Error occurred: " + e.getMessage());
         }
         return Collections.EMPTY_LIST;
     }
 
 
-    public static boolean upsertKeyStore(Context context, KeyMaterial keyMaterial) throws Exception {
-        return Executors.newSingleThreadExecutor().submit(() -> internalUpsertKeyStore(context, keyMaterial)).get();
+    public boolean upsertKeyStore(KeyMaterial keyMaterial) throws Exception {
+        return networkExecutors.submit(() -> internalUpsertKeyStore(keyMaterial)).get();
     }
 
-    private static boolean internalUpsertKeyStore(Context context, KeyMaterial keyMaterial) {
-        AuthState authState = authState(context);
-        OkHttpClient httpClient = httpClient(authState, context);
+    private boolean internalUpsertKeyStore(KeyMaterial keyMaterial) {
+        OkHttpClient httpClient = authorizedHttpClient();
         try {
 
             KeyBundleDto keyBundleDto = Mappers.toKeyBundleDto(keyMaterial);
             String json = objectMapper.writeValueAsString(keyBundleDto);
 
-            Request request = new Request.Builder().url(new URL(BuildConfig.CONSUMER_API_URL + "/keystores"))
-                    .put(RequestBody.create(MediaType.parse("application/json"), json)).build();
+            Request request = new Request.Builder()
+                    .url(new URL(BuildConfig.CONSUMER_API_URL + "/keystores"))
+                    .put(RequestBody.create(MediaType.parse("application/json"), json))
+                    .build();
 
             try (Response response = httpClient.newCall(request).execute()) {
                 if (response.isSuccessful()) {
                     Log.i("ApiClient", "Upsert success");
-                    showToast(context, "One time keys updated");
+                    showToast("One time keys updated");
                     return true;
                 } else {
-                    Log.e("ApiClient", "Upsert failed" + response.code() + ": " + response.message());
-                    showToast(context, "One time keys update failed with response code " + response.code() + " ResponseMessage " + response.message());
+                    Log.e("ApiClient", "Upsert failed" + response.code() + ": "
+                            + response.message());
+                    showToast("One time keys update failed with response code " +
+                            response.code() + " ResponseMessage " + response.message());
                     return false;
                 }
             }
 
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during upsert keystore", e);
-            showToast(context, "One time keys update failed : " + e.getMessage());
+            showToast("One time keys update failed : " + e.getMessage());
             return false;
         }
 
     }
 
-    public static boolean updateOneTimeKeys(Context context, PreKeyRecord[] preKeyRecords, KyberPreKeyRecords kyberPreKeyRecords) {
+    public AuthResponse login(String username, String password) throws Exception {
+        return networkExecutors.submit(() -> loginInternal(username, password)).get();
+    }
+
+    private AuthResponse loginInternal(String username, String password) throws Exception {
+        AuthRequest authRequest = new AuthRequest(username, password);
+        String jsonObject = objectMapper.writeValueAsString(authRequest);
+        OkHttpClient httpClient = anonymousHttpClient();
+
+        Request request = new Request
+                .Builder()
+                .post(RequestBody
+                        .create(MediaType.parse("application/json"), jsonObject))
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (response.isSuccessful()) {
+                return objectMapper.readValue(response.body().string(), AuthResponse.class);
+            } else {
+                Log.e("ApiClient", "HTTP error: " + response.code());
+                throw new LoginException("Login failed." + response.message());
+            }
+        }
+    }
+
+    public boolean updateOneTimeKeys(PreKeyRecord[] preKeyRecords, KyberPreKeyRecords kyberPreKeyRecords) {
         try {
             String[] strPreKeyRecords = SerializationUtils.serializeSignedPreKeys(preKeyRecords);
             String[] strKyberPreKeyRecords = SerializationUtils.serializeKyberPreKeys(kyberPreKeyRecords.getKyberPreKeyRecords());
 
-            return Executors.newSingleThreadExecutor().submit(() -> updateOpksInternal(context, authState,
-                    strPreKeyRecords, strKyberPreKeyRecords)).get();
+            return networkExecutors.submit(() -> updateOpksInternal(strPreKeyRecords,
+                            strKyberPreKeyRecords))
+                    .get();
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred while updateOneTimeKeys", e);
             return false;
         }
     }
 
-    private static boolean updateOpksInternal(Context context, AuthState authState, String[] preKeyRecords, String[] kyberPreKeyRecords) {
+    private boolean updateOpksInternal(String[] preKeyRecords, String[] kyberPreKeyRecords) {
         try {
             OneTimeKeyBundleDto oneTimeKeyBundleDto = new OneTimeKeyBundleDto(preKeyRecords, kyberPreKeyRecords);
 
             String jsonObject = objectMapper.writeValueAsString(oneTimeKeyBundleDto);
-            OkHttpClient httpClient = httpClient(authState, context);
-            Request request = new Request.Builder().post(RequestBody.create(MediaType.parse("application/json"), jsonObject))
+            OkHttpClient httpClient = authorizedHttpClient();
+            Request request = new Request
+                    .Builder()
+                    .post(RequestBody
+                            .create(MediaType.parse("application/json"), jsonObject))
                     .url(new URL(BuildConfig.CONSUMER_API_URL + "/onetimekeystores")).build();
 
             try (Response response = httpClient.newCall(request).execute()) {
                 if (response.isSuccessful()) {
-                    showToast(context, "One time keys updated");
+                    showToast("One time keys updated");
                     return true;
                 } else {
-                    showToast(context, "One time keys update failed with response code " + response.code() + " ResponseMessage " + response.message());
+                    showToast("One time keys update failed with response code " +
+                            response.code() + " ResponseMessage " + response.message());
                     return false;
                 }
             }
@@ -288,24 +336,39 @@ public class ApiClient {
 
         } catch (Exception e) {
             Log.i("ApiClient", "Exception occurred during update keys", e);
-            showToast(context, "Exception occurred during update keys " + e.getMessage());
+            showToast("Exception occurred during update keys " + e.getMessage());
             return false;
         }
     }
 
-    public static boolean createUser(Context context, String username, String email, String password) {
+    public Optional<AuthResponse> refresh(RefreshTokenRequestDto refreshTokenRequestDto) {
         try {
-            Future<Boolean> future = Executors.newSingleThreadExecutor().submit(() -> createUserInternal(context, username, email, password));
+            Future<AuthResponse> future = networkExecutors.submit(() -> refreshInternal(refreshTokenRequestDto));
+        } catch (Exception e) {
+            Log.e("ApiClient", "Error occurred during refresh", e);
+            showToast( "Error occurred during refresh: " + e.getMessage());
+        }
+    }
+
+    private AuthResponse refreshInternal(RefreshTokenRequestDto refreshTokenRequestDto) {
+        return null;
+    }
+
+
+    public boolean createUser(String username, String email, String password) {
+        try {
+            Future<Boolean> future = networkExecutors
+                    .submit(() -> createUserInternal(username, email, password));
             return future.get(20, TimeUnit.SECONDS);
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during signup", e);
-            showToast(context, "Error occurred during signup: " + e.getMessage());
+            showToast("Error occurred during signup: " + e.getMessage());
             return false;
         }
     }
 
-    private static boolean createUserInternal(Context context, String username, String email, String password) {
-        OkHttpClient httpClient = httpClient(authState(context), context);
+    private boolean createUserInternal(String username, String email, String password) {
+        OkHttpClient httpClient = anonymousHttpClient();
         try {
             UserDto userDto = new UserDto();
             userDto.setUsername(username);
@@ -320,21 +383,21 @@ public class ApiClient {
 
             try (Response response = httpClient.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
-                    showToast(context, "User creation failed. " + response.code() + "\n" + response.message());
+                    showToast("User creation failed. " + response.code() + "\n" + response.message());
                     return false;
                 } else {
-                    showToast(context, "User created. " + response.code() + "\n" + response.message());
+                    showToast("User created. " + response.code() + "\n" + response.message());
                     return true;
                 }
             }
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during initialize new user {0}", e);
-            showToast(context, "Error occurred during initialize new user: " + e.getMessage());
+            showToast("Error occurred during initialize new user: " + e.getMessage());
         }
         return false;
     }
 
-    private static void largeLog(String tag, String content) {
+    private void largeLog(String tag, String content) {
         final int SEG_LENGTH = 4000;
         do {
             if (content.length() <= SEG_LENGTH) {
@@ -346,19 +409,27 @@ public class ApiClient {
         } while (!content.isEmpty());
     }
 
-    private static void showToast(Context context, String text) {
-        ContextCompat.getMainExecutor(context).execute(() -> Toast.makeText(context, text, Toast.LENGTH_LONG).show());
+    private void showToast(String text) {
+        ContextCompat.getMainExecutor(application.getApplicationContext())
+                .execute(() -> Toast
+                        .makeText(application.getApplicationContext(), text, Toast.LENGTH_LONG)
+                        .show());
     }
 
-    private static OkHttpClient httpClient(AuthState authState, Context context) {
-        return new OkHttpClient.Builder()
-                .addInterceptor(new SekretessHttpInterceptor(authState.getIdToken()))
-                .authenticator(new BearerAuthenticator(authState, context)).build();
-    }
+    private OkHttpClient authorizedHttpClient() {
+        try {
+            String accessToken = authService.getAccessToken().toString();
 
-    private static AuthState authState(Context context) {
-        try (DbHelper dbHelper = new DbHelper(context)) {
-            return dbHelper.getAuthState();
+            return new OkHttpClient.Builder()
+                    .addInterceptor(new SekretessHttpInterceptor(accessToken))
+                    .authenticator(new BearerAuthenticator(application)).build();
+        } catch (Exception e) {
+            ContextCompat.startActivity(application.getApplicationContext(),
+                    new Intent(application.getApplicationContext(), LoginActivity.class), null);
         }
+    }
+
+    private OkHttpClient anonymousHttpClient() {
+        return new OkHttpClient.Builder().build();
     }
 }

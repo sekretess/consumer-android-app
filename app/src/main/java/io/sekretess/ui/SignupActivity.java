@@ -24,7 +24,7 @@ public class SignupActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_signup);
         Button btnSignup = findViewById(R.id.btnSignUp);
-        btnSignup.setOnClickListener(v -> broadcastSignup());
+        btnSignup.setOnClickListener(v -> signup());
 
         TextView txtLoginLink = findViewById(R.id.txtLoginLink);
         txtLoginLink.setOnClickListener(v -> {
@@ -32,7 +32,7 @@ public class SignupActivity extends AppCompatActivity {
         });
     }
 
-    private void broadcastSignup() {
+    private void signup() {
 
         String email = ((EditText) findViewById(R.id.txtSignupEmail)).getText().toString();
 
@@ -53,7 +53,7 @@ public class SignupActivity extends AppCompatActivity {
             return;
         }
 
-        ApiClient.createUser(getApplicationContext(), username, email, password);
+        sekretessApplication.getApiClient().createUser( username, email, password);
     }
 
     private boolean validateUserName(EditText usernameEdit) {

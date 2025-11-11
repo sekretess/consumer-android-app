@@ -17,7 +17,9 @@ import io.sekretess.BuildConfig;
 import io.sekretess.Constants;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
+import io.sekretess.dto.AuthRequest;
 import io.sekretess.repository.DbHelper;
+import io.sekretess.service.AuthService;
 import io.sekretess.service.SekretessWebSocketClient;
 
 import net.openid.appauth.AuthState;
@@ -29,66 +31,66 @@ import net.openid.appauth.AuthorizationServiceConfiguration;
 import net.openid.appauth.ResponseTypeValues;
 import net.openid.appauth.TokenRequest;
 
+import org.w3c.dom.Text;
+
 import java.net.URL;
 
 public class LoginActivity extends AppCompatActivity {
-
-    private DbHelper dbHelper;
     private SekretessApplication sekretessApplication;
 
-    int RC_AUTH = 1717275371;
 
-    private void authorizeUser() {
-        AuthorizationServiceConfiguration.fetchFromUrl(Uri.parse(BuildConfig.AUTH_API_URL),
-                (serviceConfiguration, ex) -> {
-                    AuthorizationRequest authorizationRequest =
-                            new AuthorizationRequest.Builder(serviceConfiguration, "consumer_client",
-                                    ResponseTypeValues.CODE,
-                                    Constants.AUTH_REDIRECT_URL).
-                                    setScopes("email", "roles", "profile", "web-origins", "acr", "openid").
-                                    build();
-                    Intent authorizationRequestIntent = new AuthorizationService(getApplicationContext())
-                            .getAuthorizationRequestIntent(authorizationRequest);
-                    startActivityForResult(authorizationRequestIntent, RC_AUTH);
+    private void authorizeUser(String username, String password) {
+        sekretessApplication
+                .getAuthService()
+                .authorizeUser(new AuthRequest(username, password))
+                .ifPresent(authResponse -> {
+                    try {
+                        initializeApplication();
+                    } catch (Exception e) {
+                        Toast.makeText(getApplicationContext(), "Connection establishment failed. "
+                                + e.getMessage(), Toast.LENGTH_LONG).show();
+                        finishAffinity();
+                    }
+                    startActivity(new Intent(this, MainActivity.class));
                 });
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if (requestCode == RC_AUTH) {
-            AuthorizationResponse authorizationResponse = AuthorizationResponse.fromIntent(data);
-            AuthorizationException exception = AuthorizationException.fromIntent(data);
-            if (authorizationResponse != null) {
-                TokenRequest tokenExchangeRequest = authorizationResponse.createTokenExchangeRequest();
-                new AuthorizationService(getApplicationContext()).performTokenRequest(tokenExchangeRequest,
-                        (tokenResponse, ex) -> {
-                            if (ex != null) {
-                                Toast.makeText(getApplicationContext(), "Login failed",
-                                                Toast.LENGTH_LONG)
-                                        .show();
-                                Log.e("LoginActivity", "Error occurred during request token", ex);
-                            } else {
-                                AuthState authState = new AuthState(authorizationResponse, tokenResponse, exception);
-                                JWT jwt = new JWT(tokenResponse.accessToken);
-                                String username = jwt.getClaim(Constants.USERNAME_CLAIM).asString();
-                                Log.i("LoginActivity", "Login successful. Broadcast event.");
-                                dbHelper.storeAuthState(authState.jsonSerializeString());
-                                try {
-                                    initializeApplication();
-                                    startActivity(new Intent(this, MainActivity.class));
-                                } catch (Exception e) {
-                                    Toast.makeText(getApplicationContext(), "KeyMaterial generation failed "
-                                            + e.getMessage(), Toast.LENGTH_LONG).show();
-                                }
-                            }
-                        });
-            }
-        }
-        super.onActivityResult(requestCode, resultCode, data);
-    }
+//    @Override
+//    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+//        if (requestCode == RC_AUTH) {
+//            AuthorizationResponse authorizationResponse = AuthorizationResponse.fromIntent(data);
+//            AuthorizationException exception = AuthorizationException.fromIntent(data);
+//            if (authorizationResponse != null) {
+//                TokenRequest tokenExchangeRequest = authorizationResponse.createTokenExchangeRequest();
+//                new AuthorizationService(getApplicationContext()).performTokenRequest(tokenExchangeRequest,
+//                        (tokenResponse, ex) -> {
+//                            if (ex != null) {
+//                                Toast.makeText(getApplicationContext(), "Login failed",
+//                                                Toast.LENGTH_LONG)
+//                                        .show();
+//                                Log.e("LoginActivity", "Error occurred during request token", ex);
+//                            } else {
+//                                AuthState authState = new AuthState(authorizationResponse, tokenResponse, exception);
+//                                JWT jwt = new JWT(tokenResponse.accessToken);
+//                                String username = jwt.getClaim(Constants.USERNAME_CLAIM).asString();
+//                                Log.i("LoginActivity", "Login successful. Broadcast event.");
+//                                dbHelper.storeAuthState(authState.jsonSerializeString());
+//                                try {
+//                                    initializeApplication();
+//                                    startActivity(new Intent(this, MainActivity.class));
+//                                } catch (Exception e) {
+//                                    Toast.makeText(getApplicationContext(), "KeyMaterial generation failed "
+//                                            + e.getMessage(), Toast.LENGTH_LONG).show();
+//                                }
+//                            }
+//                        });
+//            }
+//        }
+//        super.onActivityResult(requestCode, resultCode, data);
+//    }
 
     private void initializeApplication() throws Exception {
-        sekretessApplication.getSekretessWebSocketClient().startWebSocket();
+        sekretessApplication.getSekretessWebSocketClient().startWebSocket(new URL(BuildConfig.WEB_SOCKET_URL));
         sekretessApplication.getSekretessCryptographicService().init();
     }
 
@@ -96,11 +98,12 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         this.sekretessApplication = (SekretessApplication) getApplication();
-
-        dbHelper = new DbHelper(getApplicationContext());
         setContentView(R.layout.activity_login);
 
         Button btnLogin = findViewById(R.id.btnLogin);
+        TextView txtUserName = findViewById(R.id.txtLoginUsername);
+        TextView txtPassword = findViewById(R.id.txtLoginPassword);
+
 
         TextView textView = findViewById(R.id.txtSignupLink);
         textView.setOnClickListener(v -> {
@@ -108,7 +111,7 @@ public class LoginActivity extends AppCompatActivity {
         });
 
         btnLogin.setOnClickListener(v -> {
-            authorizeUser();
+            authorizeUser(txtUserName.getText().toString(), txtPassword.getText().toString());
         });
     }
 

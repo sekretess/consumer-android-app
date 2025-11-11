@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import io.sekretess.cryptography.storage.SekretessSignalProtocolStore;
+import io.sekretess.repository.AuthRepository;
 import io.sekretess.repository.DbHelper;
 import io.sekretess.repository.IdentityKeyRepository;
 import io.sekretess.repository.KyberPreKeyRepository;
@@ -14,9 +15,11 @@ import io.sekretess.repository.PreKeyRepository;
 import io.sekretess.repository.RegistrationRepository;
 import io.sekretess.repository.SenderKeyRepository;
 import io.sekretess.repository.SessionRepository;
+import io.sekretess.service.AuthService;
 import io.sekretess.service.SekretessCryptographicService;
 import io.sekretess.service.SekretessMessageService;
 import io.sekretess.service.SekretessWebSocketClient;
+import io.sekretess.utils.ApiClient;
 
 public class SekretessApplication extends Application {
 
@@ -24,6 +27,8 @@ public class SekretessApplication extends Application {
     private SekretessMessageService sekretessMessageService;
     private final MutableLiveData<String> messageEventsLiveData = new MutableLiveData<>();
     private SekretessWebSocketClient sekretessWebSocketClient;
+    private AuthService authService;
+    private ApiClient apiClient;
     private DbHelper dbHelper;
 
     @Override
@@ -39,7 +44,9 @@ public class SekretessApplication extends Application {
         SessionRepository sessionRepository = new SessionRepository(dbHelper);
         this.sekretessMessageService = new SekretessMessageService(messageRepository,
                 sekretessCryptographicService, this);
-        this.sekretessWebSocketClient = new SekretessWebSocketClient(sekretessMessageService);
+        AuthRepository authRepository = new AuthRepository(dbHelper);
+        this.authService = new AuthService(this, authRepository);
+        this.sekretessWebSocketClient = new SekretessWebSocketClient(sekretessMessageService, authService);
 
         SekretessSignalProtocolStore sekretessSignalProtocolStore =
                 new SekretessSignalProtocolStore(this, identityKeyRepository,
@@ -47,6 +54,7 @@ public class SekretessApplication extends Application {
                         senderKeyRepository, kyberPreKeyRepository);
         this.sekretessCryptographicService =
                 new SekretessCryptographicService(this, sekretessSignalProtocolStore);
+        this.apiClient = new ApiClient(authService, this);
     }
 
     @Override
@@ -73,5 +81,13 @@ public class SekretessApplication extends Application {
 
     public SekretessWebSocketClient getSekretessWebSocketClient() {
         return sekretessWebSocketClient;
+    }
+
+    public AuthService getAuthService() {
+        return authService;
+    }
+
+    public ApiClient getApiClient() {
+        return apiClient;
     }
 }

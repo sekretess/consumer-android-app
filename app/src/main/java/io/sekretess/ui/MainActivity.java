@@ -16,29 +16,16 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
-import com.auth0.android.jwt.JWT;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.messaging.FirebaseMessaging;
 
-import net.openid.appauth.AuthState;
-
 import java.io.File;
-import java.util.Optional;
 
-import io.sekretess.Constants;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
-import io.sekretess.repository.DbHelper;
 
 public class MainActivity extends AppCompatActivity {
     private SekretessApplication application;
-    private final BroadcastReceiver tokenRefreshBroadcastReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.i("MainActivity", "Refresh token failed");
-            startActivity(new Intent(MainActivity.this, LoginActivity.class));
-        }
-    };
 
     @Override
     public void onPostCreate(@Nullable Bundle savedInstanceState, @Nullable PersistableBundle persistentState) {
@@ -71,9 +58,7 @@ public class MainActivity extends AppCompatActivity {
         //showBiometricLogin();
         prepareFileSystem();
         Log.i("MainActivity", "OnCreate");
-        Optional<AuthState> authState = restoreState();
-        if (authState.isPresent()) {
-            String username = new JWT(authState.get().getAccessToken()).getClaim(Constants.USERNAME_CLAIM).asString();
+        if (application.getAuthService().isAuthorized()) {
             setContentView(R.layout.activity_main);
             Toolbar myToolbar = findViewById(R.id.my_toolbar);
 //            myToolbar.setNavigationIcon(R.drawable.ic_notif_sekretess);
@@ -126,21 +111,5 @@ public class MainActivity extends AppCompatActivity {
 
     private void startLoginActivity() {
         startActivity(new Intent(this, LoginActivity.class));
-    }
-
-    private Optional<AuthState> restoreState() {
-        Log.i("MainActivity", "Restoring Authstate...");
-        DbHelper dbHelper = new DbHelper(getApplicationContext());
-        if (dbHelper != null) {
-            AuthState authState = dbHelper.getAuthState();
-            if (authState == null) {
-                Log.i("MainActivity", "Auth state is not found");
-                return Optional.empty();
-            }
-            Log.i("MainActivity", "State restored.");
-            return Optional.ofNullable(authState);
-        } else {
-            return Optional.empty();
-        }
     }
 }

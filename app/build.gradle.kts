@@ -49,6 +49,12 @@ android {
                 "BUSINESS_API_URL",
                 "\"https://business.sekretess.net/api/v1/businesses\""
             )
+            buildConfigField(
+                "String",
+                "WEB_SOCKET_URL",
+                "\"https://auth.sekretess.io/realms/consumer/.well-known/openid-configuration\""
+            )
+
             buildConfigField("String", "RABBIT_MQ_URI", "\"amqps://%s:%s@mq.sekretess.net:5671\"")
         }
         create("internal-test") {
@@ -70,6 +76,12 @@ android {
                 "String",
                 "BUSINESS_API_URL",
                 "\"https://business.test.sekretess.net/api/v1/businesses\""
+            )
+
+            buildConfigField(
+                "String",
+                "WEB_SOCKET_URL",
+                "\"https://auth.sekretess.io/realms/consumer/.well-known/openid-configuration\""
             )
             buildConfigField("String", "RABBIT_MQ_URI", "\"amqps://%s:%s@mq.test.sekretess.net:30071\"")
 
@@ -119,7 +131,7 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 //    implementation("net.zetetic:android-database-sqlcipher:4.5.4")//Encrypted database
     implementation("com.auth0.android:jwtdecode:2.0.2")
-    implementation("net.openid:appauth:0.11.1")
+//    implementation("net.openid:appauth:0.11.1")
     implementation("com.squareup.picasso:picasso:2.71828")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("com.google.android.material:material:1.13.0")

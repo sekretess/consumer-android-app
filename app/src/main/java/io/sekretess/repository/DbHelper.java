@@ -88,100 +88,8 @@ public class DbHelper extends SQLiteOpenHelper {
         }
     }
 
-    public boolean clearUserData() {
-        try {
-            return executorService.submit(() -> {
-                try (SQLiteDatabase db = getWritableDatabase()) {
-                    db.beginTransaction();
-                    db.delete(MessageStoreEntity.TABLE_NAME, null, null);
-                    db.delete(IdentityKeyPairStoreEntity.TABLE_NAME, null, null);
-                    db.delete(RegistrationIdStoreEntity.TABLE_NAME, null, null);
-                    db.delete(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, null);
-                    db.delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
-                    db.delete(JwtStoreEntity.TABLE_NAME, null, null);
-                    db.delete(SessionStoreEntity.TABLE_NAME, null, null);
-                    db.delete(AuthStateStoreEntity.TABLE_NAME, null, null);
-                    db.delete(KyberPreKeyRecordsEntity.TABLE_NAME, null, null);
-                    db.delete(SenderKeyEntity.TABLE_NAME, null, null);
-                    db.setTransactionSuccessful();
-                    db.endTransaction();
-                    return true;
-                } catch (Exception e) {
-                    return false;
-                }
-            }).get();
-        } catch (Exception e) {
-            Log.e("DbHelper", "Error occurred during clear user data", e);
-            return false;
-        }
 
-    }
 
-    public void logout() {
-
-        executorService.submit(() -> {
-            try (SQLiteDatabase db = getWritableDatabase()) {
-                db.beginTransaction();
-                db.delete(AuthStateStoreEntity.TABLE_NAME, null, null);
-                db.setTransactionSuccessful();
-                db.endTransaction();
-            }
-        });
-    }
-
-    public void storeAuthState(String authState) {
-        ContentValues values = new ContentValues();
-        values.put(AuthStateStoreEntity.COLUMN_AUTH_STATE, authState);
-
-        executorService.submit(() -> {
-            getWritableDatabase().delete(AuthStateStoreEntity.TABLE_NAME, null, null);
-            getWritableDatabase().insert(AuthStateStoreEntity.TABLE_NAME, null, values);
-
-        });
-
-    }
-
-    public void removeAuthState() {
-        executorService.submit(() -> {
-            getWritableDatabase().delete(AuthStateStoreEntity.TABLE_NAME, null, null);
-        });
-    }
-
-    @SuppressLint("Range")
-    public AuthState getAuthState() {
-        try {
-            return executorService.submit(() -> {
-                Cursor result = null;
-                SQLiteDatabase db = null;
-                try {
-                    db = getWritableDatabase();
-                    result = db
-                            .query(AuthStateStoreEntity.TABLE_NAME,
-                                    null,
-                                    null, null, null, null, null);
-                    if (result.moveToNext()) {
-                        return AuthState.jsonDeserialize(result
-                                .getString(result.getColumnIndex(AuthStateStoreEntity.COLUMN_AUTH_STATE)));
-                    }
-                } catch (Throwable e) {
-                    Log.e("DbHelper", "Getting AuthState failed", e);
-                    return null;
-                } finally {
-                    if (result != null) {
-                        result.close();
-                    }
-                    if (db != null) {
-                        db.close();
-                    }
-                }
-                return null;
-            }).get(10, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            Log.i("DbHelper", "Getting AuthState failed", e);
-            return null;
-        }
-
-    }
 
     public void storeGroupChatInfo(String distributionKey, String sender) {
         ContentValues contentValues = new ContentValues();
@@ -263,10 +171,6 @@ public class DbHelper extends SQLiteOpenHelper {
         db.execSQL(SenderKeyEntity.SQL_CREATE_TABLE);
         db.execSQL(GroupChatEntity.SQL_CREATE_TABLE);
         db.execSQL(IdentityKeyEntity.SQL_CREATE_TABLE);
-    }
-
-    public String getUserNameFromJwt() {
-        return new JWT(getAuthState().getIdToken()).getClaim(Constants.USERNAME_CLAIM).asString();
     }
 
     public void deleteMessage(Long messageId) {

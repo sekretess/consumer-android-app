@@ -16,6 +16,7 @@ import com.squareup.picasso.Picasso;
 
 
 import io.sekretess.R;
+import io.sekretess.SekretessApplication;
 import io.sekretess.adapters.BusinessesAdapter;
 import io.sekretess.dto.BusinessDto;
 import io.sekretess.utils.ApiClient;
@@ -25,6 +26,7 @@ import io.sekretess.utils.NotificationPreferencesUtils;
 public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
 
     private final BusinessesAdapter businessesAdapter;
+    private SekretessApplication application;
 
 
     public BusinessInfoDialogFragment(BusinessesAdapter businessesAdapter) {
@@ -36,6 +38,7 @@ public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.business_info_dialog_fragment_layout, container,
                 false);
+        this.application = (SekretessApplication) requireActivity().getApplication();
         Bundle args = getArguments();
         String icon = args.getString("businessIcon");
         String businessName = args.getString("businessName");
@@ -45,14 +48,14 @@ public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
         swSubscription.setChecked(subscribed);
         swSubscription.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
-                if (ApiClient.subscribeToBusiness(getContext(), businessName)) {
+                if (application.getApiClient().subscribeToBusiness(businessName)) {
                     businessesAdapter.subscribed(businessName);
                     businessesAdapter.rearrangeData();
                     businessesAdapter.notifyDataSetChanged();
                 }
 
             } else {
-                if (ApiClient.unSubscribeFromBusiness(getContext(), businessName)) {
+                if (application.getApiClient().unSubscribeFromBusiness(businessName)) {
                     businessesAdapter.unsubscribed(businessName);
                     businessesAdapter.rearrangeData();
                     businessesAdapter.notifyDataSetChanged();
