@@ -35,6 +35,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.internal.Util;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
@@ -282,6 +283,7 @@ public class ApiClient {
 
         Request request = new Request
                 .Builder()
+                .url(new URL(BuildConfig.CONSUMER_API_URL + "/auth/login"))
                 .post(RequestBody
                         .create(MediaType.parse("application/json"), jsonObject))
                 .build();
@@ -343,15 +345,34 @@ public class ApiClient {
 
     public Optional<AuthResponse> refresh(RefreshTokenRequestDto refreshTokenRequestDto) {
         try {
-            Future<AuthResponse> future = networkExecutors.submit(() -> refreshInternal(refreshTokenRequestDto));
+            Future<Optional<AuthResponse>> future = networkExecutors.submit(() -> refreshInternal(refreshTokenRequestDto));
+            return future.get(20, TimeUnit.SECONDS);
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during refresh", e);
-            showToast( "Error occurred during refresh: " + e.getMessage());
+            showToast("Error occurred during refresh: " + e.getMessage());
+            return Optional.empty();
         }
     }
 
-    private AuthResponse refreshInternal(RefreshTokenRequestDto refreshTokenRequestDto) {
-        return null;
+    private Optional<AuthResponse> refreshInternal(RefreshTokenRequestDto refreshTokenRequestDto) throws JsonProcessingException, MalformedURLException {
+        OkHttpClient httpClient = anonymousHttpClient();
+        String jsonObject = objectMapper.writeValueAsString(refreshTokenRequestDto);
+        Request request = new Request
+                .Builder()
+                .url(new URL(BuildConfig.CONSUMER_API_URL + "/auth/refresh"))
+                .post(RequestBody.create(MediaType.parse("application/json"), jsonObject))
+                .build();
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                showToast("JWT refresh failed. " + response.code() + "\n" + response.message());
+                return Optional.empty();
+            }
+
+            AuthResponse authResponse = objectMapper.readValue(response.body().string(), AuthResponse.class);
+            return Optional.of(authResponse);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 
 
@@ -422,14 +443,21 @@ public class ApiClient {
 
             return new OkHttpClient.Builder()
                     .addInterceptor(new SekretessHttpInterceptor(accessToken))
-                    .authenticator(new BearerAuthenticator(application)).build();
+                    .authenticator(new BearerAuthenticator(application))
+                    .build();
         } catch (Exception e) {
             ContextCompat.startActivity(application.getApplicationContext(),
                     new Intent(application.getApplicationContext(), LoginActivity.class), null);
+            return null;
         }
     }
 
     private OkHttpClient anonymousHttpClient() {
         return new OkHttpClient.Builder().build();
+    }
+
+    public void logout() {
+
+
     }
 }

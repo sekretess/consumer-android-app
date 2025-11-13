@@ -12,6 +12,7 @@ import io.sekretess.SekretessApplication;
 import io.sekretess.dto.AuthRequest;
 import io.sekretess.dto.AuthResponse;
 import io.sekretess.dto.RefreshTokenRequestDto;
+import io.sekretess.exception.IncorrectTokenSyntaxException;
 import io.sekretess.exception.TokenExpiredException;
 import io.sekretess.repository.AuthRepository;
 
@@ -19,6 +20,7 @@ public class AuthService {
     private final SekretessApplication sekretessApplication;
     private final AuthRepository authRepository;
     private final ObjectMapper objectMapper;
+    private String username;
 
     public AuthService(SekretessApplication sekretessApplication, AuthRepository authRepository) {
         this.sekretessApplication = sekretessApplication;
@@ -39,14 +41,19 @@ public class AuthService {
 
     public boolean isAuthorized() {
         try {
-            return getAccessToken() != null;
+            JWT jwt = getAccessToken();
+            this.username = jwt.getClaim(Constants.USERNAME_CLAIM).asString();
+            return true;
         } catch (Exception e) {
             return false;
         }
     }
 
+    public void logout() {
+        sekretessApplication.getApiClient().logout();
+    }
 
-    private Optional<AuthResponse> refreshAccessToken() throws TokenExpiredException {
+    private Optional<AuthResponse> refreshAccessToken() throws TokenExpiredException, JsonProcessingException {
         JWT refreshToken = getRefreshToken();
         if (refreshToken.isExpired(0)) {
             throw new TokenExpiredException("Refresh token expired at " + refreshToken.getExpiresAt());
@@ -55,25 +62,24 @@ public class AuthService {
         return sekretessApplication.getApiClient().refresh(refreshTokenRequestDto);
     }
 
-    public String getUserNameFromJwt() throws Exception {
-        JWT jwt = getAccessToken();
-        return jwt.getClaim(Constants.USERNAME_CLAIM).asString();
-    }
 
-
-    public JWT getAccessToken() throws TokenExpiredException {
-        AuthResponse authResponse = objectMapper.readValue(authRepository.getAuthState(), AuthResponse.class);
-        String token = authResponse.accessToken();
-        JWT jwt = new JWT(token);
-        if (jwt.isExpired(0)) {
-            authResponse = refreshAccessToken().orElseThrow(() -> new TokenExpiredException("Invalid access token"));
-            authRepository.storeAuthState(objectMapper.writeValueAsString(authResponse));
-            return new JWT(authResponse.accessToken());
+    public JWT getAccessToken() throws TokenExpiredException, IncorrectTokenSyntaxException {
+        try {
+            AuthResponse authResponse = objectMapper.readValue(authRepository.getAuthState(), AuthResponse.class);
+            String token = authResponse.accessToken();
+            JWT jwt = new JWT(token);
+            if (jwt.isExpired(0)) {
+                authResponse = refreshAccessToken().orElseThrow(() -> new TokenExpiredException("Invalid access token"));
+                authRepository.storeAuthState(objectMapper.writeValueAsString(authResponse));
+                return new JWT(authResponse.accessToken());
+            }
+            return jwt;
+        } catch (JsonProcessingException e) {
+            throw new IncorrectTokenSyntaxException("Incorrect token syntax.");
         }
-        return jwt;
     }
 
-    private JWT getRefreshToken() throws Exception {
+    private JWT getRefreshToken() throws JsonProcessingException {
         AuthResponse authResponse = objectMapper.readValue(authRepository.getAuthState(), AuthResponse.class);
         String token = authResponse.refreshToken();
         return new JWT(token);
@@ -81,5 +87,9 @@ public class AuthService {
 
     public boolean clearUserData() {
         return authRepository.clearUserData();
+    }
+
+    public String getUsername() {
+        return username;
     }
 }

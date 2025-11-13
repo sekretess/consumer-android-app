@@ -1,37 +1,17 @@
 package io.sekretess.ui;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.auth0.android.jwt.JWT;
-
 import io.sekretess.BuildConfig;
-import io.sekretess.Constants;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
 import io.sekretess.dto.AuthRequest;
-import io.sekretess.repository.DbHelper;
-import io.sekretess.service.AuthService;
-import io.sekretess.service.SekretessWebSocketClient;
-
-import net.openid.appauth.AuthState;
-import net.openid.appauth.AuthorizationException;
-import net.openid.appauth.AuthorizationRequest;
-import net.openid.appauth.AuthorizationResponse;
-import net.openid.appauth.AuthorizationService;
-import net.openid.appauth.AuthorizationServiceConfiguration;
-import net.openid.appauth.ResponseTypeValues;
-import net.openid.appauth.TokenRequest;
-
-import org.w3c.dom.Text;
 
 import java.net.URL;
 

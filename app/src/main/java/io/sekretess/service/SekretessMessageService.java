@@ -74,7 +74,7 @@ public class SekretessMessageService {
     }
 
     private void processAdvertisementMessage(String base64Message, String sender) {
-        String username = sekretessApplication.getAuthService().getUserNameFromJwt();
+        String username = sekretessApplication.getAuthService().getUsername();
         sekretessCryptographicService.decryptGroupChatMessage(sender, base64Message).ifPresent(decryptedMessage -> {
             messageRepository.storeDecryptedMessage(sender, decryptedMessage, username);
             sekretessApplication.getMessageEventsLiveData().postValue("new-message");
@@ -87,7 +87,7 @@ public class SekretessMessageService {
             if (messageType == MessageType.KEY_DISTRIBUTION) {
                 sekretessCryptographicService.processKeyDistributionMessage(sender, decryptedMessage);
             } else {
-                String username = sekretessApplication.getAuthService().getUserNameFromJwt();
+                String username = sekretessApplication.getAuthService().getUsername();
                 messageRepository.storeDecryptedMessage(sender, decryptedMessage, username);
                 sekretessApplication.getMessageEventsLiveData().postValue("new-message");
                 publishNotification(sender, decryptedMessage);
@@ -96,7 +96,7 @@ public class SekretessMessageService {
     }
 
     public List<MessageBriefDto> getMessageBriefs() {
-        String username = sekretessApplication.getAuthService().getUserNameFromJwt();
+        String username = sekretessApplication.getAuthService().getUsername();
         return messageRepository.getMessageBriefs(username);
     }
 

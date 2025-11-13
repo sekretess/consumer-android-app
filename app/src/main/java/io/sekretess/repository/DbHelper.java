@@ -1,6 +1,5 @@
 package io.sekretess.repository;
 
-import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -9,13 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 
-import com.auth0.android.jwt.JWT;
-
-import io.sekretess.Constants;
-import io.sekretess.cryptography.storage.SekretessSignalProtocolStore;
 import io.sekretess.dto.GroupChatDto;
-import io.sekretess.dto.MessageRecordDto;
-import io.sekretess.enums.ItemType;
 import io.sekretess.model.AuthStateStoreEntity;
 import io.sekretess.model.GroupChatEntity;
 import io.sekretess.model.IdentityKeyEntity;
@@ -29,26 +22,14 @@ import io.sekretess.model.SenderKeyEntity;
 import io.sekretess.model.SessionStoreEntity;
 import io.sekretess.model.SignedPreKeyRecordStoreEntity;
 
-import net.openid.appauth.AuthState;
-
-import org.signal.libsignal.protocol.SignalProtocolAddress;
-import org.signal.libsignal.protocol.groups.state.SenderKeyRecord;
-import org.signal.libsignal.protocol.state.SessionRecord;
-
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class DbHelper extends SQLiteOpenHelper {
     public static final DateTimeFormatter dateTimeFormatter

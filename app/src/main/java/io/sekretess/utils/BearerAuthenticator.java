@@ -23,18 +23,12 @@ public class BearerAuthenticator implements Authenticator {
     }
 
     @Override
-    public Request authenticate(Route route, Response response) throws IOException {
+    public Request authenticate(Route route, Response response) {
         if (response.code() == HttpURLConnection.HTTP_UNAUTHORIZED ||
                 response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
-            try {
-                String refreshToken = sekretessApplication.getAuthService().getRefreshToken().toString();
-                sekretessApplication.getAuthService().refresh(refreshToken);
-
-            } catch (Exception e) {
-                ContextCompat.startActivity(sekretessApplication.getApplicationContext(),
-                        new Intent(sekretessApplication.getApplicationContext(), LoginActivity.class),
-                        null);
-            }
+            ContextCompat.startActivity(sekretessApplication.getApplicationContext(),
+                    new Intent(sekretessApplication.getApplicationContext(), LoginActivity.class),
+                    null);
         }
         return null;
     }
