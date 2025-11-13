@@ -47,4 +47,8 @@ public class SenderKeyRepository {
         }
         return null;
     }
+
+    public void clearStorage() {
+        dbHelper.getWritableDatabase().delete(SenderKeyEntity.TABLE_NAME, null, null);
+    }
 }

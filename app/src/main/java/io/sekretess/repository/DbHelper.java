@@ -45,31 +45,6 @@ public class DbHelper extends SQLiteOpenHelper {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
-    public boolean clearKeyData() {
-        try {
-            return executorService.submit(() -> {
-                try (SQLiteDatabase db = getWritableDatabase()) {
-                    db.beginTransaction();
-                    db.delete(IdentityKeyPairStoreEntity.TABLE_NAME, null, null);
-                    db.delete(RegistrationIdStoreEntity.TABLE_NAME, null, null);
-                    db.delete(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, null);
-                    db.delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
-                    db.delete(KyberPreKeyRecordsEntity.TABLE_NAME, null, null);
-                    db.setTransactionSuccessful();
-                    db.endTransaction();
-                    return true;
-                } catch (Exception e) {
-                    return false;
-                }
-            }).get();
-        } catch (Exception e) {
-            Log.e("DbHelper", "Error occurred during clear key data", e);
-            return false;
-        }
-    }
-
-
-
 
     public void storeGroupChatInfo(String distributionKey, String sender) {
         ContentValues contentValues = new ContentValues();

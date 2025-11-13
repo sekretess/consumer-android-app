@@ -36,4 +36,8 @@ public class RegistrationRepository {
         contentValues.put(RegistrationIdStoreEntity.COLUMN_CREATED_AT, DbHelper.dateTimeFormatter.format(Instant.now()));
         dbHelper.getWritableDatabase().insert(RegistrationIdStoreEntity.TABLE_NAME, null, contentValues);
     }
+
+    public void clearStorage() {
+        dbHelper.getWritableDatabase().delete(RegistrationIdStoreEntity.TABLE_NAME, null, null);
+    }
 }

@@ -40,4 +40,8 @@ public class SekretessPreKeyStore implements PreKeyStore {
     public void removePreKey(int preKeyId) {
         preKeyRepository.removePreKeyRecord(preKeyId);
     }
+
+    public void clearStorage() {
+        preKeyRepository.clearStorage();
+    }
 }

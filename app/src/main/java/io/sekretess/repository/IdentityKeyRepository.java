@@ -82,4 +82,8 @@ public class IdentityKeyRepository {
         }
         return null;
     }
+
+    public void clearStorage() {
+        dbHelper.getWritableDatabase().delete(IdentityKeyPairStoreEntity.TABLE_NAME, null, null);
+    }
 }

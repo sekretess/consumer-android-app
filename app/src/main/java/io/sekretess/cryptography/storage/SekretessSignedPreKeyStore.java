@@ -47,4 +47,8 @@ public class SekretessSignedPreKeyStore implements SignedPreKeyStore {
     public void removeSignedPreKey(int signedPreKeyId) {
         preKeyRepository.removeSignedPreKey(signedPreKeyId);
     }
+
+    public void clearStorage() {
+        preKeyRepository.clearStorage();
+    }
 }

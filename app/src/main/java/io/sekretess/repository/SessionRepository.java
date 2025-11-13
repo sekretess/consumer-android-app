@@ -103,4 +103,8 @@ public class SessionRepository {
 
 
     }
+
+    public void clearStorage() {
+        dbHelper.getWritableDatabase().delete(SessionStoreEntity.TABLE_NAME, null, null);
+    }
 }

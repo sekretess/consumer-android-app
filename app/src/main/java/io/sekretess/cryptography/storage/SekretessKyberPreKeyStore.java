@@ -48,4 +48,9 @@ public class SekretessKyberPreKeyStore implements KyberPreKeyStore {
     public void markKyberPreKeyUsed(int kyberPreKeyId) {
         kyberPreKeyRepository.markKyberPreKeyUsed(kyberPreKeyId);
     }
+
+    public void clearStorage() {
+        kyberPreKeyRepository.clearStorage();
+
+    }
 }

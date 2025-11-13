@@ -24,4 +24,8 @@ public class SekretessSenderKeyStore implements SenderKeyStore {
     public SenderKeyRecord loadSenderKey(SignalProtocolAddress sender, UUID distributionId) {
         return this.senderKeyRepository.loadSenderKey(sender, distributionId);
     }
+
+    public void clearStorage() {
+        senderKeyRepository.clearStorage();
+    }
 }

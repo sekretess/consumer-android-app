@@ -62,6 +62,15 @@ public class SekretessIdentityKeyStore implements IdentityKeyStore {
     }
 
     public boolean registrationRequired() {
-        return !(registrationRepository.getRegistrationId()  > 0 && identityKeyRepository != null);
+        return !(registrationRepository.getRegistrationId() > 0 && identityKeyRepository != null);
+    }
+
+    public void clearStorage() {
+        if (identityKeyRepository != null) {
+            identityKeyRepository.clearStorage();
+        }
+        if (registrationRepository != null) {
+            registrationRepository.clearStorage();
+        }
     }
 }

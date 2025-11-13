@@ -51,4 +51,8 @@ public class SekretessSessionStore implements SessionStore {
     public void deleteAllSessions(String name) {
         sessionRepository.removeAllSessions(name);
     }
+
+    public void clearStorage() {
+        sessionRepository.clearStorage();
+    }
 }

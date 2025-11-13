@@ -5,6 +5,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import androidx.core.content.ContextCompat;
+import androidx.loader.content.AsyncTaskLoader;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -25,6 +26,8 @@ import io.sekretess.dto.RefreshTokenRequestDto;
 import io.sekretess.dto.UserDto;
 import io.sekretess.service.AuthService;
 import io.sekretess.ui.LoginActivity;
+import okhttp3.Call;
+import okhttp3.Callback;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -32,6 +35,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.internal.Util;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
@@ -50,7 +54,7 @@ public class ApiClient {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private static ExecutorService networkExecutors = Executors.newFixedThreadPool(3);
+    private static ExecutorService networkExecutors = Executors.newFixedThreadPool(1);
     private final AuthService authService;
     private final SekretessApplication application;
 

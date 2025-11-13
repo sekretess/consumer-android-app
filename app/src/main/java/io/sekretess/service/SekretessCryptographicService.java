@@ -143,7 +143,7 @@ public class SekretessCryptographicService {
     }
 
 
-    public void init() throws Exception {
+    public boolean init() throws Exception {
         if (sekretessSignalProtocolStore.registrationRequired()) {
             ECKeyPair signedPreKeyPair = ECKeyPair.generate();
             IdentityKeyPair identityKeyPair = sekretessSignalProtocolStore.getIdentityKeyPair();
@@ -167,22 +167,19 @@ public class SekretessCryptographicService {
 
 
             if (application.getApiClient().upsertKeyStore(keyMaterial)) {
-                application.getDbHelper().clearKeyData();
+                sekretessSignalProtocolStore.clearStorage();
                 storeKyberPreKeyRecords(kyberPreKeyRecords);
                 storePreKeyRecords(opk);
                 storeSignedPreKey(signedPreKeyRecord);
-            }else{
-                application.getDbHelper().clearKeyData();
-                application.getAuthService().logout();
-                Intent intent = new Intent(application.getApplicationContext(),
-                        LoginActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//                application.startActivity(intent);
-                ContextCompat.startActivity(application, intent , null);
+                return true;
+            } else {
+                sekretessSignalProtocolStore.clearStorage();
+                return false;
             }
         } else if (sekretessSignalProtocolStore.updateKeysRequired()) {
             updateOneTimeKeys();
         }
+        return true;
     }
 
     public Optional<String> decryptGroupChatMessage(String sender, String base64Message) {

@@ -71,4 +71,8 @@ public class KyberPreKeyRepository {
         }
         return kyberPreKeyRecords;
     }
+
+    public void clearStorage() {
+        dbHelper.getWritableDatabase().delete(KyberPreKeyRecordsEntity.TABLE_NAME, null, null);
+    }
 }

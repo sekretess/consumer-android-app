@@ -2,6 +2,8 @@ package io.sekretess.cryptography.storage;
 
 import android.app.Application;
 import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
 
 import org.signal.libsignal.protocol.IdentityKey;
 import org.signal.libsignal.protocol.IdentityKeyPair;
@@ -20,6 +22,11 @@ import java.util.List;
 import java.util.UUID;
 
 import io.sekretess.SekretessApplication;
+import io.sekretess.model.IdentityKeyPairStoreEntity;
+import io.sekretess.model.KyberPreKeyRecordsEntity;
+import io.sekretess.model.PreKeyRecordStoreEntity;
+import io.sekretess.model.RegistrationIdStoreEntity;
+import io.sekretess.model.SignedPreKeyRecordStoreEntity;
 import io.sekretess.repository.IdentityKeyRepository;
 import io.sekretess.repository.KyberPreKeyRepository;
 import io.sekretess.repository.PreKeyRepository;
@@ -197,6 +204,17 @@ public class SekretessSignalProtocolStore implements SignalProtocolStore {
     public void removeSignedPreKey(int signedPreKeyId) {
         signedPreKeyStore.removeSignedPreKey(signedPreKeyId);
     }
+
+    public boolean clearStorage() {
+        this.identityKeyStore.clearStorage();
+        this.preKeyStore.clearStorage();
+        this.sessionStore.clearStorage();
+        this.signedPreKeyStore.clearStorage();
+        this.senderKeyStore.clearStorage();
+        this.kyberPreKeyStore.clearStorage();
+        return true;
+    }
+
 
     public boolean updateKeysRequired() {
         return loadSignedPreKeys().size() > minKeysThreshold;

@@ -12,6 +12,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -35,10 +36,6 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void initializeApplication() throws Exception {
-        application.getSekretessCryptographicService().init();
-        application.getSekretessWebSocketClient().startWebSocket(new URL(BuildConfig.WEB_SOCKET_URL));
-    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -68,7 +65,22 @@ public class MainActivity extends AppCompatActivity {
         Log.i("MainActivity", "OnCreate");
         if (application.getAuthService().isAuthorized()) {
             try {
-                initializeApplication();
+                Log.i("MainActivity", "Initializing app");
+                if (!application.getSekretessCryptographicService().init()) {
+                    finish();
+                    try {
+                        application.getAuthService().logout();
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error occurred during logout", e);
+                    }
+
+                    Intent intent = new Intent(application.getApplicationContext(),
+                            LoginActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    ContextCompat.startActivity(application, intent, null);
+                    return;
+                }
+                application.getSekretessWebSocketClient().startWebSocket(new URL(BuildConfig.WEB_SOCKET_URL));
             } catch (Exception e) {
                 Log.e(TAG, "Error occurred during initialization app", e);
             }

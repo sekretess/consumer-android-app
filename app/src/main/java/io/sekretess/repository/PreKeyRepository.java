@@ -125,4 +125,9 @@ public class PreKeyRepository {
 
         return null;
     }
+
+    public void clearStorage() {
+        dbHelper.getWritableDatabase().delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
+
+    }
 }
