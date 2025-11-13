@@ -48,7 +48,8 @@
             android:name="io.sekretess.ui.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.App.Starting"
-            android:noHistory="true">
+            android:noHistory="true"
+            android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.INSTALL_PACKAGE"/>
                 <action android:name="android.intent.action.MAIN" />

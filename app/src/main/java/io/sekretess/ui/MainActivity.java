@@ -20,16 +20,24 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.io.File;
+import java.net.URL;
 
+import io.sekretess.BuildConfig;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
 
 public class MainActivity extends AppCompatActivity {
+    private final String TAG = MainActivity.class.getName();
     private SekretessApplication application;
 
     @Override
     public void onPostCreate(@Nullable Bundle savedInstanceState, @Nullable PersistableBundle persistentState) {
 
+    }
+
+    private void initializeApplication() throws Exception {
+        application.getSekretessCryptographicService().init();
+        application.getSekretessWebSocketClient().startWebSocket(new URL(BuildConfig.WEB_SOCKET_URL));
     }
 
     @Override
@@ -59,6 +67,11 @@ public class MainActivity extends AppCompatActivity {
         prepareFileSystem();
         Log.i("MainActivity", "OnCreate");
         if (application.getAuthService().isAuthorized()) {
+            try {
+                initializeApplication();
+            } catch (Exception e) {
+                Log.e(TAG, "Error occurred during initialization app", e);
+            }
             setContentView(R.layout.activity_main);
             Toolbar myToolbar = findViewById(R.id.my_toolbar);
 //            myToolbar.setNavigationIcon(R.drawable.ic_notif_sekretess);
@@ -110,6 +123,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startLoginActivity() {
-        startActivity(new Intent(this, LoginActivity.class));
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
     }
 }

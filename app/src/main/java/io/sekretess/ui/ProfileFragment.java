@@ -1,5 +1,6 @@
 package io.sekretess.ui;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -42,7 +43,9 @@ public class ProfileFragment extends Fragment {
         btnDeleteAccount.setOnClickListener(v -> {
             if (sekretessApplication.getApiClient().deleteUser()) {
                 if (sekretessApplication.getAuthService().clearUserData()) {
-                    startActivity(new Intent(ProfileFragment.this.getContext(), LoginActivity.class));
+                    Intent intent = new Intent(ProfileFragment.this.getContext(), LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
                 }
             }
             sekretessApplication.getAuthService().logout();

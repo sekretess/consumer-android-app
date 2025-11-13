@@ -13,7 +13,6 @@ import io.sekretess.model.AuthStateStoreEntity;
 import io.sekretess.model.GroupChatEntity;
 import io.sekretess.model.IdentityKeyEntity;
 import io.sekretess.model.IdentityKeyPairStoreEntity;
-import io.sekretess.model.JwtStoreEntity;
 import io.sekretess.model.KyberPreKeyRecordsEntity;
 import io.sekretess.model.MessageStoreEntity;
 import io.sekretess.model.PreKeyRecordStoreEntity;
@@ -114,7 +113,6 @@ public class DbHelper extends SQLiteOpenHelper {
         db.execSQL(RegistrationIdStoreEntity.SQL_CREATE_TABLE);
         db.execSQL(SignedPreKeyRecordStoreEntity.SQL_CREATE_TABLE);
         db.execSQL(PreKeyRecordStoreEntity.SQL_CREATE_TABLE);
-        db.execSQL(JwtStoreEntity.SQL_CREATE_TABLE);
         db.execSQL(SessionStoreEntity.SQL_CREATE_TABLE);
         db.execSQL(AuthStateStoreEntity.SQL_CREATE_TABLE);
         db.execSQL(KyberPreKeyRecordsEntity.SQL_CREATE_TABLE);
@@ -130,7 +128,6 @@ public class DbHelper extends SQLiteOpenHelper {
         db.execSQL(RegistrationIdStoreEntity.SQL_DROP_TABLE);
         db.execSQL(SignedPreKeyRecordStoreEntity.SQL_DROP_TABLE);
         db.execSQL(PreKeyRecordStoreEntity.SQL_DROP_TABLE);
-        db.execSQL(JwtStoreEntity.SQL_DROP_TABLE);
         db.execSQL(SessionStoreEntity.SQL_DROP_TABLE);
         db.execSQL(AuthStateStoreEntity.SQL_DROP_TABLE);
         db.execSQL(KyberPreKeyRecordsEntity.SQL_DROP_TABLE);
@@ -145,7 +142,6 @@ public class DbHelper extends SQLiteOpenHelper {
         db.execSQL(RegistrationIdStoreEntity.SQL_CREATE_TABLE);
         db.execSQL(SignedPreKeyRecordStoreEntity.SQL_CREATE_TABLE);
         db.execSQL(PreKeyRecordStoreEntity.SQL_CREATE_TABLE);
-        db.execSQL(JwtStoreEntity.SQL_CREATE_TABLE);
         db.execSQL(SessionStoreEntity.SQL_CREATE_TABLE);
         db.execSQL(AuthStateStoreEntity.SQL_CREATE_TABLE);
         db.execSQL(KyberPreKeyRecordsEntity.SQL_CREATE_TABLE);

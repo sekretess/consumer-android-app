@@ -42,18 +42,22 @@ public class SekretessApplication extends Application {
         RegistrationRepository registrationRepository = new RegistrationRepository(dbHelper);
         SenderKeyRepository senderKeyRepository = new SenderKeyRepository(dbHelper);
         SessionRepository sessionRepository = new SessionRepository(dbHelper);
+
+        SekretessSignalProtocolStore sekretessSignalProtocolStore =
+                new SekretessSignalProtocolStore(this, identityKeyRepository,
+                        registrationRepository, preKeyRepository, sessionRepository,
+                        senderKeyRepository, kyberPreKeyRepository);
+
+
+        this.sekretessCryptographicService =
+                new SekretessCryptographicService(this, sekretessSignalProtocolStore);
         this.sekretessMessageService = new SekretessMessageService(messageRepository,
                 sekretessCryptographicService, this);
         AuthRepository authRepository = new AuthRepository(dbHelper);
         this.authService = new AuthService(this, authRepository);
         this.sekretessWebSocketClient = new SekretessWebSocketClient(sekretessMessageService, authService);
 
-        SekretessSignalProtocolStore sekretessSignalProtocolStore =
-                new SekretessSignalProtocolStore(this, identityKeyRepository,
-                        registrationRepository, preKeyRepository, sessionRepository,
-                        senderKeyRepository, kyberPreKeyRepository);
-        this.sekretessCryptographicService =
-                new SekretessCryptographicService(this, sekretessSignalProtocolStore);
+
         this.apiClient = new ApiClient(authService, this);
     }
 

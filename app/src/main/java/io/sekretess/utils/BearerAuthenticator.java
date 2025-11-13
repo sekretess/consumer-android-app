@@ -26,8 +26,9 @@ public class BearerAuthenticator implements Authenticator {
     public Request authenticate(Route route, Response response) {
         if (response.code() == HttpURLConnection.HTTP_UNAUTHORIZED ||
                 response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
-            ContextCompat.startActivity(sekretessApplication.getApplicationContext(),
-                    new Intent(sekretessApplication.getApplicationContext(), LoginActivity.class),
+            Intent intent = new Intent(sekretessApplication.getApplicationContext(), LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ContextCompat.startActivity(sekretessApplication.getApplicationContext(), intent,
                     null);
         }
         return null;

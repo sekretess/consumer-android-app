@@ -54,6 +54,7 @@ public class AuthService {
     }
 
     public void logout() {
+        authRepository.clearUserData();
         sekretessApplication.getApiClient().logout();
     }
 

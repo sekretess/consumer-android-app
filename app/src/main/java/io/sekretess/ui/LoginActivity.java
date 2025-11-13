@@ -24,16 +24,8 @@ public class LoginActivity extends AppCompatActivity {
         sekretessApplication
                 .getAuthService()
                 .authorizeUser(new AuthRequest(username, password))
-                .ifPresent(authResponse -> {
-                    try {
-                        initializeApplication();
-                    } catch (Exception e) {
-                        Toast.makeText(getApplicationContext(), "Connection establishment failed. "
-                                + e.getMessage(), Toast.LENGTH_LONG).show();
-                        finishAffinity();
-                    }
-                    startActivity(new Intent(this, MainActivity.class));
-                });
+                .ifPresent(authResponse ->
+                        startActivity(new Intent(this, MainActivity.class)));
     }
 
 //    @Override
@@ -70,10 +62,6 @@ public class LoginActivity extends AppCompatActivity {
 //        super.onActivityResult(requestCode, resultCode, data);
 //    }
 
-    private void initializeApplication() throws Exception {
-        sekretessApplication.getSekretessWebSocketClient().startWebSocket(new URL(BuildConfig.WEB_SOCKET_URL));
-        sekretessApplication.getSekretessCryptographicService().init();
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

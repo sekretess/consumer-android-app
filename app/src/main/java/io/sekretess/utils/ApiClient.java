@@ -443,8 +443,10 @@ public class ApiClient {
                     .authenticator(new BearerAuthenticator(application))
                     .build();
         } catch (Exception e) {
-            ContextCompat.startActivity(application.getApplicationContext(),
-                    new Intent(application.getApplicationContext(), LoginActivity.class), null);
+            Intent intent = new Intent(application.getApplicationContext(), LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ContextCompat.startActivity(application.getApplicationContext(), intent
+                    , null);
             return null;
         }
     }

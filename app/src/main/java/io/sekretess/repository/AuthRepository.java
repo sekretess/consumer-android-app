@@ -7,10 +7,8 @@ import android.util.Log;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sekretess.dto.AuthResponse;
 import io.sekretess.model.AuthStateStoreEntity;
 import io.sekretess.model.IdentityKeyPairStoreEntity;
-import io.sekretess.model.JwtStoreEntity;
 import io.sekretess.model.KyberPreKeyRecordsEntity;
 import io.sekretess.model.MessageStoreEntity;
 import io.sekretess.model.PreKeyRecordStoreEntity;
@@ -67,19 +65,9 @@ public class AuthRepository {
 
     public boolean clearUserData() {
         try {
-
             SQLiteDatabase db = dbHelper.getWritableDatabase();
             db.beginTransaction();
-            db.delete(MessageStoreEntity.TABLE_NAME, null, null);
-            db.delete(IdentityKeyPairStoreEntity.TABLE_NAME, null, null);
-            db.delete(RegistrationIdStoreEntity.TABLE_NAME, null, null);
-            db.delete(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, null);
-            db.delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
-            db.delete(JwtStoreEntity.TABLE_NAME, null, null);
-            db.delete(SessionStoreEntity.TABLE_NAME, null, null);
             db.delete(AuthStateStoreEntity.TABLE_NAME, null, null);
-            db.delete(KyberPreKeyRecordsEntity.TABLE_NAME, null, null);
-            db.delete(SenderKeyEntity.TABLE_NAME, null, null);
             db.setTransactionSuccessful();
             db.endTransaction();
             return true;

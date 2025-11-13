@@ -1,7 +1,11 @@
 package io.sekretess.service;
 
+import android.content.Intent;
 import android.util.Log;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import org.signal.libsignal.protocol.DuplicateMessageException;
 import org.signal.libsignal.protocol.IdentityKeyPair;
@@ -33,6 +37,7 @@ import io.sekretess.SekretessApplication;
 import io.sekretess.dto.KeyMaterial;
 import io.sekretess.dto.KyberPreKeyRecords;
 import io.sekretess.cryptography.storage.SekretessSignalProtocolStore;
+import io.sekretess.ui.LoginActivity;
 
 
 public class SekretessCryptographicService {
@@ -166,6 +171,14 @@ public class SekretessCryptographicService {
                 storeKyberPreKeyRecords(kyberPreKeyRecords);
                 storePreKeyRecords(opk);
                 storeSignedPreKey(signedPreKeyRecord);
+            }else{
+                application.getDbHelper().clearKeyData();
+                application.getAuthService().logout();
+                Intent intent = new Intent(application.getApplicationContext(),
+                        LoginActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//                application.startActivity(intent);
+                ContextCompat.startActivity(application, intent , null);
             }
         } else if (sekretessSignalProtocolStore.updateKeysRequired()) {
             updateOneTimeKeys();
