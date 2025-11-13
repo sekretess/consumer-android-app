@@ -1,6 +1,5 @@
 package io.sekretess.utils;
 
-import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 import android.widget.Toast;
@@ -24,8 +23,6 @@ import io.sekretess.dto.KyberPreKeyRecords;
 import io.sekretess.dto.OneTimeKeyBundleDto;
 import io.sekretess.dto.RefreshTokenRequestDto;
 import io.sekretess.dto.UserDto;
-import io.sekretess.exception.TokenExpiredException;
-import io.sekretess.repository.DbHelper;
 import io.sekretess.service.AuthService;
 import io.sekretess.ui.LoginActivity;
 import okhttp3.MediaType;

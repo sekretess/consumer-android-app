@@ -1,6 +1,8 @@
 package io.sekretess.service;
 
 
+import android.util.Log;
+
 import com.auth0.android.jwt.JWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,6 +19,7 @@ import io.sekretess.exception.TokenExpiredException;
 import io.sekretess.repository.AuthRepository;
 
 public class AuthService {
+    private final String TAG = AuthService.class.getName();
     private final SekretessApplication sekretessApplication;
     private final AuthRepository authRepository;
     private final ObjectMapper objectMapper;
@@ -35,6 +38,7 @@ public class AuthService {
             authRepository.storeAuthState(objectMapper.writeValueAsString(login));
             return Optional.of(login);
         } catch (Exception e) {
+            Log.e(TAG, "Error occurred during authorize user.", e);
             return Optional.empty();
         }
     }

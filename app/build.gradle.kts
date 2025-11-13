@@ -107,6 +107,11 @@ android {
                 "BUSINESS_API_URL",
                 "\"https://business.test.sekretess.net/api/v1/businesses\""
             )
+            buildConfigField(
+                "String",
+                "WEB_SOCKET_URL",
+                "\"https://auth.sekretess.io/realms/consumer/.well-known/openid-configuration\""
+            )
             buildConfigField("String", "RABBIT_MQ_URI", "\"amqps://%s:%s@mq.test.sekretess.net:30071\"")
 
         }

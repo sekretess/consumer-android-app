@@ -2,6 +2,7 @@ package io.sekretess.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -91,6 +92,7 @@ public class LoginActivity extends AppCompatActivity {
         });
 
         btnLogin.setOnClickListener(v -> {
+            Log.i("LoginActivity", "Login Button clicked");
             authorizeUser(txtUserName.getText().toString(), txtPassword.getText().toString());
         });
     }
