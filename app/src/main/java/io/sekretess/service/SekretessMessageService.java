@@ -46,24 +46,21 @@ public class SekretessMessageService {
     }
 
 
-    public void handleMessage(String messageText) {
+    public void handleMessage(String jsonPayload) {
         try {
-            String exchangeName = "";
-            Log.i(TAG, "Received payload:" + messageText + " ExchangeName :");
-            MessageDto message = objectMapper.readValue(messageText, MessageDto.class);
+            MessageDto message = objectMapper.readValue(jsonPayload, MessageDto.class);
+            String sender = message.getSender();
+            Log.i(TAG, "Received payload: " + jsonPayload + " sender:");
             String encryptedText = message.getText();
             MessageType messageType = MessageType.getInstance(message.getType());
-            String sender = "";
             switch (messageType) {
                 case ADVERTISEMENT:
-                    exchangeName = message.getBusinessExchange();
-                    processAdvertisementMessage(encryptedText, exchangeName);
+                    processAdvertisementMessage(encryptedText, sender);
                     break;
                 case KEY_DISTRIBUTION:
                 case PRIVATE:
-                    exchangeName = message.getConsumerExchange();
                     sender = message.getSender();
-                    Log.i(TAG, "Private message received. Sender:" + sender + " Exchange:" + exchangeName);
+                    Log.i(TAG, "Private message received. Sender: " + sender + " sender: " + sender);
                     processPrivateMessage(encryptedText, sender, messageType);
                     break;
             }
@@ -75,15 +72,19 @@ public class SekretessMessageService {
 
     private void processAdvertisementMessage(String base64Message, String sender) {
         String username = sekretessApplication.getAuthService().getUsername();
-        sekretessCryptographicService.decryptGroupChatMessage(sender, base64Message).ifPresent(decryptedMessage -> {
-            messageRepository.storeDecryptedMessage(sender, decryptedMessage, username);
-            sekretessApplication.getMessageEventsLiveData().postValue("new-message");
-            publishNotification(sender, decryptedMessage);
-        });
+        sekretessCryptographicService
+                .decryptGroupChatMessage(sender, base64Message)
+                .ifPresent(decryptedMessage -> {
+                    messageRepository.storeDecryptedMessage(sender, decryptedMessage, username);
+                    sekretessApplication.getMessageEventsLiveData().postValue("new-message");
+                    publishNotification(sender, decryptedMessage);
+                });
     }
 
     private void processPrivateMessage(String base64Message, String sender, MessageType messageType) {
-        sekretessCryptographicService.decryptPrivateMessage(sender, base64Message).ifPresent(decryptedMessage -> {
+        sekretessCryptographicService
+                .decryptPrivateMessage(sender, base64Message)
+                .ifPresent(decryptedMessage -> {
             if (messageType == MessageType.KEY_DISTRIBUTION) {
                 sekretessCryptographicService.processKeyDistributionMessage(sender, decryptedMessage);
             } else {

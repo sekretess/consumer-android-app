@@ -26,7 +26,6 @@ import io.sekretess.utils.NotificationPreferencesUtils;
 public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
 
     private final BusinessesAdapter businessesAdapter;
-    private SekretessApplication application;
 
 
     public BusinessInfoDialogFragment(BusinessesAdapter businessesAdapter) {
@@ -38,7 +37,7 @@ public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.business_info_dialog_fragment_layout, container,
                 false);
-        this.application = (SekretessApplication) requireActivity().getApplication();
+        SekretessApplication application = (SekretessApplication) requireActivity().getApplication();
         Bundle args = getArguments();
         String icon = args.getString("businessIcon");
         String businessName = args.getString("businessName");

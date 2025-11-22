@@ -55,11 +55,9 @@ public class ApiClient {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static ExecutorService networkExecutors = Executors.newFixedThreadPool(1);
-    private final AuthService authService;
     private final SekretessApplication application;
 
-    public ApiClient(AuthService authService, SekretessApplication application) {
-        this.authService = authService;
+    public ApiClient(SekretessApplication application) {
         this.application = application;
     }
 
@@ -440,7 +438,7 @@ public class ApiClient {
 
     private OkHttpClient authorizedHttpClient() {
         try {
-            String accessToken = authService.getAccessToken().toString();
+            String accessToken = application.getAuthService().getAccessToken().toString();
 
             return new OkHttpClient.Builder()
                     .addInterceptor(new SekretessHttpInterceptor(accessToken))

@@ -10,6 +10,10 @@ android {
         buildConfig = true
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true // Returns default values for unmocked methods
+    }
+
     defaultConfig {
         applicationId = "io.sekretess"
         minSdk = 30
@@ -133,6 +137,12 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.3.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-messaging")
+    testImplementation("junit:junit:4.13.2")
+// JUnit for running tests
+    testImplementation("org.mockito:mockito-core:5.20.0")
+// Mockito core library
+    testImplementation("org.mockito:mockito-inline:5.2.0")
+// For mocking final classes/methods
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 //    implementation("net.zetetic:android-database-sqlcipher:4.5.4")//Encrypted database
     implementation("com.auth0.android:jwtdecode:2.0.2")

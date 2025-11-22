@@ -67,22 +67,14 @@ public class MainActivity extends AppCompatActivity {
             try {
                 Log.i("MainActivity", "Initializing app");
                 if (!application.getSekretessCryptographicService().init()) {
-                    finish();
-                    try {
-                        application.getAuthService().logout();
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error occurred during logout", e);
-                    }
-
-                    Intent intent = new Intent(application.getApplicationContext(),
-                            LoginActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    ContextCompat.startActivity(application, intent, null);
+                    onCryptoKeyInitFailed();
                     return;
                 }
                 application.getSekretessWebSocketClient().startWebSocket(new URL(BuildConfig.WEB_SOCKET_URL));
             } catch (Exception e) {
                 Log.e(TAG, "Error occurred during initialization app", e);
+                onCryptoKeyInitFailed();
+                return;
             }
             setContentView(R.layout.activity_main);
             Toolbar myToolbar = findViewById(R.id.my_toolbar);
@@ -132,6 +124,17 @@ public class MainActivity extends AppCompatActivity {
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.replace(R.id.frame_layout, fragment);
         fragmentTransaction.commit();
+    }
+
+    private void onCryptoKeyInitFailed(){
+        finish();
+        try {
+            application.getAuthService().logout();
+        } catch (Exception e) {
+            Log.e(TAG, "Error occurred during logout", e);
+        }
+
+        startLoginActivity();
     }
 
     private void startLoginActivity() {

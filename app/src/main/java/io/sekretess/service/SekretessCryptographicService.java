@@ -38,20 +38,24 @@ import io.sekretess.dto.KeyMaterial;
 import io.sekretess.dto.KyberPreKeyRecords;
 import io.sekretess.cryptography.storage.SekretessSignalProtocolStore;
 import io.sekretess.ui.LoginActivity;
+import io.sekretess.utils.ApiClient;
 
 
 public class SekretessCryptographicService {
     private final int SIGNAL_KEY_COUNT = 15;
-    private static final Base64.Encoder base64Encoder = Base64.getEncoder();
     private static final Base64.Decoder base64Decoder = Base64.getDecoder();
     private final SekretessSignalProtocolStore sekretessSignalProtocolStore;
+    private final ApiClient apiClient;
     private final String TAG = "SekretessCryptographicService";
     private final int deviceId = 1;
     private final SekretessApplication application;
 
-    public SekretessCryptographicService(SekretessApplication application, SekretessSignalProtocolStore sekretessSignalProtocolStore) {
+    public SekretessCryptographicService(SekretessApplication application,
+                                         SekretessSignalProtocolStore sekretessSignalProtocolStore,
+                                         ApiClient apiClient) {
         this.application = application;
         this.sekretessSignalProtocolStore = sekretessSignalProtocolStore;
+        this.apiClient = apiClient;
     }
 
     public void updateOneTimeKeys() {
@@ -59,7 +63,7 @@ public class SekretessCryptographicService {
         PreKeyRecord[] preKeyRecords = generatePreKeys();
         KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
         try {
-            if (application.getApiClient().updateOneTimeKeys(preKeyRecords, kyberPreKeyRecords)) {
+            if (apiClient.updateOneTimeKeys(preKeyRecords, kyberPreKeyRecords)) {
                 storePreKeyRecords(preKeyRecords);
                 storeKyberPreKeyRecords(kyberPreKeyRecords);
             }
@@ -166,7 +170,7 @@ public class SekretessCryptographicService {
                     kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId());
 
 
-            if (application.getApiClient().upsertKeyStore(keyMaterial)) {
+            if (apiClient.upsertKeyStore(keyMaterial)) {
                 sekretessSignalProtocolStore.clearStorage();
                 storeKyberPreKeyRecords(kyberPreKeyRecords);
                 storePreKeyRecords(opk);

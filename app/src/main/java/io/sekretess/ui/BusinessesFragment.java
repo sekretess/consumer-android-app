@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class BusinessesFragment extends Fragment {
     private RecyclerView subscribedBusinessesRecycler;
     private BusinessesAdapter businessesAdapter;
-    private SekretessApplication application;
+
 
     @Nullable
     @Override
@@ -42,7 +42,7 @@ public class BusinessesFragment extends Fragment {
         Toolbar toolbar = getActivity().findViewById(R.id.my_toolbar);
         toolbar.setTitle("Businesses");
 
-        this.application = (SekretessApplication) requireActivity().getApplication();
+        SekretessApplication application = (SekretessApplication) requireActivity().getApplication();
 
 
         View view = inflater.inflate(R.layout.businesses_fragment, container, false);

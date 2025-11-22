@@ -3,16 +3,8 @@ package io.sekretess.dto;
 public class MessageDto {
     private String text;
     private String sender;
-    private String consumerExchange;
-    private String businessExchange;
     private String type;
-    public String getBusinessExchange() {
-        return businessExchange;
-    }
 
-    public void setBusinessExchange(String businessExchange) {
-        this.businessExchange = businessExchange;
-    }
 
 
 
@@ -30,14 +22,6 @@ public class MessageDto {
 
     public void setSender(String sender) {
         this.sender = sender;
-    }
-
-    public String getConsumerExchange() {
-        return consumerExchange;
-    }
-
-    public void setConsumerExchange(String consumerExchange) {
-        this.consumerExchange = consumerExchange;
     }
 
     public String getType() {

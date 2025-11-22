@@ -49,16 +49,16 @@ public class SekretessApplication extends Application {
                         senderKeyRepository, kyberPreKeyRepository);
 
 
+        this.apiClient = new ApiClient(this);
+
         this.sekretessCryptographicService =
-                new SekretessCryptographicService(this, sekretessSignalProtocolStore);
+                new SekretessCryptographicService(this, sekretessSignalProtocolStore, apiClient);
         this.sekretessMessageService = new SekretessMessageService(messageRepository,
                 sekretessCryptographicService, this);
         AuthRepository authRepository = new AuthRepository(dbHelper);
-        this.authService = new AuthService(this, authRepository);
+        this.authService = new AuthService(apiClient, authRepository);
         this.sekretessWebSocketClient = new SekretessWebSocketClient(sekretessMessageService, authService);
 
-
-        this.apiClient = new ApiClient(authService, this);
     }
 
     @Override

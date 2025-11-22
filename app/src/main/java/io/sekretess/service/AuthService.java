@@ -17,23 +17,25 @@ import io.sekretess.dto.RefreshTokenRequestDto;
 import io.sekretess.exception.IncorrectTokenSyntaxException;
 import io.sekretess.exception.TokenExpiredException;
 import io.sekretess.repository.AuthRepository;
+import io.sekretess.utils.ApiClient;
 
 public class AuthService {
     private final String TAG = AuthService.class.getName();
-    private final SekretessApplication sekretessApplication;
+    private final ApiClient apiClient;
     private final AuthRepository authRepository;
     private final ObjectMapper objectMapper;
     private String username;
 
-    public AuthService(SekretessApplication sekretessApplication, AuthRepository authRepository) {
-        this.sekretessApplication = sekretessApplication;
+
+    public AuthService(ApiClient apiClient, AuthRepository authRepository) {
+        this.apiClient = apiClient;
         this.authRepository = authRepository;
         this.objectMapper = new ObjectMapper();
     }
 
     public Optional<AuthResponse> authorizeUser(AuthRequest authRequest) {
         try {
-            AuthResponse login = sekretessApplication.getApiClient().login(authRequest.username(),
+            AuthResponse login = apiClient.login(authRequest.username(),
                     authRequest.password());
             authRepository.storeAuthState(objectMapper.writeValueAsString(login));
             return Optional.of(login);
@@ -55,7 +57,7 @@ public class AuthService {
 
     public void logout() {
         authRepository.clearUserData();
-        sekretessApplication.getApiClient().logout();
+        apiClient.logout();
     }
 
     private Optional<AuthResponse> refreshAccessToken() throws TokenExpiredException, JsonProcessingException {
@@ -64,7 +66,7 @@ public class AuthService {
             throw new TokenExpiredException("Refresh token expired at " + refreshToken.getExpiresAt());
         }
         RefreshTokenRequestDto refreshTokenRequestDto = new RefreshTokenRequestDto(refreshToken.toString());
-        return sekretessApplication.getApiClient().refresh(refreshTokenRequestDto);
+        return apiClient.refresh(refreshTokenRequestDto);
     }
 
 
