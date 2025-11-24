@@ -12,7 +12,6 @@ import org.signal.libsignal.protocol.state.SessionRecord;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.sekretess.cryptography.storage.SekretessSignalProtocolStore;
 import io.sekretess.model.SessionStoreEntity;
 
 public class SessionRepository {
@@ -27,7 +26,7 @@ public class SessionRepository {
     public void removeSession(SignalProtocolAddress address) {
         try (SQLiteDatabase db = dbHelper.getWritableDatabase()) {
             db.delete(SessionStoreEntity.TABLE_NAME,
-                    SessionStoreEntity.COLUMN_ADDRESS_NAME + "=? AND"
+                    SessionStoreEntity.COLUMN_ADDRESS_NAME + " = ? AND "
                             + SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID + " = ?",
                     new String[]{address.getName(), String.valueOf(address.getDeviceId())});
         }
@@ -36,7 +35,7 @@ public class SessionRepository {
     public void removeAllSessions(String name) {
         try (SQLiteDatabase db = dbHelper.getWritableDatabase()) {
             db.delete(SessionStoreEntity.TABLE_NAME,
-                    SessionStoreEntity.COLUMN_ADDRESS_NAME + "=?", new String[]{name});
+                    SessionStoreEntity.COLUMN_ADDRESS_NAME + " = ?", new String[]{name});
         }
     }
 
@@ -54,8 +53,8 @@ public class SessionRepository {
     public SessionRecord loadSession(SignalProtocolAddress address) {
         try (Cursor cursor = dbHelper.getReadableDatabase()
                 .query(SessionStoreEntity.TABLE_NAME, new String[]{SessionStoreEntity.COLUMN_SESSION},
-                        SessionStoreEntity.COLUMN_ADDRESS_NAME + "=? AND"
-                                + SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID,
+                        SessionStoreEntity.COLUMN_ADDRESS_NAME + " = ? AND "
+                                + SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID + " = ?",
                         new String[]{address.getName(), String.valueOf(address.getDeviceId())},
                         null, null, null)) {
             while (cursor.moveToNext()) {
@@ -71,7 +70,7 @@ public class SessionRepository {
     public List<Integer> getSubDeviceSessions(String name) {
         try (Cursor cursor = dbHelper.getReadableDatabase()
                 .query(SessionStoreEntity.TABLE_NAME, new String[]{SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID},
-                        SessionStoreEntity.COLUMN_ADDRESS_NAME + "=?", new String[]{name},
+                        SessionStoreEntity.COLUMN_ADDRESS_NAME + " = ?", new String[]{name},
                         null, null, null)) {
             List<Integer> deviceIds = new ArrayList<>();
             while (cursor.moveToNext()) {

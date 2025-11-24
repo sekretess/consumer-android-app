@@ -27,7 +27,6 @@ public class MessageAdapter extends RecyclerView.Adapter<ConcreteChatCustomViewH
 
     private final List<MessageRecordDto> messages;
 
-    private String currentGroupingDate = "";
 
     public MessageAdapter(List<MessageRecordDto> messages) {
         this.messages = messages;
