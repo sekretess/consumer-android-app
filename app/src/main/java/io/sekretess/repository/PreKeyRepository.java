@@ -78,19 +78,12 @@ public class PreKeyRepository {
         dbHelper.getWritableDatabase().insert(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
     }
 
-    public void loadPreKeyRecords(SignalProtocolStore signalProtocolStore) throws
-            InvalidMessageException {
+    public int count() {
         try (Cursor cursor = dbHelper.getReadableDatabase().query(PreKeyRecordStoreEntity.TABLE_NAME,
                 new String[]{PreKeyRecordStoreEntity._ID, PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD},
                 null, null, null, null, null);) {
 
-            while (cursor.moveToNext()) {
-                PreKeyRecord preKeyRecord = new PreKeyRecord(DbHelper.base64Decoder.decode(cursor
-                        .getString(cursor.getColumnIndexOrThrow(PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD))));
-                signalProtocolStore.storePreKey(preKeyRecord.getId(), preKeyRecord);
-            }
-        } catch (InvalidMessageException e) {
-            throw new RuntimeException(e);
+            return cursor.getCount();
         }
     }
 

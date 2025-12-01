@@ -138,7 +138,7 @@ public class MessageRepository {
         }
     }
 
-    public static String dateTimeText(LocalDate dateTime) {
+    public String dateTimeText(LocalDate dateTime) {
 
         LocalDate today = LocalDate.now();
         long daysBetween = ChronoUnit.DAYS.between(dateTime, today);

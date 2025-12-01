@@ -56,10 +56,9 @@ android {
             buildConfigField(
                 "String",
                 "WEB_SOCKET_URL",
-                "\"https://auth.sekretess.io/realms/consumer/.well-known/openid-configuration\""
+                "\"wss://consumer.sekretess.io/api/v1/consumers\""
             )
 
-            buildConfigField("String", "RABBIT_MQ_URI", "\"amqps://%s:%s@mq.sekretess.net:5671\"")
         }
         create("internal-test") {
             isDebuggable = false
@@ -85,9 +84,8 @@ android {
             buildConfigField(
                 "String",
                 "WEB_SOCKET_URL",
-                "\"https://auth.sekretess.io/realms/consumer/.well-known/openid-configuration\""
+                "\"wss://consumer.sekretess.io/api/v1/consumers/ws\""
             )
-            buildConfigField("String", "RABBIT_MQ_URI", "\"amqps://%s:%s@mq.test.sekretess.net:30071\"")
 
         }
 
@@ -114,10 +112,8 @@ android {
             buildConfigField(
                 "String",
                 "WEB_SOCKET_URL",
-                "\"https://auth.sekretess.io/realms/consumer/.well-known/openid-configuration\""
+                "\"wss://consumer.test.sekretess.io/api/v1/consumers/ws\""
             )
-            buildConfigField("String", "RABBIT_MQ_URI", "\"amqps://%s:%s@mq.test.sekretess.net:30071\"")
-
         }
 
     }
@@ -167,5 +163,5 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
-    implementation("com.neovisionaries:nv-websocket-client:2.14")
+
 }

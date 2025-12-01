@@ -103,7 +103,7 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
         if (position >= source.size())
             return;
         BusinessDto businessDto = source.get(position);
-        holder.getTxtBusinessName().setText(businessDto.getBusinessName());
+        holder.getTxtBusinessName().setText(businessDto.getDisplayName());
         String imageBase64 = businessDto.getIcon();
         if (imageBase64 != null && !imageBase64.isEmpty()) {
             Bitmap bitmap = ImageUtils.bitmapFromBase64(imageBase64);
@@ -112,7 +112,7 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
             try {
                 File baseDir = context.getFilesDir();
                 File imageDir = new File(baseDir, "images");
-                File imageFile = new File(imageDir, businessDto.getBusinessName() + ".jpeg");
+                File imageFile = new File(imageDir, businessDto.getName() + ".jpeg");
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100,
                         new FileOutputStream(imageFile));
             } catch (Exception e) {
@@ -173,7 +173,7 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
                     filtered = true;
                     String filterPattern = constraint.toString().toLowerCase().trim();
                     for (BusinessDto businessDto : mBusinessDtos) {
-                        if (businessDto.getBusinessName().toLowerCase().contains(filterPattern)) {
+                        if (businessDto.getName().toLowerCase().contains(filterPattern)) {
                             filteredList.add(businessDto);
                         }
                     }
@@ -195,7 +195,7 @@ public class BusinessesAdapter extends RecyclerView.Adapter<BusinessesViewHolder
         return mBusinessDtos
                 .stream()
                 .filter(businessDto -> businessDto
-                        .getBusinessName()
+                        .getName()
                         .equalsIgnoreCase(name))
                 .findFirst();
     }

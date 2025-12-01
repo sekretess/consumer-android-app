@@ -5,12 +5,14 @@ import android.util.Log;
 import android.widget.Toast;
 
 import androidx.core.content.ContextCompat;
-import androidx.loader.content.AsyncTaskLoader;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.android.gms.tasks.Tasks;
+import com.google.firebase.messaging.FirebaseMessaging;
 
+import org.signal.libsignal.protocol.state.KyberPreKeyRecord;
 import org.signal.libsignal.protocol.state.PreKeyRecord;
 
 import io.sekretess.BuildConfig;
@@ -19,15 +21,11 @@ import io.sekretess.dto.AuthRequest;
 import io.sekretess.dto.AuthResponse;
 import io.sekretess.dto.BusinessDto;
 import io.sekretess.dto.KeyBundleDto;
-import io.sekretess.dto.KeyMaterial;
-import io.sekretess.dto.KyberPreKeyRecords;
+import io.sekretess.dto.KeyBundle;
 import io.sekretess.dto.OneTimeKeyBundleDto;
 import io.sekretess.dto.RefreshTokenRequestDto;
 import io.sekretess.dto.UserDto;
-import io.sekretess.service.AuthService;
 import io.sekretess.ui.LoginActivity;
-import okhttp3.Call;
-import okhttp3.Callback;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -35,7 +33,6 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.internal.Util;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
@@ -210,7 +207,7 @@ public class ApiClient {
 
     private List<String> getSubscribedBusinessesInternal() {
         OkHttpClient httpClient = authorizedHttpClient();
-        Request request = new Request.Builder().url(BuildConfig.CONSUMER_API_URL + "/ads/businesses")
+        Request request = new Request.Builder().url(BuildConfig.CONSUMER_API_URL + "/businesses/ads")
                 .get().build();
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
@@ -220,6 +217,7 @@ public class ApiClient {
                         + response.message());
                 return Collections.EMPTY_LIST;
             } else {
+                Log.i("ApiClient", "response is " + response.body().string());
                 List result = objectMapper.readValue(response.body().string(), List.class);
                 if (result == null) return Collections.EMPTY_LIST;
                 return result;
@@ -233,15 +231,18 @@ public class ApiClient {
     }
 
 
-    public boolean upsertKeyStore(KeyMaterial keyMaterial) throws Exception {
-        return networkExecutors.submit(() -> internalUpsertKeyStore(keyMaterial)).get();
+    public boolean upsertKeyStore(KeyBundle keyBundle) throws Exception {
+        return networkExecutors.submit(() -> internalUpsertKeyStore(keyBundle)).get();
     }
 
-    private boolean internalUpsertKeyStore(KeyMaterial keyMaterial) {
+    private boolean internalUpsertKeyStore(KeyBundle keyBundle) {
         OkHttpClient httpClient = authorizedHttpClient();
         try {
 
-            KeyBundleDto keyBundleDto = Mappers.toKeyBundleDto(keyMaterial);
+            KeyBundleDto keyBundleDto = Mappers.toKeyBundleDto(keyBundle);
+            String deviceToken = Tasks.await(FirebaseMessaging.getInstance().getToken());
+            keyBundleDto.setDeviceRegistrationToken(deviceToken);
+
             String json = objectMapper.writeValueAsString(keyBundleDto);
 
             Request request = new Request.Builder()
@@ -262,7 +263,6 @@ public class ApiClient {
                     return false;
                 }
             }
-
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during upsert keystore", e);
             showToast("One time keys update failed : " + e.getMessage());
@@ -297,10 +297,10 @@ public class ApiClient {
         }
     }
 
-    public boolean updateOneTimeKeys(PreKeyRecord[] preKeyRecords, KyberPreKeyRecords kyberPreKeyRecords) {
+    public boolean updateOneTimeKeys(PreKeyRecord[] preKeyRecords, KyberPreKeyRecord[] kyberPreKeyRecords) {
         try {
             String[] strPreKeyRecords = SerializationUtils.serializeSignedPreKeys(preKeyRecords);
-            String[] strKyberPreKeyRecords = SerializationUtils.serializeKyberPreKeys(kyberPreKeyRecords.getKyberPreKeyRecords());
+            String[] strKyberPreKeyRecords = SerializationUtils.serializeKyberPreKeys(kyberPreKeyRecords);
 
             return networkExecutors.submit(() -> updateOpksInternal(strPreKeyRecords,
                             strKyberPreKeyRecords))
@@ -375,10 +375,10 @@ public class ApiClient {
     }
 
 
-    public boolean createUser(String username, String email, String password) {
+    public boolean createUser(String username, String email, String password, KeyBundle keyBundle) {
         try {
             Future<Boolean> future = networkExecutors
-                    .submit(() -> createUserInternal(username, email, password));
+                    .submit(() -> createUserInternal(username, email, password, keyBundle));
             return future.get(20, TimeUnit.SECONDS);
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during signup", e);
@@ -387,13 +387,17 @@ public class ApiClient {
         }
     }
 
-    private boolean createUserInternal(String username, String email, String password) {
+    private boolean createUserInternal(String username, String email, String password, KeyBundle keyBundle) {
         OkHttpClient httpClient = anonymousHttpClient();
         try {
             UserDto userDto = new UserDto();
             userDto.setUsername(username);
             userDto.setEmail(email);
             userDto.setPassword(password);
+            userDto = Mappers.applyKeyBundle(userDto, keyBundle);
+            String deviceToken = Tasks.await(FirebaseMessaging.getInstance().getToken());
+
+            userDto.setDeviceRegistrationToken(deviceToken);
             String jsonObject = objectMapper.writeValueAsString(userDto);
 
             Request request = new Request.Builder().url(new URL(BuildConfig.CONSUMER_API_URL))

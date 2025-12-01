@@ -31,6 +31,17 @@ public class UserDto {
     @JsonProperty("OPQK")
     private String[] opqk;
 
+    public String getDeviceRegistrationToken() {
+        return deviceRegistrationToken;
+    }
+
+    public void setDeviceRegistrationToken(String deviceRegistrationToken) {
+        this.deviceRegistrationToken = deviceRegistrationToken;
+    }
+
+    @JsonProperty("deviceRegistrationToken")
+    private String deviceRegistrationToken;
+
     public String getPqspk() {
         return pqspk;
     }

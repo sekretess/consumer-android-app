@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import io.sekretess.Constants;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
+import io.sekretess.dto.KeyBundle;
 import io.sekretess.utils.ApiClient;
 
 public class SignupActivity extends AppCompatActivity {
@@ -55,7 +56,9 @@ public class SignupActivity extends AppCompatActivity {
             return;
         }
 
-        sekretessApplication.getApiClient().createUser( username, email, password);
+        KeyBundle keyBundle = sekretessApplication.getSekretessCryptographicService()
+                .initializeKeyBundle();
+        sekretessApplication.getApiClient().createUser(username, email, password, keyBundle);
     }
 
     private boolean validateUserName(EditText usernameEdit) {

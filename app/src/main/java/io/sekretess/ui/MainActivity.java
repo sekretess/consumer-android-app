@@ -44,21 +44,21 @@ public class MainActivity extends AppCompatActivity {
 
 
         setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light_NoActionBar);
-        FirebaseMessaging.getInstance().getToken()
-                .addOnCompleteListener(task -> {
-                    if (!task.isSuccessful()) {
-                        Log.w("MainActivity", "Fetching FCM registration token failed", task.getException());
-                        return;
-                    }
-
-                    // Get new FCM registration token
-                    String token = task.getResult();
-
-                    // Log and toast
-
-                    Log.d("MainActivity", "FCM Token " + token);
-
-                });
+//        FirebaseMessaging.getInstance().getToken()
+//                .addOnCompleteListener(task -> {
+//                    if (!task.isSuccessful()) {
+//                        Log.w("MainActivity", "Fetching FCM registration token failed", task.getException());
+//                        return;
+//                    }
+//
+//                    // Get new FCM registration token
+//                    String token = task.getResult();
+//
+//                    // Log and toast
+//
+//                    Log.d("MainActivity", "FCM Token " + token);
+//
+//                });
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
         //showBiometricLogin();
         prepareFileSystem();
@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
                     onCryptoKeyInitFailed();
                     return;
                 }
-                application.getSekretessWebSocketClient().startWebSocket(new URL(BuildConfig.WEB_SOCKET_URL));
+                application.getSekretessWebSocketClient().startWebSocket(BuildConfig.WEB_SOCKET_URL);
             } catch (Exception e) {
                 Log.e(TAG, "Error occurred during initialization app", e);
                 onCryptoKeyInitFailed();

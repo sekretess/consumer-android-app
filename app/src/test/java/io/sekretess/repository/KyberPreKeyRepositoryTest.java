@@ -7,7 +7,6 @@ import org.mockito.MockitoAnnotations;
 import org.signal.libsignal.protocol.InvalidMessageException;
 import org.signal.libsignal.protocol.state.KyberPreKeyRecord;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -18,7 +17,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import java.io.IOException;
-import java.util.Base64;
 import java.util.List;
 
 import io.sekretess.model.KyberPreKeyRecordsEntity;
@@ -38,7 +36,7 @@ public class KyberPreKeyRepositoryTest {
 
     @Before
     public void setUp() throws IOException, InvalidMessageException {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
         when(mockDbHelper.getWritableDatabase()).thenReturn(mockDb);
         when(mockDbHelper.getReadableDatabase()).thenReturn(mockDb);
         kyberPreKeyRepository = new KyberPreKeyRepository(mockDbHelper);
@@ -47,7 +45,8 @@ public class KyberPreKeyRepositoryTest {
     @Test
     public void testMarkKyberPreKeyUsed() {
         kyberPreKeyRepository.markKyberPreKeyUsed(1);
-        verify(mockDb).updateWithOnConflict(eq(KyberPreKeyRecordsEntity.TABLE_NAME), any(ContentValues.class), anyString(), any(), anyInt());
+        verify(mockDb).updateWithOnConflict(eq(KyberPreKeyRecordsEntity.TABLE_NAME), any(ContentValues.class),
+                        anyString(), any(), anyInt());
     }
 
     @Test

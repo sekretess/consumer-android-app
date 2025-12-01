@@ -1,11 +1,7 @@
 package io.sekretess.service;
 
-import android.content.Intent;
 import android.util.Log;
 import android.widget.Toast;
-
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 
 import org.signal.libsignal.protocol.DuplicateMessageException;
 import org.signal.libsignal.protocol.IdentityKeyPair;
@@ -34,10 +30,8 @@ import java.util.Optional;
 import java.util.Random;
 
 import io.sekretess.SekretessApplication;
-import io.sekretess.dto.KeyMaterial;
-import io.sekretess.dto.KyberPreKeyRecords;
+import io.sekretess.dto.KeyBundle;
 import io.sekretess.cryptography.storage.SekretessSignalProtocolStore;
-import io.sekretess.ui.LoginActivity;
 import io.sekretess.utils.ApiClient;
 
 
@@ -61,7 +55,7 @@ public class SekretessCryptographicService {
     public void updateOneTimeKeys() {
         IdentityKeyPair identityKeyPair = sekretessSignalProtocolStore.getIdentityKeyPair();
         PreKeyRecord[] preKeyRecords = generatePreKeys();
-        KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
+        KyberPreKeyRecord[] kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
         try {
             if (apiClient.updateOneTimeKeys(preKeyRecords, kyberPreKeyRecords)) {
                 storePreKeyRecords(preKeyRecords);
@@ -73,17 +67,16 @@ public class SekretessCryptographicService {
         }
     }
 
-    private KyberPreKeyRecords generateKyberPreKeys(ECPrivateKey ecPrivateKey) {
-        // Generate post quantum resistance keys
-        KyberPreKeyRecord[] kyberPreKeyRecords = new KyberPreKeyRecord[SIGNAL_KEY_COUNT];
+    private KyberPreKeyRecord[] generateKyberPreKeys(ECPrivateKey ecPrivateKey) {
+        // Generate post quantum resistance keys + 1 last resort key
+        KyberPreKeyRecord[] kyberPreKeyRecords = new KyberPreKeyRecord[SIGNAL_KEY_COUNT + 1];
 
         for (int i = 0; i < kyberPreKeyRecords.length; i++) {
             KyberPreKeyRecord kyberPreKeyRecord = generateKyberPreKey(ecPrivateKey);
             kyberPreKeyRecords[i] = kyberPreKeyRecord;
         }
-        KyberPreKeyRecord lastResortKyberPreKeyRecord = generateKyberPreKey(ecPrivateKey);
         // Generated post quantum keys
-        return new KyberPreKeyRecords(lastResortKyberPreKeyRecord, kyberPreKeyRecords);
+        return kyberPreKeyRecords;
     }
 
     private KyberPreKeyRecord generateKyberPreKey(ECPrivateKey ecPrivateKey) {
@@ -111,11 +104,10 @@ public class SekretessCryptographicService {
         }
     }
 
-    private void storeKyberPreKeyRecords(KyberPreKeyRecords kyberPreKeyRecords) {
-        for (KyberPreKeyRecord kyberPreKeyRecord : kyberPreKeyRecords.getKyberPreKeyRecords()) {
+    private void storeKyberPreKeyRecords(KyberPreKeyRecord[] kyberPreKeyRecords) {
+        for (KyberPreKeyRecord kyberPreKeyRecord : kyberPreKeyRecords) {
             sekretessSignalProtocolStore.storeKyberPreKey(kyberPreKeyRecord.getId(), kyberPreKeyRecord);
         }
-        sekretessSignalProtocolStore.storeKyberPreKey(kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId(), kyberPreKeyRecords.getLastResortKyberPreKeyRecord());
     }
 
     private void storePreKeyRecords(PreKeyRecord[] preKeyRecords) {
@@ -146,35 +138,37 @@ public class SekretessCryptographicService {
         return preKeyRecords;
     }
 
+    public KeyBundle initializeKeyBundle() {
+        sekretessSignalProtocolStore.clearStorage();
+
+        ECKeyPair signedPreKeyPair = ECKeyPair.generate();
+        IdentityKeyPair identityKeyPair = sekretessSignalProtocolStore.getIdentityKeyPair();
+        int registrationId = sekretessSignalProtocolStore.getLocalRegistrationId();
+
+        byte[] signature = identityKeyPair.getPrivateKey().calculateSignature(signedPreKeyPair
+                .getPublicKey().serialize());
+
+        //Generate one-time prekeys
+        PreKeyRecord[] opk = generatePreKeys();
+
+        SignedPreKeyRecord signedPreKeyRecord = generateSignedPreKey(signedPreKeyPair, signature);
+        KyberPreKeyRecord[] kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
+
+        return new KeyBundle(registrationId, opk, signedPreKeyRecord,
+                identityKeyPair, signature,
+                kyberPreKeyRecords);
+    }
+
 
     public boolean init() throws Exception {
         if (sekretessSignalProtocolStore.registrationRequired()) {
-            ECKeyPair signedPreKeyPair = ECKeyPair.generate();
-            IdentityKeyPair identityKeyPair = sekretessSignalProtocolStore.getIdentityKeyPair();
-            int registrationId = sekretessSignalProtocolStore.getLocalRegistrationId();
+            KeyBundle keyBundle = initializeKeyBundle();
 
-            byte[] signature = identityKeyPair.getPrivateKey().calculateSignature(signedPreKeyPair
-                    .getPublicKey().serialize());
-
-            //Generate one-time prekeys
-            PreKeyRecord[] opk = generatePreKeys();
-
-            SignedPreKeyRecord signedPreKeyRecord = generateSignedPreKey(signedPreKeyPair, signature);
-            KyberPreKeyRecords kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
-
-            KeyMaterial keyMaterial = new KeyMaterial(registrationId, opk, signedPreKeyRecord,
-                    identityKeyPair, signature,
-                    kyberPreKeyRecords.getKyberPreKeyRecords(),
-                    kyberPreKeyRecords.getLastResortKyberPreKeyRecord(),
-                    kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getSignature(),
-                    kyberPreKeyRecords.getLastResortKyberPreKeyRecord().getId());
-
-
-            if (apiClient.upsertKeyStore(keyMaterial)) {
+            if (apiClient.upsertKeyStore(keyBundle)) {
                 sekretessSignalProtocolStore.clearStorage();
-                storeKyberPreKeyRecords(kyberPreKeyRecords);
-                storePreKeyRecords(opk);
-                storeSignedPreKey(signedPreKeyRecord);
+                storeKyberPreKeyRecords(keyBundle.getKyberPreKeyRecords());
+                storePreKeyRecords(keyBundle.getOpk());
+                storeSignedPreKey(keyBundle.getSignedPreKeyRecord());
                 return true;
             } else {
                 sekretessSignalProtocolStore.clearStorage();

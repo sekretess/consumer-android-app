@@ -2,7 +2,6 @@ package io.sekretess;
 
 import android.app.Application;
 
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import io.sekretess.cryptography.storage.SekretessSignalProtocolStore;
@@ -18,7 +17,7 @@ import io.sekretess.repository.SessionRepository;
 import io.sekretess.service.AuthService;
 import io.sekretess.service.SekretessCryptographicService;
 import io.sekretess.service.SekretessMessageService;
-import io.sekretess.service.SekretessWebSocketClient;
+import io.sekretess.service.SekretessAuthenticatedWebSocket;
 import io.sekretess.utils.ApiClient;
 
 public class SekretessApplication extends Application {
@@ -26,7 +25,7 @@ public class SekretessApplication extends Application {
     private SekretessCryptographicService sekretessCryptographicService;
     private SekretessMessageService sekretessMessageService;
     private final MutableLiveData<String> messageEventsLiveData = new MutableLiveData<>();
-    private SekretessWebSocketClient sekretessWebSocketClient;
+    private SekretessAuthenticatedWebSocket sekretessAuthenticatedWebSocket;
     private AuthService authService;
     private ApiClient apiClient;
     private DbHelper dbHelper;
@@ -57,14 +56,14 @@ public class SekretessApplication extends Application {
                 sekretessCryptographicService, this);
         AuthRepository authRepository = new AuthRepository(dbHelper);
         this.authService = new AuthService(apiClient, authRepository);
-        this.sekretessWebSocketClient = new SekretessWebSocketClient(sekretessMessageService, authService);
+        this.sekretessAuthenticatedWebSocket = new SekretessAuthenticatedWebSocket(sekretessMessageService, authService);
 
     }
 
     @Override
     public void onTerminate() {
         super.onTerminate();
-        sekretessWebSocketClient.destroy();
+        sekretessAuthenticatedWebSocket.destroy();
     }
 
     public DbHelper getDbHelper() {
@@ -83,8 +82,8 @@ public class SekretessApplication extends Application {
         return messageEventsLiveData;
     }
 
-    public SekretessWebSocketClient getSekretessWebSocketClient() {
-        return sekretessWebSocketClient;
+    public SekretessAuthenticatedWebSocket getSekretessWebSocketClient() {
+        return sekretessAuthenticatedWebSocket;
     }
 
     public AuthService getAuthService() {

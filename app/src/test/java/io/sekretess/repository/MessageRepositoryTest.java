@@ -5,21 +5,31 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
-import java.util.List;
-
 import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.MessageRecordDto;
 
 public class MessageRepositoryTest {
+
+    private MessageRepository messageRepository;
 
     @Mock
     private DbHelper mockDbHelper;
@@ -30,11 +40,10 @@ public class MessageRepositoryTest {
     @Mock
     private Cursor mockCursor;
 
-    private MessageRepository messageRepository;
 
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
         when(mockDbHelper.getWritableDatabase()).thenReturn(mockDb);
         when(mockDbHelper.getReadableDatabase()).thenReturn(mockDb);
         messageRepository = new MessageRepository(mockDbHelper);
@@ -88,5 +97,34 @@ public class MessageRepositoryTest {
 
         assertNotNull(messages);
         assertFalse(messages.isEmpty());
+    }
+
+
+
+    @Test
+    public void testDateTimeText_today() {
+        LocalDate today = LocalDate.now();
+        assertEquals("Today", messageRepository.dateTimeText(today));
+    }
+
+    @Test
+    public void testDateTimeText_thisWeek() {
+        LocalDate date = LocalDate.now().minusDays(3);
+        String expected = date.format(DateTimeFormatter.ofPattern("EEEE"));
+        assertEquals(expected, messageRepository.dateTimeText(date));
+    }
+
+    @Test
+    public void testDateTimeText_thisYear() {
+        LocalDate date = LocalDate.now().minusMonths(2);
+        String expected = date.format(DateTimeFormatter.ofPattern("dd MMMM"));
+        assertEquals(expected, messageRepository.dateTimeText(date));
+    }
+
+    @Test
+    public void testDateTimeText_lastYear() {
+        LocalDate date = LocalDate.now().minusYears(1);
+        String expected = date.format(DateTimeFormatter.ofPattern("dd MMMM yyyy"));
+        assertEquals(expected, messageRepository.dateTimeText(date));
     }
 }

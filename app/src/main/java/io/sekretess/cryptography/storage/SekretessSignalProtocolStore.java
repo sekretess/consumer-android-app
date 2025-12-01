@@ -217,6 +217,6 @@ public class SekretessSignalProtocolStore implements SignalProtocolStore {
 
 
     public boolean updateKeysRequired() {
-        return loadSignedPreKeys().size() > minKeysThreshold;
+        return preKeyStore.count()<= minKeysThreshold;
     }
 }

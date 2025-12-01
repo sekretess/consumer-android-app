@@ -29,10 +29,11 @@ public class SerializationUtils {
     }
 
     public static String[] serializeKyberPreKeys(KyberPreKeyRecord[] kyberPreKeyRecords) throws InvalidKeyException {
-        String[] serializedKyberPreKeys = new String[kyberPreKeyRecords.length];
+        //Last item is last resort key
+        String[] serializedKyberPreKeys = new String[kyberPreKeyRecords.length - 1];
         int idx = 0;
-        for (KyberPreKeyRecord kyberPreKeyRecord : kyberPreKeyRecords) {
-            serializedKyberPreKeys[idx++] = serializeKyberPreKey(kyberPreKeyRecord);
+        for (int i = 0; i < serializedKyberPreKeys.length; i++) {
+            serializedKyberPreKeys[idx++] = serializeKyberPreKey(kyberPreKeyRecords[i]);
         }
         return serializedKyberPreKeys;
     }

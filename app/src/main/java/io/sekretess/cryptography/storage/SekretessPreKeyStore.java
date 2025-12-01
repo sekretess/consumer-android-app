@@ -44,4 +44,8 @@ public class SekretessPreKeyStore implements PreKeyStore {
     public void clearStorage() {
         preKeyRepository.clearStorage();
     }
+
+    public int count(){
+        return preKeyRepository.count();
+    }
 }

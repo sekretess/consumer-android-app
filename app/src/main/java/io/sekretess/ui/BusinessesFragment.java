@@ -56,7 +56,7 @@ public class BusinessesFragment extends Fragment {
                 .stream()
                 .peek(businessDto -> {
                     businessDto
-                            .setSubscribed(isSubscribed(businessDto.getBusinessName(), subscribedBusinesses));
+                            .setSubscribed(isSubscribed(businessDto.getName(), subscribedBusinesses));
                 })
                 .sorted((o1, o2) -> o1.isSubscribed() ? -1 : 1)
                 .peek(businessDto -> {

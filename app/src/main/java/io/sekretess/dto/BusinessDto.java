@@ -5,15 +5,23 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.sekretess.enums.ItemType;
 
 public class BusinessDto {
-    @JsonProperty("business_name")
-    private String businessName;
+    @JsonProperty("displayName")
+    private String displayName;
+
+    @JsonProperty("name")
+    private String name;
+
+    @JsonProperty("email")
+    private String email;
     @JsonProperty("icon")
     private String icon;
     private boolean subscribed;
     private ItemType itemType;
 
-    public BusinessDto(String businessName, String icon, boolean subscribed) {
-        this.businessName = businessName;
+    public BusinessDto(String displayName, String name, String email, String icon, boolean subscribed) {
+        this.name = name;
+        this.email = email;
+        this.displayName = displayName;
         this.icon = icon;
         this.subscribed = subscribed;
     }
@@ -22,12 +30,28 @@ public class BusinessDto {
     }
 
 
-    public String getBusinessName() {
-        return businessName;
+    public String getDisplayName() {
+        return displayName;
     }
 
-    public void setBusinessName(String businessName) {
-        this.businessName = businessName;
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getIcon() {
