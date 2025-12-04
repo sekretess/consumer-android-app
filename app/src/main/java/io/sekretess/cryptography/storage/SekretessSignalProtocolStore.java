@@ -46,8 +46,7 @@ public class SekretessSignalProtocolStore implements SignalProtocolStore {
     private final SekretessKyberPreKeyStore kyberPreKeyStore;
     private int minKeysThreshold = 5;
 
-    public SekretessSignalProtocolStore(SekretessApplication application,
-                                        IdentityKeyRepository identityKeyRepository,
+    public SekretessSignalProtocolStore(IdentityKeyRepository identityKeyRepository,
                                         RegistrationRepository registrationRepository,
                                         PreKeyRepository preKeyRepository,
                                         SessionRepository sessionRepository,
@@ -217,6 +216,6 @@ public class SekretessSignalProtocolStore implements SignalProtocolStore {
 
 
     public boolean updateKeysRequired() {
-        return preKeyStore.count()<= minKeysThreshold;
+        return preKeyStore.count() <= minKeysThreshold;
     }
 }

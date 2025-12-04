@@ -1,9 +1,5 @@
 package io.sekretess.ui;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -12,19 +8,17 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import io.sekretess.Constants;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
 import io.sekretess.adapters.MessageAdapter;
+import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.MessageRecordDto;
-import io.sekretess.repository.DbHelper;
 
 import java.util.List;
 
@@ -34,21 +28,20 @@ public class MessagesFromSenderFragment extends Fragment {
     private MessageAdapter messageAdapter;
     private String from;
     private List<MessageRecordDto> messages;
-    private SekretessApplication sekretessApplication;
 
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        SekretessDependencyProvider.messageEventStream().removeObservers(getViewLifecycleOwner());
     }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        this.sekretessApplication = (SekretessApplication) requireActivity().getApplication();
-        sekretessApplication.getMessageEventsLiveData().observe(getViewLifecycleOwner(), event -> {
+        SekretessDependencyProvider.messageEventStream().observe(getViewLifecycleOwner(), event -> {
             Log.i("MessageFromSenderFragment", "new-incoming-message event received");
-            messages = sekretessApplication.getSekretessMessageService().loadMessages(from);
+            messages = SekretessDependencyProvider.messageService().loadMessages(from);
             messageAdapter = new MessageAdapter(messages);
             recyclerView.setAdapter(messageAdapter);
             messageAdapter.notifyItemInserted(messages.size());
@@ -61,7 +54,7 @@ public class MessagesFromSenderFragment extends Fragment {
         View view = inflater.inflate(R.layout.chat_layout, container, false);
         from = getArguments().getString("from");
         recyclerView = view.findViewById(R.id.messages_rv);
-        messages = sekretessApplication.getSekretessMessageService().loadMessages(from);
+        messages = SekretessDependencyProvider.messageService().loadMessages(from);
         messageAdapter = new MessageAdapter(messages);
         recyclerView.setAdapter(messageAdapter);
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(
@@ -82,7 +75,7 @@ public class MessagesFromSenderFragment extends Fragment {
                     @Override
                     public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
                         int position = viewHolder.getAdapterPosition();
-                        new DbHelper(getContext()).deleteMessage(messages.get(position).getMessageId());
+                        SekretessDependencyProvider.messageService().deleteMessage(messages.get(position).getMessageId());
                         messages.remove(position);
                         messageAdapter.notifyItemRemoved(position);
                         messageAdapter.notifyItemRangeChanged(position, messages.size());

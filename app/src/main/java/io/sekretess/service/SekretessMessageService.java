@@ -12,7 +12,7 @@ import android.util.Log;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.lifecycle.LiveData;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -21,28 +21,21 @@ import java.util.List;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
-import io.sekretess.SekretessApplication;
+import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.MessageDto;
 import io.sekretess.dto.MessageRecordDto;
 import io.sekretess.enums.MessageType;
 import io.sekretess.repository.MessageRepository;
 import io.sekretess.utils.NotificationPreferencesUtils;
-import kotlinx.coroutines.flow.StateFlow;
 
 public class SekretessMessageService {
     private final MessageRepository messageRepository;
     private final String TAG = SekretessMessageService.class.getName();
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final SekretessCryptographicService sekretessCryptographicService;
-    private final SekretessApplication sekretessApplication;
 
-    public SekretessMessageService(MessageRepository messageRepository,
-                                   SekretessCryptographicService sekretessCryptographicService,
-                                   SekretessApplication sekretessApplication) {
+    public SekretessMessageService(MessageRepository messageRepository) {
         this.messageRepository = messageRepository;
-        this.sekretessCryptographicService = sekretessCryptographicService;
-        this.sekretessApplication = sekretessApplication;
     }
 
 
@@ -71,33 +64,34 @@ public class SekretessMessageService {
     }
 
     private void processAdvertisementMessage(String base64Message, String sender) {
-        String username = sekretessApplication.getAuthService().getUsername();
-        sekretessCryptographicService
+        String username = SekretessDependencyProvider.authService().getUsername();
+        SekretessDependencyProvider.cryptographicService()
                 .decryptGroupChatMessage(sender, base64Message)
                 .ifPresent(decryptedMessage -> {
                     messageRepository.storeDecryptedMessage(sender, decryptedMessage, username);
-                    sekretessApplication.getMessageEventsLiveData().postValue("new-message");
+                    SekretessDependencyProvider.messageEventStream().postValue("new-message");
                     publishNotification(sender, decryptedMessage);
                 });
     }
 
     private void processPrivateMessage(String base64Message, String sender, MessageType messageType) {
+        SekretessCryptographicService sekretessCryptographicService = SekretessDependencyProvider.cryptographicService();
         sekretessCryptographicService
                 .decryptPrivateMessage(sender, base64Message)
                 .ifPresent(decryptedMessage -> {
-            if (messageType == MessageType.KEY_DISTRIBUTION) {
-                sekretessCryptographicService.processKeyDistributionMessage(sender, decryptedMessage);
-            } else {
-                String username = sekretessApplication.getAuthService().getUsername();
-                messageRepository.storeDecryptedMessage(sender, decryptedMessage, username);
-                sekretessApplication.getMessageEventsLiveData().postValue("new-message");
-                publishNotification(sender, decryptedMessage);
-            }
-        });
+                    if (messageType == MessageType.KEY_DISTRIBUTION) {
+                        sekretessCryptographicService.processKeyDistributionMessage(sender, decryptedMessage);
+                    } else {
+                        String username = SekretessDependencyProvider.authService().getUsername();
+                        messageRepository.storeDecryptedMessage(sender, decryptedMessage, username);
+                        SekretessDependencyProvider.messageEventStream().postValue("new-message");
+                        publishNotification(sender, decryptedMessage);
+                    }
+                });
     }
 
     public List<MessageBriefDto> getMessageBriefs() {
-        String username = sekretessApplication.getAuthService().getUsername();
+        String username = SekretessDependencyProvider.authService().getUsername();
         return messageRepository.getMessageBriefs(username);
     }
 
@@ -109,33 +103,38 @@ public class SekretessMessageService {
         return messageRepository.loadMessages(from);
     }
 
+
+    public void deleteMessage(Long messageId) {
+        messageRepository.deleteMessage(messageId);
+    }
+
     private void publishNotification(String sender, String text) {
         Intent intent = new Intent();
         var notification = new NotificationCompat
-                .Builder(sekretessApplication.getApplicationContext(), Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME)
+                .Builder(SekretessDependencyProvider.applicationContext(), Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME)
                 .setContentTitle("Message from " + sender)
                 .setSilent(false)
                 .setLargeIcon(BitmapFactory
-                        .decodeResource(sekretessApplication.getApplicationContext().getResources(), R.drawable.ic_notif_sekretess))
+                        .decodeResource(SekretessDependencyProvider.applicationContext().getResources(), R.drawable.ic_notif_sekretess))
                 .setContentText(text.substring(0, Math.min(10, text.length())).concat("..."))
                 .setSmallIcon(R.drawable.ic_notif_sekretess)
                 .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(PendingIntent
-                        .getActivity(sekretessApplication.getApplicationContext(), 0,
+                        .getActivity(SekretessDependencyProvider.applicationContext(), 0,
                                 intent, PendingIntent.FLAG_IMMUTABLE))
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         NotificationManagerCompat notificationManager = NotificationManagerCompat
-                .from(sekretessApplication.getApplicationContext());
+                .from(SekretessDependencyProvider.applicationContext());
         int m = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
 
         NotificationChannel channel = new NotificationChannel(Constants.SEKRETESS_NOTIFICATION_CHANNEL_NAME,
                 "New message", NotificationManager.IMPORTANCE_HIGH);
         channel.setAllowBubbles(true);
         channel.enableVibration(NotificationPreferencesUtils
-                .getVibrationPreferences(sekretessApplication.getApplicationContext(), sender));
+                .getVibrationPreferences(SekretessDependencyProvider.applicationContext(), sender));
         boolean soundAlerts = NotificationPreferencesUtils
-                .getSoundAlertsPreferences(sekretessApplication.getApplicationContext(), sender);
+                .getSoundAlertsPreferences(SekretessDependencyProvider.applicationContext(), sender);
         Log.i("SekretessRabbitMqService", "soundAlerts:" + soundAlerts + "sender:" + sender);
         if (!soundAlerts) {
             notification.setSilent(true);
@@ -147,7 +146,7 @@ public class SekretessMessageService {
         notificationManager.createNotificationChannel(channel);
 
 
-        if (ActivityCompat.checkSelfPermission(sekretessApplication.getApplicationContext(),
+        if (ActivityCompat.checkSelfPermission(SekretessDependencyProvider.applicationContext(),
                 Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             notificationManager.notify(m, notification.build());
         }

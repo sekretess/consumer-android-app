@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import io.sekretess.BuildConfig;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
+import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.AuthRequest;
 
 import java.net.URL;
@@ -21,8 +22,7 @@ public class LoginActivity extends AppCompatActivity {
 
 
     private void authorizeUser(String username, String password) {
-        sekretessApplication
-                .getAuthService()
+        SekretessDependencyProvider.authService()
                 .authorizeUser(new AuthRequest(username, password))
                 .ifPresent(authResponse ->
                         startActivity(new Intent(this, MainActivity.class)));

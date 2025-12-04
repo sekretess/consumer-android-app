@@ -16,15 +16,15 @@ import io.sekretess.model.SessionStoreEntity;
 
 public class SessionRepository {
     private final String TAG = SessionRepository.class.getName();
-    private final DbHelper dbHelper;
+    private final SekretessDatabase sekretessDatabase;
 
 
-    public SessionRepository(DbHelper dbHelper) {
-        this.dbHelper = dbHelper;
+    public SessionRepository(SekretessDatabase sekretessDatabase) {
+        this.sekretessDatabase = sekretessDatabase;
     }
 
     public void removeSession(SignalProtocolAddress address) {
-        try (SQLiteDatabase db = dbHelper.getWritableDatabase()) {
+        try (SQLiteDatabase db = sekretessDatabase.getWritableDatabase()) {
             db.delete(SessionStoreEntity.TABLE_NAME,
                     SessionStoreEntity.COLUMN_ADDRESS_NAME + " = ? AND "
                             + SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID + " = ?",
@@ -33,7 +33,7 @@ public class SessionRepository {
     }
 
     public void removeAllSessions(String name) {
-        try (SQLiteDatabase db = dbHelper.getWritableDatabase()) {
+        try (SQLiteDatabase db = sekretessDatabase.getWritableDatabase()) {
             db.delete(SessionStoreEntity.TABLE_NAME,
                     SessionStoreEntity.COLUMN_ADDRESS_NAME + " = ?", new String[]{name});
         }
@@ -51,7 +51,7 @@ public class SessionRepository {
     }
 
     public SessionRecord loadSession(SignalProtocolAddress address) {
-        try (Cursor cursor = dbHelper.getReadableDatabase()
+        try (Cursor cursor = sekretessDatabase.getReadableDatabase()
                 .query(SessionStoreEntity.TABLE_NAME, new String[]{SessionStoreEntity.COLUMN_SESSION},
                         SessionStoreEntity.COLUMN_ADDRESS_NAME + " = ? AND "
                                 + SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID + " = ?",
@@ -59,7 +59,7 @@ public class SessionRepository {
                         null, null, null)) {
             while (cursor.moveToNext()) {
                 String sessionBase64Str = cursor.getString(cursor.getColumnIndexOrThrow(SessionStoreEntity.COLUMN_SESSION));
-                return new SessionRecord(DbHelper.base64Decoder.decode(sessionBase64Str));
+                return new SessionRecord(SekretessDatabase.base64Decoder.decode(sessionBase64Str));
             }
         } catch (InvalidMessageException e) {
             Log.e(TAG, "Error occurred during load session.", e);
@@ -68,7 +68,7 @@ public class SessionRepository {
     }
 
     public List<Integer> getSubDeviceSessions(String name) {
-        try (Cursor cursor = dbHelper.getReadableDatabase()
+        try (Cursor cursor = sekretessDatabase.getReadableDatabase()
                 .query(SessionStoreEntity.TABLE_NAME, new String[]{SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID},
                         SessionStoreEntity.COLUMN_ADDRESS_NAME + " = ?", new String[]{name},
                         null, null, null)) {
@@ -93,17 +93,17 @@ public class SessionRepository {
         contentValues.put(SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID, address.getDeviceId());
         if (address.getServiceId() != null) {
             contentValues.put(SessionStoreEntity.COLUMN_SERVICE_ID,
-                    DbHelper.base64Encoder.encodeToString(address.getServiceId().toServiceIdBinary()));
+                    SekretessDatabase.base64Encoder.encodeToString(address.getServiceId().toServiceIdBinary()));
         }
         contentValues.put(SessionStoreEntity.COLUMN_SESSION,
-                DbHelper.base64Encoder.encodeToString(sessionRecord.serialize()));
+                SekretessDatabase.base64Encoder.encodeToString(sessionRecord.serialize()));
 
-        dbHelper.getWritableDatabase().insert(SessionStoreEntity.TABLE_NAME, null, contentValues);
+        sekretessDatabase.getWritableDatabase().insert(SessionStoreEntity.TABLE_NAME, null, contentValues);
 
 
     }
 
     public void clearStorage() {
-        dbHelper.getWritableDatabase().delete(SessionStoreEntity.TABLE_NAME, null, null);
+        sekretessDatabase.getWritableDatabase().delete(SessionStoreEntity.TABLE_NAME, null, null);
     }
 }

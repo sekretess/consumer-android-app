@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.Random;
 
 import io.sekretess.SekretessApplication;
+import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.KeyBundle;
 import io.sekretess.cryptography.storage.SekretessSignalProtocolStore;
 import io.sekretess.utils.ApiClient;
@@ -39,17 +40,12 @@ public class SekretessCryptographicService {
     private final int SIGNAL_KEY_COUNT = 15;
     private static final Base64.Decoder base64Decoder = Base64.getDecoder();
     private final SekretessSignalProtocolStore sekretessSignalProtocolStore;
-    private final ApiClient apiClient;
     private final String TAG = "SekretessCryptographicService";
     private final int deviceId = 1;
-    private final SekretessApplication application;
 
-    public SekretessCryptographicService(SekretessApplication application,
-                                         SekretessSignalProtocolStore sekretessSignalProtocolStore,
-                                         ApiClient apiClient) {
-        this.application = application;
+
+    public SekretessCryptographicService(SekretessSignalProtocolStore sekretessSignalProtocolStore) {
         this.sekretessSignalProtocolStore = sekretessSignalProtocolStore;
-        this.apiClient = apiClient;
     }
 
     public void updateOneTimeKeys() {
@@ -57,13 +53,13 @@ public class SekretessCryptographicService {
         PreKeyRecord[] preKeyRecords = generatePreKeys();
         KyberPreKeyRecord[] kyberPreKeyRecords = generateKyberPreKeys(identityKeyPair.getPrivateKey());
         try {
-            if (apiClient.updateOneTimeKeys(preKeyRecords, kyberPreKeyRecords)) {
+            if (SekretessDependencyProvider.apiClient().updateOneTimeKeys(preKeyRecords, kyberPreKeyRecords)) {
                 storePreKeyRecords(preKeyRecords);
                 storeKyberPreKeyRecords(kyberPreKeyRecords);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error during update one time keys", e);
-            Toast.makeText(application.getApplicationContext(), "Error during update one time keys" + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(SekretessDependencyProvider.applicationContext(), "Error during update one time keys" + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -98,7 +94,7 @@ public class SekretessCryptographicService {
             Log.i(TAG, "Group chat chipper created and stored : " + name);
         } catch (Exception e) {
             Log.e(TAG, "Error during decrypt key distribution message", e);
-            Toast.makeText(application.getApplicationContext(),
+            Toast.makeText(SekretessDependencyProvider.applicationContext(),
                     "Error during decrypt distribution message" + e.getMessage(),
                     Toast.LENGTH_LONG).show();
         }
@@ -164,7 +160,7 @@ public class SekretessCryptographicService {
         if (sekretessSignalProtocolStore.registrationRequired()) {
             KeyBundle keyBundle = initializeKeyBundle();
 
-            if (apiClient.upsertKeyStore(keyBundle)) {
+            if (SekretessDependencyProvider.apiClient().upsertKeyStore(keyBundle)) {
                 sekretessSignalProtocolStore.clearStorage();
                 storeKyberPreKeyRecords(keyBundle.getKyberPreKeyRecords());
                 storePreKeyRecords(keyBundle.getOpk());
@@ -199,7 +195,7 @@ public class SekretessCryptographicService {
             return Optional.of(new String(sessionCipher.decrypt(preKeySignalMessage, UsePqRatchet.YES)));
         } catch (Exception e) {
             Log.e(TAG, "Error during decrypt private message", e);
-            Toast.makeText(application.getApplicationContext(),
+            Toast.makeText(SekretessDependencyProvider.applicationContext(),
                     "Error during decrypt private message" + e.getMessage(), Toast.LENGTH_LONG).show();
             return Optional.empty();
         }

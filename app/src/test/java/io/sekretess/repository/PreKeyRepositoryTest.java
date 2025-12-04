@@ -24,7 +24,7 @@ import java.util.List;
 public class PreKeyRepositoryTest {
 
     @Mock
-    private DbHelper mockDbHelper;
+    private SekretessDatabase mockSekretessDatabase;
 
     @Mock
     private SQLiteDatabase mockDb;
@@ -43,9 +43,9 @@ public class PreKeyRepositoryTest {
     @Before
     public void setUp() throws IOException {
         MockitoAnnotations.initMocks(this);
-        when(mockDbHelper.getWritableDatabase()).thenReturn(mockDb);
-        when(mockDbHelper.getReadableDatabase()).thenReturn(mockDb);
-        preKeyRepository = new PreKeyRepository(mockDbHelper);
+        when(mockSekretessDatabase.getWritableDatabase()).thenReturn(mockDb);
+        when(mockSekretessDatabase.getReadableDatabase()).thenReturn(mockDb);
+        preKeyRepository = new PreKeyRepository(mockSekretessDatabase);
 
         when(mockPreKeyRecord.getId()).thenReturn(1);
         when(mockPreKeyRecord.serialize()).thenReturn(new byte[0]);

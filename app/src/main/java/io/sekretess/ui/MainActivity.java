@@ -26,6 +26,7 @@ import java.net.URL;
 import io.sekretess.BuildConfig;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
+import io.sekretess.dependency.SekretessDependencyProvider;
 
 public class MainActivity extends AppCompatActivity {
     private final String TAG = MainActivity.class.getName();
@@ -63,14 +64,14 @@ public class MainActivity extends AppCompatActivity {
         //showBiometricLogin();
         prepareFileSystem();
         Log.i("MainActivity", "OnCreate");
-        if (application.getAuthService().isAuthorized()) {
+        if (SekretessDependencyProvider.authService().isAuthorized()) {
             try {
                 Log.i("MainActivity", "Initializing app");
-                if (!application.getSekretessCryptographicService().init()) {
+                if (!SekretessDependencyProvider.cryptographicService().init()) {
                     onCryptoKeyInitFailed();
                     return;
                 }
-                application.getSekretessWebSocketClient().startWebSocket(BuildConfig.WEB_SOCKET_URL);
+                SekretessDependencyProvider.authenticatedWebSocket().startWebSocket(BuildConfig.WEB_SOCKET_URL);
             } catch (Exception e) {
                 Log.e(TAG, "Error occurred during initialization app", e);
                 onCryptoKeyInitFailed();
@@ -126,10 +127,10 @@ public class MainActivity extends AppCompatActivity {
         fragmentTransaction.commit();
     }
 
-    private void onCryptoKeyInitFailed(){
+    private void onCryptoKeyInitFailed() {
         finish();
         try {
-            application.getAuthService().logout();
+            SekretessDependencyProvider.authService().logout();
         } catch (Exception e) {
             Log.e(TAG, "Error occurred during logout", e);
         }

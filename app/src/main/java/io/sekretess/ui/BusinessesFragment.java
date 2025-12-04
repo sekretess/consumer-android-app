@@ -18,10 +18,9 @@ import android.widget.ImageView;
 import io.sekretess.SekretessApplication;
 import io.sekretess.adapters.BusinessesAdapter;
 import io.sekretess.R;
+import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.BusinessDto;
 import io.sekretess.enums.ItemType;
-import io.sekretess.repository.DbHelper;
-import io.sekretess.utils.ApiClient;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,11 +47,11 @@ public class BusinessesFragment extends Fragment {
         View view = inflater.inflate(R.layout.businesses_fragment, container, false);
 
         subscribedBusinessesRecycler = view.findViewById(R.id.businessesRecycler);
-        List<String> subscribedBusinesses = application.getApiClient().getSubscribedBusinesses();
+        List<String> subscribedBusinesses = SekretessDependencyProvider.apiClient().getSubscribedBusinesses();
 
         //We ordering by subscription status, in case any subscriptions it should be first in list
         final AtomicBoolean subscribed = new AtomicBoolean(false);
-        List<BusinessDto> businessList = application.getApiClient().getBusinesses()
+        List<BusinessDto> businessList = SekretessDependencyProvider.apiClient().getBusinesses()
                 .stream()
                 .peek(businessDto -> {
                     businessDto

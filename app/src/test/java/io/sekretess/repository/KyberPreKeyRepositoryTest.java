@@ -24,7 +24,7 @@ import io.sekretess.model.KyberPreKeyRecordsEntity;
 public class KyberPreKeyRepositoryTest {
 
     @Mock
-    private DbHelper mockDbHelper;
+    private SekretessDatabase mockSekretessDatabase;
 
     @Mock
     private SQLiteDatabase mockDb;
@@ -37,9 +37,9 @@ public class KyberPreKeyRepositoryTest {
     @Before
     public void setUp() throws IOException, InvalidMessageException {
         MockitoAnnotations.openMocks(this);
-        when(mockDbHelper.getWritableDatabase()).thenReturn(mockDb);
-        when(mockDbHelper.getReadableDatabase()).thenReturn(mockDb);
-        kyberPreKeyRepository = new KyberPreKeyRepository(mockDbHelper);
+        when(mockSekretessDatabase.getWritableDatabase()).thenReturn(mockDb);
+        when(mockSekretessDatabase.getReadableDatabase()).thenReturn(mockDb);
+        kyberPreKeyRepository = new KyberPreKeyRepository(mockSekretessDatabase);
     }
 
     @Test

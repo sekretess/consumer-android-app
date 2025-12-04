@@ -17,7 +17,7 @@ import android.database.sqlite.SQLiteDatabase;
 public class AuthRepositoryTest {
 
     @Mock
-    private DbHelper mockDbHelper;
+    private SekretessDatabase mockSekretessDatabase;
 
     @Mock
     private SQLiteDatabase mockDb;
@@ -33,9 +33,9 @@ public class AuthRepositoryTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        when(mockDbHelper.getWritableDatabase()).thenReturn(mockDb);
-        when(mockDbHelper.getReadableDatabase()).thenReturn(mockDb);
-        authRepository = new AuthRepository(mockDbHelper);
+        when(mockSekretessDatabase.getWritableDatabase()).thenReturn(mockDb);
+        when(mockSekretessDatabase.getReadableDatabase()).thenReturn(mockDb);
+        authRepository = new AuthRepository(mockSekretessDatabase);
     }
 
     @Test

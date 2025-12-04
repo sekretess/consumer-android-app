@@ -18,10 +18,9 @@ import androidx.fragment.app.Fragment;
 
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
+import io.sekretess.dependency.SekretessDependencyProvider;
 
 public class ProfileFragment extends Fragment {
-
-    private SekretessApplication sekretessApplication;
 
     @Nullable
     @Override
@@ -33,7 +32,7 @@ public class ProfileFragment extends Fragment {
         View view = inflater.inflate(R.layout.profile_fragment, container, false);
         TextView txtUserName = view.findViewById(R.id.txtUsername);
 
-        this.sekretessApplication = (SekretessApplication) getActivity().getApplication();
+
         SharedPreferences globalVariables = getContext()
                 .getSharedPreferences("global-variables", 0);
         String username = globalVariables.getString("username", "N/A");
@@ -41,28 +40,28 @@ public class ProfileFragment extends Fragment {
 //    Delete Account button action
         AppCompatButton btnDeleteAccount = view.findViewById(R.id.btnDeleteAccount);
         btnDeleteAccount.setOnClickListener(v -> {
-            if (sekretessApplication.getApiClient().deleteUser()) {
-                if (sekretessApplication.getAuthService().clearUserData()) {
+            if (SekretessDependencyProvider.apiClient().deleteUser()) {
+                if (SekretessDependencyProvider.authService().clearUserData()) {
                     Intent intent = new Intent(ProfileFragment.this.getContext(), LoginActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
                 }
             }
-            sekretessApplication.getAuthService().logout();
+            SekretessDependencyProvider.authService().logout();
         });
 
 
 //    Logout button action
         AppCompatButton btnLogout = view.findViewById(R.id.btnLogout);
         btnLogout.setOnClickListener(v -> {
-            sekretessApplication.getAuthService().logout();
+            SekretessDependencyProvider.authService().logout();
         });
 
 //      Update Keys action
         AppCompatButton btnUpdateKeys = view.findViewById(R.id.btnResetKeys);
         btnUpdateKeys.setOnClickListener(v -> {
             Log.i("ProfileFragment", "Updating one time keys ");
-            sekretessApplication.getSekretessCryptographicService().updateOneTimeKeys();
+            SekretessDependencyProvider.cryptographicService().updateOneTimeKeys();
         });
         return view;
     }

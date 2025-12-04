@@ -32,7 +32,7 @@ public class MessageRepositoryTest {
     private MessageRepository messageRepository;
 
     @Mock
-    private DbHelper mockDbHelper;
+    private SekretessDatabase mockSekretessDatabase;
 
     @Mock
     private SQLiteDatabase mockDb;
@@ -44,9 +44,9 @@ public class MessageRepositoryTest {
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-        when(mockDbHelper.getWritableDatabase()).thenReturn(mockDb);
-        when(mockDbHelper.getReadableDatabase()).thenReturn(mockDb);
-        messageRepository = new MessageRepository(mockDbHelper);
+        when(mockSekretessDatabase.getWritableDatabase()).thenReturn(mockDb);
+        when(mockSekretessDatabase.getReadableDatabase()).thenReturn(mockDb);
+        messageRepository = new MessageRepository(mockSekretessDatabase);
     }
 
     @Test

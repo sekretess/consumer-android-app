@@ -22,7 +22,7 @@ import java.util.UUID;
 public class SenderKeyRepositoryTest {
 
     @Mock
-    private DbHelper mockDbHelper;
+    private SekretessDatabase mockSekretessDatabase;
 
     @Mock
     private SQLiteDatabase mockDb;
@@ -38,9 +38,9 @@ public class SenderKeyRepositoryTest {
     @Before
     public void setUp() throws IOException, InvalidMessageException {
         MockitoAnnotations.initMocks(this);
-        when(mockDbHelper.getWritableDatabase()).thenReturn(mockDb);
-        when(mockDbHelper.getReadableDatabase()).thenReturn(mockDb);
-        senderKeyRepository = new SenderKeyRepository(mockDbHelper);
+        when(mockSekretessDatabase.getWritableDatabase()).thenReturn(mockDb);
+        when(mockSekretessDatabase.getReadableDatabase()).thenReturn(mockDb);
+        senderKeyRepository = new SenderKeyRepository(mockSekretessDatabase);
         testSenderKeyRecord = new SenderKeyRecord(new byte[0]);
         testAddress = new SignalProtocolAddress("test_user", 1);
         testDistributionId = UUID.randomUUID();

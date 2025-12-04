@@ -24,7 +24,7 @@ import java.util.Base64;
 public class IdentityKeyRepositoryTest {
 
     @Mock
-    private DbHelper mockDbHelper;
+    private SekretessDatabase mockSekretessDatabase;
 
     @Mock
     private SQLiteDatabase mockDb;
@@ -39,9 +39,9 @@ public class IdentityKeyRepositoryTest {
     @Before
     public void setUp() throws InvalidKeyException {
         MockitoAnnotations.initMocks(this);
-        when(mockDbHelper.getWritableDatabase()).thenReturn(mockDb);
-        when(mockDbHelper.getReadableDatabase()).thenReturn(mockDb);
-        identityKeyRepository = new IdentityKeyRepository(mockDbHelper);
+        when(mockSekretessDatabase.getWritableDatabase()).thenReturn(mockDb);
+        when(mockSekretessDatabase.getReadableDatabase()).thenReturn(mockDb);
+        identityKeyRepository = new IdentityKeyRepository(mockSekretessDatabase);
         testIdentityKeyPair = IdentityKeyPair.generate();
         testAddress = new SignalProtocolAddress("test_user", 1);
     }

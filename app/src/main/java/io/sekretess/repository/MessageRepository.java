@@ -1,7 +1,6 @@
 package io.sekretess.repository;
 
 import android.content.ContentValues;
-import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
@@ -15,7 +14,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.MessageRecordDto;
@@ -23,14 +21,14 @@ import io.sekretess.enums.ItemType;
 import io.sekretess.model.MessageStoreEntity;
 
 public class MessageRepository {
-    private final DbHelper dbHelper;
+    private final SekretessDatabase sekretessDatabase;
     private final String TAG = MessageRepository.class.getName();
     private static final DateTimeFormatter WEEK_FORMATTER = DateTimeFormatter.ofPattern("EEEE");
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM");
     private static final DateTimeFormatter YEAR_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM yyyy");
 
-    public MessageRepository(DbHelper dbHelper) {
-        this.dbHelper = dbHelper;
+    public MessageRepository(SekretessDatabase sekretessDatabase) {
+        this.sekretessDatabase = sekretessDatabase;
     }
 
     public void storeDecryptedMessage(String sender, String message, String username) {
@@ -39,14 +37,14 @@ public class MessageRepository {
         values.put(MessageStoreEntity.COLUMN_MESSAGE_BODY, message);
         values.put(MessageStoreEntity.COLUMN_USERNAME, username);
         values.put(MessageStoreEntity.COLUMN_CREATED_AT, System.currentTimeMillis());
-        dbHelper.getWritableDatabase().insert(MessageStoreEntity.TABLE_NAME,
+        sekretessDatabase.getWritableDatabase().insert(MessageStoreEntity.TABLE_NAME,
                 null, values);
     }
 
     public List<MessageBriefDto> getMessageBriefs(String username) {
         try {
             List<MessageBriefDto> resultArray;
-            try (SQLiteDatabase sqLiteDatabase = dbHelper.getWritableDatabase();
+            try (SQLiteDatabase sqLiteDatabase = sekretessDatabase.getWritableDatabase();
                  Cursor resultCursor = sqLiteDatabase
                          .query(MessageStoreEntity.TABLE_NAME,
                                  new String[]{MessageStoreEntity.COLUMN_SENDER,
@@ -78,7 +76,7 @@ public class MessageRepository {
 
     public List<String> getTopSenders() {
         try {
-            try (SQLiteDatabase db = dbHelper.getWritableDatabase(); Cursor resultCursor = db
+            try (SQLiteDatabase db = sekretessDatabase.getWritableDatabase(); Cursor resultCursor = db
                     .query(MessageStoreEntity.TABLE_NAME, new String[]{
                                     MessageStoreEntity.COLUMN_SENDER
                             }, null, null, null, null,
@@ -95,9 +93,10 @@ public class MessageRepository {
         }
     }
 
+
     public List<MessageRecordDto> loadMessages(String from) {
         try {
-            try (Cursor resultCursor = dbHelper.getReadableDatabase()
+            try (Cursor resultCursor = sekretessDatabase.getReadableDatabase()
                     .query(MessageStoreEntity.TABLE_NAME, new String[]{MessageStoreEntity._ID,
                                     MessageStoreEntity.COLUMN_SENDER,
                                     MessageStoreEntity.COLUMN_MESSAGE_BODY,
@@ -156,4 +155,9 @@ public class MessageRepository {
         }
     }
 
+    public void deleteMessage(Long messageId) {
+        SQLiteDatabase db = sekretessDatabase.getWritableDatabase();
+        db.delete(MessageStoreEntity.TABLE_NAME,
+                MessageStoreEntity._ID + "=?", new String[]{String.valueOf(messageId)});
+    }
 }

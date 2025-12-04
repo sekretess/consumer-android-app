@@ -1,5 +1,6 @@
 package io.sekretess.utils;
 
+import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 import android.widget.Toast;
@@ -16,7 +17,7 @@ import org.signal.libsignal.protocol.state.KyberPreKeyRecord;
 import org.signal.libsignal.protocol.state.PreKeyRecord;
 
 import io.sekretess.BuildConfig;
-import io.sekretess.SekretessApplication;
+import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.AuthRequest;
 import io.sekretess.dto.AuthResponse;
 import io.sekretess.dto.BusinessDto;
@@ -52,10 +53,9 @@ public class ApiClient {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static ExecutorService networkExecutors = Executors.newFixedThreadPool(1);
-    private final SekretessApplication application;
 
-    public ApiClient(SekretessApplication application) {
-        this.application = application;
+    public ApiClient() {
+
     }
 
 
@@ -434,24 +434,26 @@ public class ApiClient {
     }
 
     private void showToast(String text) {
-        ContextCompat.getMainExecutor(application.getApplicationContext())
+        Context applicationContext = SekretessDependencyProvider.applicationContext();
+        ContextCompat.getMainExecutor(applicationContext)
                 .execute(() -> Toast
-                        .makeText(application.getApplicationContext(), text, Toast.LENGTH_LONG)
+                        .makeText(applicationContext, text, Toast.LENGTH_LONG)
                         .show());
     }
 
     private OkHttpClient authorizedHttpClient() {
+        Context applicationContext = SekretessDependencyProvider.applicationContext();
         try {
-            String accessToken = application.getAuthService().getAccessToken().toString();
+            String accessToken = SekretessDependencyProvider.authService().getAccessToken().toString();
 
             return new OkHttpClient.Builder()
                     .addInterceptor(new SekretessHttpInterceptor(accessToken))
-                    .authenticator(new BearerAuthenticator(application))
+                    .authenticator(new BearerAuthenticator())
                     .build();
         } catch (Exception e) {
-            Intent intent = new Intent(application.getApplicationContext(), LoginActivity.class);
+            Intent intent = new Intent(applicationContext, LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            ContextCompat.startActivity(application.getApplicationContext(), intent
+            ContextCompat.startActivity(applicationContext, intent
                     , null);
             return null;
         }

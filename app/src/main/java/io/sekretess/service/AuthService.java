@@ -10,32 +10,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Optional;
 
 import io.sekretess.Constants;
-import io.sekretess.SekretessApplication;
+import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.AuthRequest;
 import io.sekretess.dto.AuthResponse;
 import io.sekretess.dto.RefreshTokenRequestDto;
 import io.sekretess.exception.IncorrectTokenSyntaxException;
 import io.sekretess.exception.TokenExpiredException;
 import io.sekretess.repository.AuthRepository;
-import io.sekretess.utils.ApiClient;
 
 public class AuthService {
     private final String TAG = AuthService.class.getName();
-    private final ApiClient apiClient;
     private final AuthRepository authRepository;
     private final ObjectMapper objectMapper;
     private String username;
 
 
-    public AuthService(ApiClient apiClient, AuthRepository authRepository) {
-        this.apiClient = apiClient;
+    public AuthService(AuthRepository authRepository) {
         this.authRepository = authRepository;
         this.objectMapper = new ObjectMapper();
     }
 
     public Optional<AuthResponse> authorizeUser(AuthRequest authRequest) {
         try {
-            AuthResponse login = apiClient.login(authRequest.username(),
+            AuthResponse login = SekretessDependencyProvider.apiClient().login(authRequest.username(),
                     authRequest.password());
             authRepository.storeAuthState(objectMapper.writeValueAsString(login));
             return Optional.of(login);
@@ -57,7 +54,7 @@ public class AuthService {
 
     public void logout() {
         authRepository.clearUserData();
-        apiClient.logout();
+        SekretessDependencyProvider.apiClient().logout();
     }
 
     private Optional<AuthResponse> refreshAccessToken() throws TokenExpiredException, JsonProcessingException {
@@ -66,7 +63,7 @@ public class AuthService {
             throw new TokenExpiredException("Refresh token expired at " + refreshToken.getExpiresAt());
         }
         RefreshTokenRequestDto refreshTokenRequestDto = new RefreshTokenRequestDto(refreshToken.toString());
-        return apiClient.refresh(refreshTokenRequestDto);
+        return SekretessDependencyProvider.apiClient().refresh(refreshTokenRequestDto);
     }
 
 

@@ -8,26 +8,21 @@ import org.apache.commons.lang3.ThreadUtils;
 
 import java.time.Duration;
 
-import io.sekretess.service.AuthService;
-import io.sekretess.service.SekretessMessageService;
+import io.sekretess.dependency.SekretessDependencyProvider;
 import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 
 public class SekretessWebSocketListener extends WebSocketListener {
-    private final SekretessMessageService sekretessMessageService;
     private Thread webSocketMonitorThread;
-    private AuthService authService;
 
-    public SekretessWebSocketListener(SekretessMessageService sekretessMessageService,
-                                      AuthService authService) {
-        this.sekretessMessageService = sekretessMessageService;
-        this.authService = authService;
+    public SekretessWebSocketListener() {
+
     }
 
     @Override
     public void onMessage(okhttp3.WebSocket webSocket, String text) {
-        sekretessMessageService.handleMessage(text);
+        SekretessDependencyProvider.messageService().handleMessage(text);
     }
 
     @Override
@@ -45,7 +40,7 @@ public class SekretessWebSocketListener extends WebSocketListener {
         super.onOpen(webSocket, response);
         Log.i("SekretessWebSocketClient", "WebSocket connected");
         try {
-            webSocket.send(authService.getAccessToken().toString());
+            webSocket.send(SekretessDependencyProvider.authService().getAccessToken().toString());
             webSocketMonitorThread = new Thread(() -> {
                 while (!webSocketMonitorThread.isInterrupted()) {
                     try {

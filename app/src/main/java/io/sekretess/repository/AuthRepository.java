@@ -8,22 +8,14 @@ import android.util.Log;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sekretess.model.AuthStateStoreEntity;
-import io.sekretess.model.IdentityKeyPairStoreEntity;
-import io.sekretess.model.KyberPreKeyRecordsEntity;
-import io.sekretess.model.MessageStoreEntity;
-import io.sekretess.model.PreKeyRecordStoreEntity;
-import io.sekretess.model.RegistrationIdStoreEntity;
-import io.sekretess.model.SenderKeyEntity;
-import io.sekretess.model.SessionStoreEntity;
-import io.sekretess.model.SignedPreKeyRecordStoreEntity;
 
 public class AuthRepository {
 
-    private final DbHelper dbHelper;
+    private final SekretessDatabase sekretessDatabase;
     private final ObjectMapper objectMapper;
 
-    public AuthRepository(DbHelper dbHelper) {
-        this.dbHelper = dbHelper;
+    public AuthRepository(SekretessDatabase sekretessDatabase) {
+        this.sekretessDatabase = sekretessDatabase;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -31,20 +23,20 @@ public class AuthRepository {
     public void storeAuthState(String authState) {
         ContentValues values = new ContentValues();
         values.put(AuthStateStoreEntity.COLUMN_AUTH_STATE, authState);
-        SQLiteDatabase sqLiteDatabase = dbHelper.getWritableDatabase();
+        SQLiteDatabase sqLiteDatabase = sekretessDatabase.getWritableDatabase();
         sqLiteDatabase.delete(AuthStateStoreEntity.TABLE_NAME, null, null);
         sqLiteDatabase.insert(AuthStateStoreEntity.TABLE_NAME, null, values);
     }
 
     public void removeAuthState() {
-        dbHelper.getWritableDatabase().delete(AuthStateStoreEntity.TABLE_NAME, null, null);
+        sekretessDatabase.getWritableDatabase().delete(AuthStateStoreEntity.TABLE_NAME, null, null);
     }
 
     public String getAuthState() {
         try {
             Cursor result = null;
             try {
-                result = dbHelper.getReadableDatabase().query(AuthStateStoreEntity.TABLE_NAME,
+                result = sekretessDatabase.getReadableDatabase().query(AuthStateStoreEntity.TABLE_NAME,
                         null, null, null, null, null,
                         null);
                 if (result.moveToNext()) {
@@ -65,7 +57,7 @@ public class AuthRepository {
 
     public boolean clearUserData() {
         try {
-            SQLiteDatabase db = dbHelper.getWritableDatabase();
+            SQLiteDatabase db = sekretessDatabase.getWritableDatabase();
             db.beginTransaction();
             db.delete(AuthStateStoreEntity.TABLE_NAME, null, null);
             db.setTransactionSuccessful();
@@ -78,7 +70,7 @@ public class AuthRepository {
     }
 
     public void logout() {
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        SQLiteDatabase db = sekretessDatabase.getWritableDatabase();
         db.beginTransaction();
         db.delete(AuthStateStoreEntity.TABLE_NAME, null, null);
         db.setTransactionSuccessful();

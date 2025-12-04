@@ -27,7 +27,7 @@ import io.sekretess.model.SessionStoreEntity;
 public class SessionRepositoryTest {
 
     @Mock
-    private DbHelper mockDbHelper;
+    private SekretessDatabase mockSekretessDatabase;
 
     @Mock
     private SQLiteDatabase mockDb;
@@ -42,9 +42,9 @@ public class SessionRepositoryTest {
     @Before
     public void setUp() throws IOException {
         MockitoAnnotations.initMocks(this);
-        when(mockDbHelper.getWritableDatabase()).thenReturn(mockDb);
-        when(mockDbHelper.getReadableDatabase()).thenReturn(mockDb);
-        sessionRepository = new SessionRepository(mockDbHelper);
+        when(mockSekretessDatabase.getWritableDatabase()).thenReturn(mockDb);
+        when(mockSekretessDatabase.getReadableDatabase()).thenReturn(mockDb);
+        sessionRepository = new SessionRepository(mockSekretessDatabase);
         testSessionRecord = new SessionRecord();
         testAddress = new SignalProtocolAddress("test_user", 1);
     }

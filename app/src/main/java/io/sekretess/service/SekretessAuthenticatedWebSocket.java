@@ -7,15 +7,14 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 
 public class SekretessAuthenticatedWebSocket {
-    private final SekretessMessageService sekretessMessageService;
+
     private okhttp3.WebSocket webSocket;
-    private final AuthService authService;
+
     private SekretessWebSocketListener sekretessWebSocketListener;
 
 
-    public SekretessAuthenticatedWebSocket(SekretessMessageService sekretessMessageService, AuthService authService) {
-        this.sekretessMessageService = sekretessMessageService;
-        this.authService = authService;
+    public SekretessAuthenticatedWebSocket() {
+
     }
 
     public void startWebSocket(String url) {
@@ -25,7 +24,7 @@ public class SekretessAuthenticatedWebSocket {
                 .addHeader("Origin", "https://consumer.sekretess.io")
                 .url(url)
                 .build();
-        this.sekretessWebSocketListener = new SekretessWebSocketListener(sekretessMessageService, authService);
+        this.sekretessWebSocketListener = new SekretessWebSocketListener();
         this.webSocket = client.newWebSocket(request, sekretessWebSocketListener);
     }
 

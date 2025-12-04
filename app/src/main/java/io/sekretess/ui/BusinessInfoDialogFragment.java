@@ -18,6 +18,7 @@ import com.squareup.picasso.Picasso;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
 import io.sekretess.adapters.BusinessesAdapter;
+import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.BusinessDto;
 import io.sekretess.utils.ApiClient;
 import io.sekretess.utils.ImageUtils;
@@ -47,14 +48,14 @@ public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
         swSubscription.setChecked(subscribed);
         swSubscription.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
-                if (application.getApiClient().subscribeToBusiness(businessName)) {
+                if (SekretessDependencyProvider.apiClient().subscribeToBusiness(businessName)) {
                     businessesAdapter.subscribed(businessName);
                     businessesAdapter.rearrangeData();
                     businessesAdapter.notifyDataSetChanged();
                 }
 
             } else {
-                if (application.getApiClient().unSubscribeFromBusiness(businessName)) {
+                if (SekretessDependencyProvider.apiClient().unSubscribeFromBusiness(businessName)) {
                     businessesAdapter.unsubscribed(businessName);
                     businessesAdapter.rearrangeData();
                     businessesAdapter.notifyDataSetChanged();

@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class DbHelper extends SQLiteOpenHelper {
+public class SekretessDatabase extends SQLiteOpenHelper {
     public static final DateTimeFormatter dateTimeFormatter
             = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.systemDefault());
 
@@ -41,42 +41,42 @@ public class DbHelper extends SQLiteOpenHelper {
     private static final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
 
-    public DbHelper(Context context) {
+    public SekretessDatabase(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
 
-    public void storeGroupChatInfo(String distributionKey, String sender) {
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(GroupChatEntity.COLUMN_SENDER, sender);
-        contentValues.put(GroupChatEntity.COLUMN_DISTRIBUTION_KEY, distributionKey);
-        executorService.submit(() -> {
-            getWritableDatabase().replace(GroupChatEntity.TABLE_NAME, null, contentValues);
-        });
-    }
-
-    public List<GroupChatDto> getGroupChatsInfo() {
-        try {
-            return executorService.submit(() -> {
-                List<GroupChatDto> groupChatsInfo = new ArrayList<>();
-                try (Cursor cursor = getReadableDatabase()
-                        .query(GroupChatEntity.TABLE_NAME, new String[]{
-                                GroupChatEntity.COLUMN_SENDER, GroupChatEntity.COLUMN_DISTRIBUTION_KEY
-                        }, null, null, null, null, null)) {
-
-                    while (cursor.moveToNext()) {
-                        String sender = cursor.getString(0);
-                        String distributionKey = cursor.getString(1);
-                        groupChatsInfo.add(new GroupChatDto(sender, distributionKey));
-                    }
-                }
-                return groupChatsInfo;
-            }).get();
-        } catch (Exception e) {
-            Log.e("DbHelper", "Getting GroupChatsInfo failed", e);
-            return Collections.emptyList();
-        }
-    }
+//    public void storeGroupChatInfo(String distributionKey, String sender) {
+//        ContentValues contentValues = new ContentValues();
+//        contentValues.put(GroupChatEntity.COLUMN_SENDER, sender);
+//        contentValues.put(GroupChatEntity.COLUMN_DISTRIBUTION_KEY, distributionKey);
+//        executorService.submit(() -> {
+//            getWritableDatabase().replace(GroupChatEntity.TABLE_NAME, null, contentValues);
+//        });
+//    }
+//
+//    public List<GroupChatDto> getGroupChatsInfo() {
+//        try {
+//            return executorService.submit(() -> {
+//                List<GroupChatDto> groupChatsInfo = new ArrayList<>();
+//                try (Cursor cursor = getReadableDatabase()
+//                        .query(GroupChatEntity.TABLE_NAME, new String[]{
+//                                GroupChatEntity.COLUMN_SENDER, GroupChatEntity.COLUMN_DISTRIBUTION_KEY
+//                        }, null, null, null, null, null)) {
+//
+//                    while (cursor.moveToNext()) {
+//                        String sender = cursor.getString(0);
+//                        String distributionKey = cursor.getString(1);
+//                        groupChatsInfo.add(new GroupChatDto(sender, distributionKey));
+//                    }
+//                }
+//                return groupChatsInfo;
+//            }).get();
+//        } catch (Exception e) {
+//            Log.e("DbHelper", "Getting GroupChatsInfo failed", e);
+//            return Collections.emptyList();
+//        }
+//    }
 
 
 
@@ -123,15 +123,5 @@ public class DbHelper extends SQLiteOpenHelper {
         db.execSQL(SenderKeyEntity.SQL_CREATE_TABLE);
         db.execSQL(GroupChatEntity.SQL_CREATE_TABLE);
         db.execSQL(IdentityKeyEntity.SQL_CREATE_TABLE);
-    }
-
-    public void deleteMessage(Long messageId) {
-        executorService.submit(() -> {
-            try (SQLiteDatabase db = getWritableDatabase()) {
-                db.delete(MessageStoreEntity.TABLE_NAME,
-                        MessageStoreEntity._ID + "=?", new String[]{String.valueOf(messageId)});
-            }
-        });
-
     }
 }

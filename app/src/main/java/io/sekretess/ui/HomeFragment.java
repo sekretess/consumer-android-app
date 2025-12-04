@@ -31,9 +31,10 @@ import io.sekretess.R;
 import io.sekretess.SekretessApplication;
 import io.sekretess.adapters.SendersAdapter;
 import io.sekretess.adapters.TrustedSendersAdapter;
+import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.TrustedSender;
-import io.sekretess.repository.DbHelper;
+import io.sekretess.repository.SekretessDatabase;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -118,8 +119,8 @@ public class HomeFragment extends Fragment {
     }
 
     private TrustedSendersAdapter updateTrustedSendersAdapter() {
-        DbHelper dbHelper = new DbHelper(getContext());
-        List<TrustedSender> trustedSenders = sekretessApplication.getSekretessMessageService().getTopSenders()
+        SekretessDatabase sekretessDatabase = new SekretessDatabase(getContext());
+        List<TrustedSender> trustedSenders = SekretessDependencyProvider.messageService().getTopSenders()
                 .stream()
                 .distinct()
                 .map(businessName -> new TrustedSender(businessName))
@@ -137,7 +138,7 @@ public class HomeFragment extends Fragment {
 
 
     private SendersAdapter updateMessageAdapter() {
-        List<MessageBriefDto> messageBriefs = sekretessApplication.getSekretessMessageService()
+        List<MessageBriefDto> messageBriefs = SekretessDependencyProvider.messageService()
                 .getMessageBriefs();
         return new SendersAdapter(getContext(), messageBriefs, (sender) -> {
             try {
