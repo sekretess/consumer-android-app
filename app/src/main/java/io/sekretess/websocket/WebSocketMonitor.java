@@ -19,7 +19,7 @@ public class WebSocketMonitor {
         webSocketMonitorThread = new Thread(() -> {
             while (!webSocketMonitorThread.isInterrupted()) {
                 try {
-                    ThreadUtils.sleep(Duration.ofSeconds(30));
+                    ThreadUtils.sleep(Duration.ofSeconds(10));
                     webSocket.ping();
                     Log.i("SekretessWebSocketListener", "Ping sent");
                 } catch (InterruptedException e) {
