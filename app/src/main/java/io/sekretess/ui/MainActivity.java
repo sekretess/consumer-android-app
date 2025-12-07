@@ -1,65 +1,34 @@
 package io.sekretess.ui;
 
 import android.Manifest;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.io.File;
-import java.net.URL;
 
 import io.sekretess.BuildConfig;
 import io.sekretess.R;
-import io.sekretess.SekretessApplication;
 import io.sekretess.dependency.SekretessDependencyProvider;
 
 public class MainActivity extends AppCompatActivity {
     private final String TAG = MainActivity.class.getName();
-    private SekretessApplication application;
-
-    @Override
-    public void onPostCreate(@Nullable Bundle savedInstanceState, @Nullable PersistableBundle persistentState) {
-
-    }
 
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        this.application = (SekretessApplication) getApplication();
-
-
         setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light_NoActionBar);
-//        FirebaseMessaging.getInstance().getToken()
-//                .addOnCompleteListener(task -> {
-//                    if (!task.isSuccessful()) {
-//                        Log.w("MainActivity", "Fetching FCM registration token failed", task.getException());
-//                        return;
-//                    }
-//
-//                    // Get new FCM registration token
-//                    String token = task.getResult();
-//
-//                    // Log and toast
-//
-//                    Log.d("MainActivity", "FCM Token " + token);
-//
-//                });
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
         //showBiometricLogin();
         prepareFileSystem();
@@ -71,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
                     onCryptoKeyInitFailed();
                     return;
                 }
-                SekretessDependencyProvider.authenticatedWebSocket().startWebSocket(BuildConfig.WEB_SOCKET_URL);
+                SekretessDependencyProvider.authenticatedWebSocket().connect();
             } catch (Exception e) {
                 Log.e(TAG, "Error occurred during initialization app", e);
                 onCryptoKeyInitFailed();
@@ -79,7 +48,6 @@ public class MainActivity extends AppCompatActivity {
             }
             setContentView(R.layout.activity_main);
             Toolbar myToolbar = findViewById(R.id.my_toolbar);
-//            myToolbar.setNavigationIcon(R.drawable.ic_notif_sekretess);
             setSupportActionBar(myToolbar);
             BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
 

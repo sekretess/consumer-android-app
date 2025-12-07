@@ -16,7 +16,7 @@ import io.sekretess.repository.SekretessDatabase;
 import io.sekretess.repository.SenderKeyRepository;
 import io.sekretess.repository.SessionRepository;
 import io.sekretess.service.AuthService;
-import io.sekretess.service.SekretessAuthenticatedWebSocket;
+import io.sekretess.websocket.SekretessAuthenticatedWebSocket;
 import io.sekretess.service.SekretessCryptographicService;
 import io.sekretess.service.SekretessMessageService;
 import io.sekretess.utils.ApiClient;
