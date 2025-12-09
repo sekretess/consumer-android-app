@@ -33,6 +33,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.internal.Util;
+import okhttp3.logging.HttpLoggingInterceptor;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -445,8 +446,12 @@ public class ApiClient {
         Context applicationContext = SekretessDependencyProvider.applicationContext();
         try {
             String accessToken = SekretessDependencyProvider.authService().getAccessToken().toString();
+            HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
+            // Set the logging level (BODY logs headers and body)
+            loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
 
             return new OkHttpClient.Builder()
+                    .addInterceptor(loggingInterceptor)
                     .addInterceptor(new SekretessHttpInterceptor(accessToken))
                     .authenticator(new BearerAuthenticator())
                     .build();

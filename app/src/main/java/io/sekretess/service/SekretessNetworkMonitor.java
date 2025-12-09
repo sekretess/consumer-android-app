@@ -17,14 +17,14 @@ public class SekretessNetworkMonitor extends ConnectivityManager.NetworkCallback
 
     @Override
     public void onAvailable(Network network) {
-        Log.i("SekretessNetworkMonitor", "WebSocket connected");
+        Log.i("SekretessNetworkMonitor", "Network available");
         SekretessDependencyProvider.authenticatedWebSocket().connect();
 
     }
 
     @Override
     public void onLost(Network network) {
-        Log.i("SekretessNetworkMonitor", "WebSocket disconnected");
+        Log.i("SekretessNetworkMonitor", "Network lost");
         SekretessDependencyProvider.authenticatedWebSocket().disconnect();
 
     }

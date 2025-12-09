@@ -48,6 +48,7 @@ public class AuthService {
             this.username = jwt.getClaim(Constants.USERNAME_CLAIM).asString();
             return true;
         } catch (Exception e) {
+            Log.e(TAG, "Error occurred during check authorization", e);
             return false;
         }
     }
@@ -69,10 +70,16 @@ public class AuthService {
 
     public JWT getAccessToken() throws TokenExpiredException, IncorrectTokenSyntaxException {
         try {
-            AuthResponse authResponse = objectMapper.readValue(authRepository.getAuthState(), AuthResponse.class);
+            String authState = authRepository.getAuthState();
+
+            if (authState == null) {
+                throw new TokenExpiredException("Token not found");
+            }
+
+            AuthResponse authResponse = objectMapper.readValue(authState, AuthResponse.class);
             String token = authResponse.accessToken();
             JWT jwt = new JWT(token);
-            if (jwt.isExpired(0)) {
+            if (jwt.isExpired(5)) {
                 authResponse = refreshAccessToken().orElseThrow(() -> new TokenExpiredException("Invalid access token"));
                 authRepository.storeAuthState(objectMapper.writeValueAsString(authResponse));
                 return new JWT(authResponse.accessToken());

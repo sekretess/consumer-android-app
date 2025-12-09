@@ -14,22 +14,38 @@ import io.sekretess.service.SekretessNetworkMonitor;
 public class SekretessApplication extends Application {
 
     private ConnectivityManager connectivityManager;
+    private SekretessNetworkMonitor sekretessNetworkMonitor;
 
     @Override
     public void onCreate() {
         super.onCreate();
         new SekretessDependencyProvider(getApplicationContext());
+    }
 
+    public void registerNetworkStatusMonitor() {
         connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         NetworkRequest request = new NetworkRequest.Builder()
                 .addCapability(NET_CAPABILITY_INTERNET)
                 .build();
-        connectivityManager.registerNetworkCallback(request, new SekretessNetworkMonitor());
+
+        if (sekretessNetworkMonitor != null) {
+            unregisterNetworkStatusMonitor();
+        }
+
+        SekretessNetworkMonitor sekretessNetworkMonitor = new SekretessNetworkMonitor();
+        connectivityManager.registerNetworkCallback(request, sekretessNetworkMonitor);
+    }
+
+    private void unregisterNetworkStatusMonitor() {
+        if (sekretessNetworkMonitor != null) {
+            connectivityManager.unregisterNetworkCallback(sekretessNetworkMonitor);
+        }
     }
 
     @Override
     public void onTerminate() {
         super.onTerminate();
+        unregisterNetworkStatusMonitor();
         SekretessDependencyProvider.authenticatedWebSocket().disconnect();
     }
 }

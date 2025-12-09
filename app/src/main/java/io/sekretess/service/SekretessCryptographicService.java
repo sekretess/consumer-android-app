@@ -167,10 +167,12 @@ public class SekretessCryptographicService {
                 storeSignedPreKey(keyBundle.getSignedPreKeyRecord());
                 return true;
             } else {
+                Log.w(TAG, "Upsert cryptographic keys failed");
                 sekretessSignalProtocolStore.clearStorage();
                 return false;
             }
         } else if (sekretessSignalProtocolStore.updateKeysRequired()) {
+            Log.w(TAG, "Update onetime cryptographic keys");
             updateOneTimeKeys();
         }
         return true;

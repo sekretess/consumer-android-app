@@ -19,6 +19,7 @@ import java.io.File;
 
 import io.sekretess.BuildConfig;
 import io.sekretess.R;
+import io.sekretess.SekretessApplication;
 import io.sekretess.dependency.SekretessDependencyProvider;
 
 public class MainActivity extends AppCompatActivity {
@@ -28,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SekretessApplication sekretessApplication = (SekretessApplication) getApplication();
         setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light_NoActionBar);
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
         //showBiometricLogin();
@@ -46,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
                 onCryptoKeyInitFailed();
                 return;
             }
+            sekretessApplication.registerNetworkStatusMonitor();
             setContentView(R.layout.activity_main);
             Toolbar myToolbar = findViewById(R.id.my_toolbar);
             setSupportActionBar(myToolbar);

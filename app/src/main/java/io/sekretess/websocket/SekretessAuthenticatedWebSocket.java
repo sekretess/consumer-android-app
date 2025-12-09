@@ -32,12 +32,15 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
     public void onClosed(okhttp3.WebSocket webSocket, int code, String reason) {
         super.onClosed(webSocket, code, reason);
         connectionState = ConnectionState.DISCONNECTED;
+        webSocketMonitor.stop();
         Log.i("SekretessWebSocketClient", "WebSocket disconnected");
     }
 
     @Override
     public void onClosing(okhttp3.WebSocket webSocket, int code, String reason) {
         super.onClosing(webSocket, code, reason);
+        connectionState = ConnectionState.DISCONNECTED;
+        Log.i("SekretessWebSocketClient", "WebSocket closing");
     }
 
     @Override
@@ -46,9 +49,9 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
         Log.i("SekretessWebSocketClient", "WebSocket connected");
         try {
             webSocket.send(SekretessDependencyProvider.authService().getAccessToken().toString());
-
         } catch (Exception e) {
             Log.e("SekretessWebSocketListener", "Error occurred during send auth token to WebSocket", e);
+            connectionState = ConnectionState.DISCONNECTED;
         }
     }
 
@@ -65,7 +68,7 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
     public void connect() {
         if (connectionState == ConnectionState.CONNECTED) {
             Log.i("SekretessWebSocketClient", "WebSocket is already connected");
-            return ;
+            return;
         }
         OkHttpClient client = new OkHttpClient();
         Request request = new Request
@@ -101,6 +104,7 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
 
     public enum ConnectionState {
         CONNECTED,
-        DISCONNECTED
+        DISCONNECTED,
+        RECOVERING
     }
 }
