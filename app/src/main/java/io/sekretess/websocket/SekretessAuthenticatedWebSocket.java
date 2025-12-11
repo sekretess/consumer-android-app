@@ -19,7 +19,7 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
 
 
     public SekretessAuthenticatedWebSocket() {
-        this.webSocketMonitor = new WebSocketMonitor(this);
+        this.webSocketMonitor = new WebSocketMonitor();
         this.connectionState = ConnectionState.DISCONNECTED;
     }
 

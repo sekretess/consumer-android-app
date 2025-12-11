@@ -465,7 +465,13 @@ public class ApiClient {
     }
 
     private OkHttpClient anonymousHttpClient() {
-        return new OkHttpClient.Builder().build();
+        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
+        // Set the logging level (BODY logs headers and body)
+        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+
+        return new OkHttpClient.Builder()
+                .addInterceptor(loggingInterceptor)
+                .build();
     }
 
     public void logout() {

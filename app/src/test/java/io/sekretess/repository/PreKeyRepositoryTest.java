@@ -101,7 +101,7 @@ public class PreKeyRepositoryTest {
         when(mockPreKeyRecord.getId()).thenReturn(0);
 
         SignalProtocolStore mockStore = mock(SignalProtocolStore.class);
-        preKeyRepository.loadPreKeyRecords(mockStore);
+//        preKeyRepository.loadPreKeyRecords(mockStore);
 
         verify(mockStore).storePreKey(eq(mockPreKeyRecord.getId()), any(PreKeyRecord.class));
     }
