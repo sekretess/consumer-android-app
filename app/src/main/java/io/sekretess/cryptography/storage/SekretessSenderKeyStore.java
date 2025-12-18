@@ -6,7 +6,7 @@ import org.signal.libsignal.protocol.groups.state.SenderKeyStore;
 
 import java.util.UUID;
 
-import io.sekretess.repository.SenderKeyRepository;
+import io.sekretess.db.repository.SenderKeyRepository;
 
 public class SekretessSenderKeyStore implements SenderKeyStore {
     private final SenderKeyRepository senderKeyRepository;

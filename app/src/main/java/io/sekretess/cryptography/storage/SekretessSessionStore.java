@@ -7,7 +7,7 @@ import org.signal.libsignal.protocol.state.SessionStore;
 
 import java.util.List;
 
-import io.sekretess.repository.SessionRepository;
+import io.sekretess.db.repository.SessionRepository;
 
 public class SekretessSessionStore implements SessionStore {
 

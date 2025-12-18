@@ -8,7 +8,7 @@ import org.signal.libsignal.protocol.state.SignedPreKeyStore;
 
 import java.util.List;
 
-import io.sekretess.repository.PreKeyRepository;
+import io.sekretess.db.repository.PreKeyRepository;
 
 public class SekretessSignedPreKeyStore implements SignedPreKeyStore {
     private final String TAG = SekretessSignedPreKeyStore.class.getName();
@@ -20,6 +20,7 @@ public class SekretessSignedPreKeyStore implements SignedPreKeyStore {
 
     @Override
     public SignedPreKeyRecord loadSignedPreKey(int signedPreKeyId) throws InvalidKeyIdException {
+        List<SignedPreKeyRecord> signedPreKeyRecords = loadSignedPreKeys();
         return preKeyRepository.getSignedPreKeyRecord(signedPreKeyId);
     }
 

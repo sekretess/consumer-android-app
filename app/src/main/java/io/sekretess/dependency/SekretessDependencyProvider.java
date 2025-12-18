@@ -6,15 +6,15 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.MutableLiveData;
 
 import io.sekretess.cryptography.storage.SekretessSignalProtocolStore;
-import io.sekretess.repository.AuthRepository;
-import io.sekretess.repository.IdentityKeyRepository;
-import io.sekretess.repository.KyberPreKeyRepository;
-import io.sekretess.repository.MessageRepository;
-import io.sekretess.repository.PreKeyRepository;
-import io.sekretess.repository.RegistrationRepository;
-import io.sekretess.repository.SekretessDatabase;
-import io.sekretess.repository.SenderKeyRepository;
-import io.sekretess.repository.SessionRepository;
+import io.sekretess.db.repository.AuthRepository;
+import io.sekretess.db.repository.IdentityKeyRepository;
+import io.sekretess.db.repository.KyberPreKeyRepository;
+import io.sekretess.db.repository.MessageRepository;
+import io.sekretess.db.repository.PreKeyRepository;
+import io.sekretess.db.repository.RegistrationRepository;
+import io.sekretess.db.SekretessDatabase;
+import io.sekretess.db.repository.SenderKeyRepository;
+import io.sekretess.db.repository.SessionRepository;
 import io.sekretess.service.AuthService;
 import io.sekretess.websocket.SekretessAuthenticatedWebSocket;
 import io.sekretess.service.SekretessCryptographicService;
@@ -35,8 +35,6 @@ public class SekretessDependencyProvider {
     public SekretessDependencyProvider(Context context) {
         rootContext = context;
 
-        sekretessDatabase = new SekretessDatabase(context);
-
         SekretessSignalProtocolStore sekretessSignalProtocolStore
                 = getSekretessSignalProtocolStore(sekretessDatabase);
         sekretessCryptographicService = new SekretessCryptographicService(sekretessSignalProtocolStore);
@@ -44,7 +42,7 @@ public class SekretessDependencyProvider {
         MessageRepository messageRepository = new MessageRepository(sekretessDatabase);
         sekretessMessageService = new SekretessMessageService(messageRepository);
 
-        AuthRepository authRepository = new AuthRepository(sekretessDatabase);
+        AuthRepository authRepository = new AuthRepository();
         authService = new AuthService(authRepository);
 
         apiClient = new ApiClient();
@@ -54,8 +52,8 @@ public class SekretessDependencyProvider {
 
     @NonNull
     private static SekretessSignalProtocolStore getSekretessSignalProtocolStore(SekretessDatabase sekretessDatabase) {
-        IdentityKeyRepository identityKeyRepository = new IdentityKeyRepository(sekretessDatabase);
-        RegistrationRepository registrationRepository = new RegistrationRepository(sekretessDatabase);
+        IdentityKeyRepository identityKeyRepository = new IdentityKeyRepository();
+        RegistrationRepository registrationRepository = new RegistrationRepository();
         PreKeyRepository preKeyRepository = new PreKeyRepository(sekretessDatabase);
         SessionRepository sessionRepository = new SessionRepository(sekretessDatabase);
         SenderKeyRepository senderKeyRepository = new SenderKeyRepository(sekretessDatabase);

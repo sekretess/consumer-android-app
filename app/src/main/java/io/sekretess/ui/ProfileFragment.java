@@ -41,11 +41,10 @@ public class ProfileFragment extends Fragment {
         AppCompatButton btnDeleteAccount = view.findViewById(R.id.btnDeleteAccount);
         btnDeleteAccount.setOnClickListener(v -> {
             if (SekretessDependencyProvider.apiClient().deleteUser()) {
-                if (SekretessDependencyProvider.authService().clearUserData()) {
-                    Intent intent = new Intent(ProfileFragment.this.getContext(), LoginActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                }
+                SekretessDependencyProvider.authService().clearUserData();
+                Intent intent = new Intent(ProfileFragment.this.getContext(), LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
             }
             SekretessDependencyProvider.authService().logout();
         });

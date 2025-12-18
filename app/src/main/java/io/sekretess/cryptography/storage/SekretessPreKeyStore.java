@@ -6,7 +6,7 @@ import org.signal.libsignal.protocol.InvalidKeyIdException;
 import org.signal.libsignal.protocol.state.PreKeyRecord;
 import org.signal.libsignal.protocol.state.PreKeyStore;
 
-import io.sekretess.repository.PreKeyRepository;
+import io.sekretess.db.repository.PreKeyRepository;
 
 public class SekretessPreKeyStore implements PreKeyStore {
     private final String TAG = SekretessPreKeyStore.class.getName();

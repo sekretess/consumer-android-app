@@ -12,7 +12,6 @@ import android.util.Log;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.lifecycle.ViewModelProvider;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -26,7 +25,7 @@ import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.MessageDto;
 import io.sekretess.dto.MessageRecordDto;
 import io.sekretess.enums.MessageType;
-import io.sekretess.repository.MessageRepository;
+import io.sekretess.db.repository.MessageRepository;
 import io.sekretess.utils.NotificationPreferencesUtils;
 
 public class SekretessMessageService {

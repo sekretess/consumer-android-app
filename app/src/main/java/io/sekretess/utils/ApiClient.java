@@ -106,7 +106,7 @@ public class ApiClient {
         OkHttpClient httpClient = authorizedHttpClient();
         Request request = new Request
                 .Builder()
-                .url(BuildConfig.CONSUMER_API_URL + "/ads/businesses/" + business)
+                .url(BuildConfig.CONSUMER_API_URL + "/businesses/"+business+"/subscriptions/ads" )
                 .post(Util.EMPTY_REQUEST).build();
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
@@ -138,7 +138,7 @@ public class ApiClient {
     private boolean unSubscribeFromBusinessInternal(String business) {
         OkHttpClient httpClient = authorizedHttpClient();
         Request request = new Request.Builder()
-                .url(BuildConfig.CONSUMER_API_URL + "/ads/businesses/" + business)
+                .url(BuildConfig.CONSUMER_API_URL + "/businesses/" + business+"/subscriptions/ads")
                 .delete()
                 .build();
 
@@ -208,7 +208,7 @@ public class ApiClient {
 
     private List<String> getSubscribedBusinessesInternal() {
         OkHttpClient httpClient = authorizedHttpClient();
-        Request request = new Request.Builder().url(BuildConfig.CONSUMER_API_URL + "/businesses/ads")
+        Request request = new Request.Builder().url(BuildConfig.CONSUMER_API_URL + "/businesses/subscriptions/ads")
                 .get().build();
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
@@ -218,8 +218,9 @@ public class ApiClient {
                         + response.message());
                 return Collections.EMPTY_LIST;
             } else {
-                Log.i("ApiClient", "response is " + response.body().string());
-                List result = objectMapper.readValue(response.body().string(), List.class);
+                String respBody = response.body().string();
+                Log.i("ApiClient", "response is " + respBody);
+                List result = objectMapper.readValue(respBody, List.class);
                 if (result == null) return Collections.EMPTY_LIST;
                 return result;
             }

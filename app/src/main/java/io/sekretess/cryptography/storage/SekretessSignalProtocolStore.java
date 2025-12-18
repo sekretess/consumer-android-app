@@ -1,8 +1,5 @@
 package io.sekretess.cryptography.storage;
 
-import android.app.Application;
-import android.content.Context;
-import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
 import org.signal.libsignal.protocol.IdentityKey;
@@ -17,22 +14,15 @@ import org.signal.libsignal.protocol.state.SessionRecord;
 import org.signal.libsignal.protocol.state.SignalProtocolStore;
 import org.signal.libsignal.protocol.state.SignedPreKeyRecord;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import io.sekretess.SekretessApplication;
-import io.sekretess.model.IdentityKeyPairStoreEntity;
-import io.sekretess.model.KyberPreKeyRecordsEntity;
-import io.sekretess.model.PreKeyRecordStoreEntity;
-import io.sekretess.model.RegistrationIdStoreEntity;
-import io.sekretess.model.SignedPreKeyRecordStoreEntity;
-import io.sekretess.repository.IdentityKeyRepository;
-import io.sekretess.repository.KyberPreKeyRepository;
-import io.sekretess.repository.PreKeyRepository;
-import io.sekretess.repository.RegistrationRepository;
-import io.sekretess.repository.SenderKeyRepository;
-import io.sekretess.repository.SessionRepository;
+import io.sekretess.db.repository.IdentityKeyRepository;
+import io.sekretess.db.repository.KyberPreKeyRepository;
+import io.sekretess.db.repository.PreKeyRepository;
+import io.sekretess.db.repository.RegistrationRepository;
+import io.sekretess.db.repository.SenderKeyRepository;
+import io.sekretess.db.repository.SessionRepository;
 
 public class SekretessSignalProtocolStore implements SignalProtocolStore {
     private final SekretessIdentityKeyStore identityKeyStore;
@@ -58,10 +48,18 @@ public class SekretessSignalProtocolStore implements SignalProtocolStore {
         this.signedPreKeyStore = new SekretessSignedPreKeyStore(preKeyRepository);
         this.senderKeyStore = new SekretessSenderKeyStore(senderKeyRepository);
         this.kyberPreKeyStore = new SekretessKyberPreKeyStore(kyberPreKeyRepository);
+
+
+        Log.i("SekretessSignalProtocolStore", "SignalProtocolStore initialized");
+        Log.i("SekretessSignalProtocolStore", "IdentityKeyPair: " + identityKeyStore.getIdentityKeyPair());
+        signedPreKeyStore.loadSignedPreKeys().forEach(signedPreKeyRecord -> Log.i("SekretessSignalProtocolStore", "SignedPreKeyRecord: "+ signedPreKeyRecord.getId() ));
+        Log.i("SekretessSignalProtocolStore", "PreKeyStore: " + preKeyStore);
     }
 
     public boolean registrationRequired() {
-        return identityKeyStore.registrationRequired();
+        boolean registrationRequired = identityKeyStore.registrationRequired();
+        Log.i("SekretessSignalProtocolStore", "registrationRequired: " + registrationRequired);
+        return registrationRequired;
     }
 
     @Override

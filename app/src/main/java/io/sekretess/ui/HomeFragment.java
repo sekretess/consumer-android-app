@@ -34,7 +34,7 @@ import io.sekretess.adapters.TrustedSendersAdapter;
 import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.TrustedSender;
-import io.sekretess.repository.SekretessDatabase;
+import io.sekretess.db.SekretessDatabase;
 
 import java.util.List;
 import java.util.stream.Collectors;

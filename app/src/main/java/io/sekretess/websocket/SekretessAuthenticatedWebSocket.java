@@ -2,7 +2,10 @@ package io.sekretess.websocket;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import java.nio.charset.StandardCharsets;
 
 import io.sekretess.BuildConfig;
 import io.sekretess.dependency.SekretessDependencyProvider;
@@ -11,6 +14,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
+import okio.ByteString;
 
 public class SekretessAuthenticatedWebSocket extends WebSocketListener {
     private final WebSocketMonitor webSocketMonitor;
@@ -25,7 +29,15 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
 
     @Override
     public void onMessage(okhttp3.WebSocket webSocket, String text) {
+        Log.i("SekretessWebSocketClient", "Received message: " + text);
         SekretessDependencyProvider.messageService().handleMessage(text);
+    }
+
+    @Override
+    public void onMessage(@NonNull WebSocket webSocket, @NonNull ByteString bytes) {
+        Log.i("SekretessWebSocketClient", "Received message: " + bytes.string(StandardCharsets.UTF_8));
+        SekretessDependencyProvider.messageService().handleMessage(bytes.string(StandardCharsets.UTF_8));
+        super.onMessage(webSocket, bytes);
     }
 
     @Override
@@ -62,7 +74,7 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
         this.connectionState = ConnectionState.DISCONNECTED;
         webSocketMonitor.stop();
         webSocket.close(1000, "Error connecting to WebSocket");
-        Log.e("SekretessWebSocketClient", "Error connecting to WebSocket", t);
+        Log.e("SekretessWebSocketClient", "Error connecting to WebSocket", t);  
     }
 
     public void connect() {

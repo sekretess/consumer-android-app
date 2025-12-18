@@ -6,10 +6,9 @@ import org.signal.libsignal.protocol.InvalidKeyIdException;
 import org.signal.libsignal.protocol.state.KyberPreKeyRecord;
 import org.signal.libsignal.protocol.state.KyberPreKeyStore;
 
-import java.util.Collections;
 import java.util.List;
 
-import io.sekretess.repository.KyberPreKeyRepository;
+import io.sekretess.db.repository.KyberPreKeyRepository;
 
 public class SekretessKyberPreKeyStore implements KyberPreKeyStore {
     private final String TAG = SekretessKyberPreKeyStore.class.getName();

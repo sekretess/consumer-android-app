@@ -16,7 +16,7 @@ import io.sekretess.dto.AuthResponse;
 import io.sekretess.dto.RefreshTokenRequestDto;
 import io.sekretess.exception.IncorrectTokenSyntaxException;
 import io.sekretess.exception.TokenExpiredException;
-import io.sekretess.repository.AuthRepository;
+import io.sekretess.db.repository.AuthRepository;
 
 public class AuthService {
     private final String TAG = AuthService.class.getName();
@@ -54,7 +54,7 @@ public class AuthService {
     }
 
     public void logout() {
-        authRepository.clearUserData();
+        authRepository.removeAuthState();
         SekretessDependencyProvider.apiClient().logout();
     }
 
@@ -70,11 +70,8 @@ public class AuthService {
 
     public JWT getAccessToken() throws TokenExpiredException, IncorrectTokenSyntaxException {
         try {
-            String authState = authRepository.getAuthState();
-
-            if (authState == null) {
-                throw new TokenExpiredException("Token not found");
-            }
+            String authState = authRepository.getAuthState()
+                    .orElseThrow(() -> new TokenExpiredException("Token not found"));
 
             AuthResponse authResponse = objectMapper.readValue(authState, AuthResponse.class);
             String token = authResponse.accessToken();
@@ -90,14 +87,16 @@ public class AuthService {
         }
     }
 
-    private JWT getRefreshToken() throws JsonProcessingException {
-        AuthResponse authResponse = objectMapper.readValue(authRepository.getAuthState(), AuthResponse.class);
+    private JWT getRefreshToken() throws JsonProcessingException, TokenExpiredException {
+        String authState = authRepository.getAuthState()
+                .orElseThrow(() -> new TokenExpiredException("Token not found"));
+        AuthResponse authResponse = objectMapper.readValue(authState, AuthResponse.class);
         String token = authResponse.refreshToken();
         return new JWT(token);
     }
 
-    public boolean clearUserData() {
-        return authRepository.clearUserData();
+    public void clearUserData() {
+        authRepository.removeAuthState();
     }
 
     public String getUsername() {

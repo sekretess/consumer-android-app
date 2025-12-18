@@ -1,15 +1,13 @@
 package io.sekretess.cryptography.storage;
 
-import android.content.Context;
-
 import org.signal.libsignal.protocol.IdentityKey;
 import org.signal.libsignal.protocol.IdentityKeyPair;
 import org.signal.libsignal.protocol.SignalProtocolAddress;
 import org.signal.libsignal.protocol.state.IdentityKeyStore;
 import org.signal.libsignal.protocol.util.KeyHelper;
 
-import io.sekretess.repository.IdentityKeyRepository;
-import io.sekretess.repository.RegistrationRepository;
+import io.sekretess.db.repository.IdentityKeyRepository;
+import io.sekretess.db.repository.RegistrationRepository;
 
 public class SekretessIdentityKeyStore implements IdentityKeyStore {
 
