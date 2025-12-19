@@ -12,13 +12,13 @@ public class IdentityKeyPairEntity {
     private int id;
     private String identityKeyPair;
     @ColumnInfo(name = "created_at", defaultValue = "CURRENT_TIMESTAMP")
-    private Date createdAt;
+    private String createdAt;
 
     public IdentityKeyPairEntity(String identityKeyPair) {
         this.identityKeyPair = identityKeyPair;
     }
 
-    public Date getCreatedAt() {
+    public String getCreatedAt() {
         return createdAt;
     }
 

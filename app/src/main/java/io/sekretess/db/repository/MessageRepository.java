@@ -16,59 +16,38 @@ import java.util.Collections;
 import java.util.List;
 
 import io.sekretess.db.SekretessDatabase;
+import io.sekretess.db.dao.MessageStoreDao;
+import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.MessageRecordDto;
 import io.sekretess.enums.ItemType;
 import io.sekretess.db.model.MessageStoreEntity;
 
 public class MessageRepository {
-    private final SekretessDatabase sekretessDatabase;
+    private final MessageStoreDao messageStoreDao;
     private final String TAG = MessageRepository.class.getName();
     private static final DateTimeFormatter WEEK_FORMATTER = DateTimeFormatter.ofPattern("EEEE");
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM");
     private static final DateTimeFormatter YEAR_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM yyyy");
 
-    public MessageRepository(SekretessDatabase sekretessDatabase) {
-        this.sekretessDatabase = sekretessDatabase;
+    public MessageRepository() {
+        SekretessDatabase db = SekretessDatabase.getInstance(SekretessDependencyProvider.applicationContext());
+        this.messageStoreDao = db.messageStoreDao();
     }
 
     public void storeDecryptedMessage(String sender, String message, String username) {
-        ContentValues values = new ContentValues();
-        values.put(MessageStoreEntity.COLUMN_SENDER, sender);
-        values.put(MessageStoreEntity.COLUMN_MESSAGE_BODY, message);
-        values.put(MessageStoreEntity.COLUMN_USERNAME, username);
-        values.put(MessageStoreEntity.COLUMN_CREATED_AT, System.currentTimeMillis());
-        sekretessDatabase.getWritableDatabase().insert(MessageStoreEntity.TABLE_NAME,
-                null, values);
+        messageStoreDao.insert(new MessageStoreEntity(username, sender, message));
     }
 
     public List<MessageBriefDto> getMessageBriefs(String username) {
         try {
-            List<MessageBriefDto> resultArray;
-            try (SQLiteDatabase sqLiteDatabase = sekretessDatabase.getWritableDatabase();
-                 Cursor resultCursor = sqLiteDatabase
-                         .query(MessageStoreEntity.TABLE_NAME,
-                                 new String[]{MessageStoreEntity.COLUMN_SENDER,
-                                         MessageStoreEntity.COLUMN_MESSAGE_BODY},
-                                 MessageStoreEntity.COLUMN_USERNAME + "=?",
-                                 new String[]{username},
-                                 null,
-                                 null,
-                                 MessageStoreEntity.COLUMN_CREATED_AT + " DESC",
-                                 "1")) {
-                sqLiteDatabase.disableWriteAheadLogging();
-                resultArray = new ArrayList<>();
-
-                while (resultCursor.moveToNext()) {
-                    String senderName = resultCursor.getString(0);
-                    String messageText = resultCursor.getString(1);
-                    resultArray.add(new MessageBriefDto(senderName, messageText));
-                }
-                return resultArray;
-            } catch (Throwable e) {
-                Log.e(TAG, "Getting MessageBriefs failed", e);
-                return new ArrayList<MessageBriefDto>();
-            }
+            List<MessageStoreEntity> messageStoreEntities = messageStoreDao.getMessages(username);
+            return messageStoreEntities
+                    .stream()
+                    .map(messageStoreEntity ->
+                            new MessageBriefDto(messageStoreEntity.getSender(),
+                                    messageStoreEntity.getMessageBody()))
+                    .toList();
         } catch (Exception e) {
             Log.e(TAG, "Getting MessageBriefs failed:", e);
             return new ArrayList<>();
@@ -76,26 +55,12 @@ public class MessageRepository {
     }
 
     public List<String> getTopSenders() {
-        try {
-            try (SQLiteDatabase db = sekretessDatabase.getWritableDatabase(); Cursor resultCursor = db
-                    .query(MessageStoreEntity.TABLE_NAME, new String[]{
-                                    MessageStoreEntity.COLUMN_SENDER
-                            }, null, null, null, null,
-                            MessageStoreEntity.COLUMN_CREATED_AT + " DESC", "4")) {
-                List<String> topSenders = new ArrayList<>();
-                while (resultCursor.moveToNext()) {
-                    topSenders.add(resultCursor.getString(0));
-                }
-                return topSenders;
-            }
-        } catch (Exception e) {
-            Log.e("DbHelper", "Getting top senders failed", e);
-            return Collections.emptyList();
-        }
+        return messageStoreDao.getTopSenders();
     }
 
 
     public List<MessageRecordDto> loadMessages(String from) {
+        messageStoreDao.getMessages(from);
         try {
             try (Cursor resultCursor = sekretessDatabase.getReadableDatabase()
                     .query(MessageStoreEntity.TABLE_NAME, new String[]{MessageStoreEntity._ID,

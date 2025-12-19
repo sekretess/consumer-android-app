@@ -39,7 +39,7 @@ public class SekretessDependencyProvider {
                 = getSekretessSignalProtocolStore(sekretessDatabase);
         sekretessCryptographicService = new SekretessCryptographicService(sekretessSignalProtocolStore);
 
-        MessageRepository messageRepository = new MessageRepository(sekretessDatabase);
+        MessageRepository messageRepository = new MessageRepository();
         sekretessMessageService = new SekretessMessageService(messageRepository);
 
         AuthRepository authRepository = new AuthRepository();

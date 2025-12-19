@@ -16,7 +16,7 @@ public class IdentityKeyEntity  {
     private String name;
     private String identityKey;
     @ColumnInfo(name = "created_at", defaultValue = "CURRENT_TIMESTAMP")
-    private Date createdAt;
+    private String createdAt;
 
     public IdentityKeyEntity(int deviceId, String name, String identityKey) {
         this.deviceId = deviceId;
@@ -24,7 +24,7 @@ public class IdentityKeyEntity  {
         this.identityKey = identityKey;
     }
 
-    public Date getCreatedAt() {
+    public String getCreatedAt() {
         return createdAt;
     }
 
