@@ -119,7 +119,6 @@ public class HomeFragment extends Fragment {
     }
 
     private TrustedSendersAdapter updateTrustedSendersAdapter() {
-        SekretessDatabase sekretessDatabase = new SekretessDatabase(getContext());
         List<TrustedSender> trustedSenders = SekretessDependencyProvider.messageService().getTopSenders()
                 .stream()
                 .distinct()

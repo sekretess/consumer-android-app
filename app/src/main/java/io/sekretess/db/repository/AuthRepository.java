@@ -25,7 +25,7 @@ public class AuthRepository {
 
 
     public void storeAuthState(String authState) {
-        authDao.insert(new AuthStateStoreEntity(authState));
+        authDao.insert(new AuthStateStoreEntity(authState, System.currentTimeMillis()));
     }
 
     public void removeAuthState() {

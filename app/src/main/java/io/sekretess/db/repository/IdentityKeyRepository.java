@@ -48,7 +48,7 @@ public class IdentityKeyRepository {
 
     public void storeIdentityKeyPair(IdentityKeyPair identityKeyPair) {
         IdentityKeyPairEntity identityKeyPairEntity =
-                new IdentityKeyPairEntity(base64Encoder.encodeToString(identityKeyPair.serialize()));
+                new IdentityKeyPairEntity(base64Encoder.encodeToString(identityKeyPair.serialize()), System.currentTimeMillis());
         identityKeyPairDao.insert(identityKeyPairEntity);
     }
 
@@ -56,7 +56,7 @@ public class IdentityKeyRepository {
         IdentityKeyEntity trustedKey = identityKeyDao.getIdentityKey(address.getDeviceId(), address.getName());
         if (trustedKey == null) {
             identityKeyDao.insert(new IdentityKeyEntity(address.getDeviceId(), address.getName(),
-                    base64Encoder.encodeToString(identityKey.serialize())));
+                    base64Encoder.encodeToString(identityKey.serialize()), System.currentTimeMillis()));
             return IdentityKeyStore.IdentityChange.NEW_OR_UNCHANGED;
         } else {
             trustedKey.setIdentityKey(base64Encoder.encodeToString(identityKey.serialize()));

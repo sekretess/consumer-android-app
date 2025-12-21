@@ -6,16 +6,23 @@ import androidx.room.PrimaryKey;
 @Entity(tableName = "auth_state_store")
 public class AuthStateStoreEntity  {
     @PrimaryKey(autoGenerate = true)
-    private int id;
+    private long id;
     private String authState;
+    private long createdAt;
 
-    public AuthStateStoreEntity(String authState){
+    public AuthStateStoreEntity(String authState, long createdAt){
         this.authState = authState;
+        this.createdAt = createdAt;
     }
 
-    public int getId() {
+    public long getId() {
         return id;
     }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
 
     public String getAuthState() {
         return authState;
@@ -23,5 +30,9 @@ public class AuthStateStoreEntity  {
 
     public void setAuthState(String authState) {
         this.authState = authState;
+    }
+
+    public long getCreatedAt() {
+        return createdAt;
     }
 }

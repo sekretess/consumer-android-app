@@ -1,14 +1,8 @@
 package io.sekretess.db.repository;
 
-import android.content.ContentValues;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
-
-import java.time.Instant;
-
 import io.sekretess.db.SekretessDatabase;
 import io.sekretess.db.dao.RegistrationIdDao;
-import io.sekretess.db.model.RegistrationIdStoreEntity;
+import io.sekretess.db.model.RegistrationIdEntity;
 import io.sekretess.dependency.SekretessDependencyProvider;
 
 public class RegistrationRepository {
@@ -31,7 +25,7 @@ public class RegistrationRepository {
     }
 
     public void storeRegistrationId(Integer registrationId) {
-        registrationIdDao.insert(new RegistrationIdStoreEntity(registrationId));
+        registrationIdDao.insert(new RegistrationIdEntity(registrationId, System.currentTimeMillis()));
     }
 
     public void clearStorage() {

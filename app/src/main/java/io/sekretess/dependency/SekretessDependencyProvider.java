@@ -15,6 +15,7 @@ import io.sekretess.db.repository.RegistrationRepository;
 import io.sekretess.db.SekretessDatabase;
 import io.sekretess.db.repository.SenderKeyRepository;
 import io.sekretess.db.repository.SessionRepository;
+import io.sekretess.db.repository.SignedPreKeyRepository;
 import io.sekretess.service.AuthService;
 import io.sekretess.websocket.SekretessAuthenticatedWebSocket;
 import io.sekretess.service.SekretessCryptographicService;
@@ -35,8 +36,7 @@ public class SekretessDependencyProvider {
     public SekretessDependencyProvider(Context context) {
         rootContext = context;
 
-        SekretessSignalProtocolStore sekretessSignalProtocolStore
-                = getSekretessSignalProtocolStore(sekretessDatabase);
+        SekretessSignalProtocolStore sekretessSignalProtocolStore = getSekretessSignalProtocolStore();
         sekretessCryptographicService = new SekretessCryptographicService(sekretessSignalProtocolStore);
 
         MessageRepository messageRepository = new MessageRepository();
@@ -51,16 +51,18 @@ public class SekretessDependencyProvider {
     }
 
     @NonNull
-    private static SekretessSignalProtocolStore getSekretessSignalProtocolStore(SekretessDatabase sekretessDatabase) {
+    private static SekretessSignalProtocolStore getSekretessSignalProtocolStore() {
         IdentityKeyRepository identityKeyRepository = new IdentityKeyRepository();
         RegistrationRepository registrationRepository = new RegistrationRepository();
-        PreKeyRepository preKeyRepository = new PreKeyRepository(sekretessDatabase);
-        SessionRepository sessionRepository = new SessionRepository(sekretessDatabase);
-        SenderKeyRepository senderKeyRepository = new SenderKeyRepository(sekretessDatabase);
-        KyberPreKeyRepository kyberPreKeyRepository = new KyberPreKeyRepository(sekretessDatabase);
+        PreKeyRepository preKeyRepository = new PreKeyRepository();
+        SignedPreKeyRepository signedPreKeyRepository = new SignedPreKeyRepository();
+        SessionRepository sessionRepository = new SessionRepository();
+        SenderKeyRepository senderKeyRepository = new SenderKeyRepository();
+        KyberPreKeyRepository kyberPreKeyRepository = new KyberPreKeyRepository();
 
         return new SekretessSignalProtocolStore(identityKeyRepository, registrationRepository,
-                preKeyRepository, sessionRepository, senderKeyRepository, kyberPreKeyRepository);
+                preKeyRepository, signedPreKeyRepository, sessionRepository, senderKeyRepository,
+                kyberPreKeyRepository);
     }
 
     public static SekretessMessageService messageService() {

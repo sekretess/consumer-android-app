@@ -1,28 +1,23 @@
 package io.sekretess.db.model;
 
-import android.provider.BaseColumns;
-
-import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
-import java.util.Date;
-
 @Entity(tableName = "registration_id_store")
-public class RegistrationIdStoreEntity {
+public class RegistrationIdEntity {
 
     @PrimaryKey(autoGenerate = true)
-    private int id;
+    private long id;
     private Integer registrationId;
 
-    @ColumnInfo(name = "created_at", defaultValue = "CURRENT_TIMESTAMP")
-    private Date createdAt;
+    private long createdAt;
 
-    public RegistrationIdStoreEntity(Integer registrationId) {
+    public RegistrationIdEntity(Integer registrationId, long createdAt) {
         this.registrationId = registrationId;
+        this.createdAt = createdAt;
     }
 
-    public Date getCreatedAt() {
+    public long getCreatedAt() {
         return createdAt;
     }
 
@@ -30,7 +25,11 @@ public class RegistrationIdStoreEntity {
         return registrationId;
     }
 
-    public int getId() {
+    public long getId() {
         return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 }

@@ -15,15 +15,24 @@ import androidx.core.app.NotificationManagerCompat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
+import io.sekretess.db.model.MessageEntity;
 import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.MessageDto;
 import io.sekretess.dto.MessageRecordDto;
+import io.sekretess.enums.ItemType;
 import io.sekretess.enums.MessageType;
 import io.sekretess.db.repository.MessageRepository;
 import io.sekretess.utils.NotificationPreferencesUtils;
@@ -32,6 +41,11 @@ public class SekretessMessageService {
     private final MessageRepository messageRepository;
     private final String TAG = SekretessMessageService.class.getName();
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final DateTimeFormatter WEEK_FORMATTER = DateTimeFormatter.ofPattern("EEEE");
+    private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM");
+    private static final DateTimeFormatter YEAR_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM yyyy");
+    private String dateTimeText = "";
 
     public SekretessMessageService(MessageRepository messageRepository) {
         this.messageRepository = messageRepository;
@@ -91,7 +105,18 @@ public class SekretessMessageService {
 
     public List<MessageBriefDto> getMessageBriefs() {
         String username = SekretessDependencyProvider.authService().getUsername();
-        return messageRepository.getMessageBriefs(username);
+        try {
+            List<MessageEntity> messageStoreEntities = messageRepository.getMessages(username);
+            return messageStoreEntities
+                    .stream()
+                    .map(messageStoreEntity ->
+                            new MessageBriefDto(messageStoreEntity.getSender(),
+                                    messageStoreEntity.getMessageBody()))
+                    .toList();
+        } catch (Exception e) {
+            Log.e(TAG, "Getting MessageBriefs failed:", e);
+            return new ArrayList<>();
+        }
     }
 
     public List<String> getTopSenders() {
@@ -99,7 +124,48 @@ public class SekretessMessageService {
     }
 
     public List<MessageRecordDto> loadMessages(String from) {
-        return messageRepository.loadMessages(from);
+        String username = SekretessDependencyProvider.authService().getUsername();
+
+        return messageRepository.getMessages(from, username)
+                .stream()
+                .map(this::messageRecordDto)
+                .toList();
+    }
+
+    public String dateTimeText(LocalDate dateTime) {
+
+        LocalDate today = LocalDate.now();
+        long daysBetween = ChronoUnit.DAYS.between(dateTime, today);
+        long monthsBetween = ChronoUnit.MONTHS.between(dateTime, today);
+
+        if (daysBetween == 0) {
+            return "Today";
+        }
+        if (daysBetween <= 7) {
+            return WEEK_FORMATTER.format(dateTime);
+        } else if (monthsBetween >= 12) {
+            return YEAR_FORMATTER.format(dateTime);
+        } else {
+            return MONTH_FORMATTER.format(dateTime);
+        }
+    }
+
+    private MessageRecordDto messageRecordDto(MessageEntity messageEntity) {
+        LocalDateTime messageDateTime = LocalDateTime
+                .ofInstant(Instant.ofEpochMilli(messageEntity.getCreatedAt()),
+                        ZoneId.systemDefault());
+
+        String dateTimeAsText = dateTimeText(messageDateTime.toLocalDate());
+        if (dateTimeText.equals(dateTimeAsText)) {
+            return new MessageRecordDto(messageEntity.getId(), messageEntity.getSender(),
+                    messageEntity.getMessageBody(), messageEntity.getCreatedAt(),
+                    dateTimeAsText, ItemType.ITEM);
+        } else {
+            dateTimeText = dateTimeAsText;
+            return new MessageRecordDto(messageEntity.getId(), messageEntity.getSender(),
+                    null, messageEntity.getCreatedAt(),
+                    dateTimeAsText, ItemType.HEADER);
+        }
     }
 
 

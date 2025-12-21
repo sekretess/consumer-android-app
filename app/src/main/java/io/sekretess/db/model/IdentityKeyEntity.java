@@ -10,21 +10,20 @@ import java.util.Date;
 public class IdentityKeyEntity  {
 
     @PrimaryKey(autoGenerate = true)
-    private int id;
+    private long id;
 
     private int deviceId;
     private String name;
     private String identityKey;
-    @ColumnInfo(name = "created_at", defaultValue = "CURRENT_TIMESTAMP")
-    private String createdAt;
-
-    public IdentityKeyEntity(int deviceId, String name, String identityKey) {
+    private long createdAt;
+    public IdentityKeyEntity(int deviceId, String name, String identityKey, long createdAt) {
         this.deviceId = deviceId;
         this.name = name;
         this.identityKey = identityKey;
+        this.createdAt = createdAt;
     }
 
-    public String getCreatedAt() {
+    public long getCreatedAt() {
         return createdAt;
     }
 
@@ -44,7 +43,11 @@ public class IdentityKeyEntity  {
         this.identityKey = identityKey;
     }
 
-    public int getId() {
+    public long getId() {
         return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 }

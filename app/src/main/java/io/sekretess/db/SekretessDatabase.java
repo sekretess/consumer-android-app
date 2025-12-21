@@ -13,19 +13,29 @@ import java.time.format.DateTimeFormatter;
 import io.sekretess.db.dao.AuthDao;
 import io.sekretess.db.dao.IdentityKeyDao;
 import io.sekretess.db.dao.IdentityKeyPairDao;
-import io.sekretess.db.dao.KyberPreKeyRecordDao;
-import io.sekretess.db.dao.MessageStoreDao;
+import io.sekretess.db.dao.KyberPreKeyDao;
+import io.sekretess.db.dao.MessageDao;
+import io.sekretess.db.dao.PreKeyDao;
 import io.sekretess.db.dao.RegistrationIdDao;
+import io.sekretess.db.dao.SenderKeyDao;
+import io.sekretess.db.dao.SessionDao;
+import io.sekretess.db.dao.SignedPreKeyDao;
 import io.sekretess.db.model.AuthStateStoreEntity;
 import io.sekretess.db.model.IdentityKeyEntity;
 import io.sekretess.db.model.IdentityKeyPairEntity;
-import io.sekretess.db.model.KyberPreKeyRecordEntity;
-import io.sekretess.db.model.MessageStoreEntity;
-import io.sekretess.db.model.RegistrationIdStoreEntity;
+import io.sekretess.db.model.KyberPreKeyEntity;
+import io.sekretess.db.model.MessageEntity;
+import io.sekretess.db.model.PreKeyRecordEntity;
+import io.sekretess.db.model.RegistrationIdEntity;
+import io.sekretess.db.model.SenderKeyEntity;
+import io.sekretess.db.model.SessionEntity;
+import io.sekretess.db.model.SignedPreKeyRecordEntity;
 
-@Database(entities = {AuthStateStoreEntity.class, IdentityKeyEntity.class,
-        RegistrationIdStoreEntity.class, IdentityKeyPairEntity.class,
-        KyberPreKeyRecordEntity.class, MessageStoreEntity.class}, version = 1, exportSchema = false)
+@Database(entities = {AuthStateStoreEntity.class, IdentityKeyEntity.class, RegistrationIdEntity.class,
+        IdentityKeyPairEntity.class, KyberPreKeyEntity.class, MessageEntity.class,
+        SenderKeyEntity.class, SessionEntity.class, PreKeyRecordEntity.class,
+        SignedPreKeyRecordEntity.class},
+        version = 1, exportSchema = false)
 public abstract class SekretessDatabase extends RoomDatabase {
 
     private static volatile SekretessDatabase INSTANCE;
@@ -38,9 +48,18 @@ public abstract class SekretessDatabase extends RoomDatabase {
 
     public abstract IdentityKeyPairDao identityKeyPairDao();
 
-    public abstract KyberPreKeyRecordDao kyberPreKeyRecordDao();
+    public abstract KyberPreKeyDao kyberPreKeyRecordDao();
 
-    public abstract MessageStoreDao messageStoreDao();
+    public abstract MessageDao messageStoreDao();
+
+    public abstract SenderKeyDao senderKeyDao();
+
+    public abstract SessionDao sessionDao();
+
+    public abstract PreKeyDao preKeyDao();
+
+    public abstract SignedPreKeyDao signedPreKeyDao();
+
 
     public static SekretessDatabase getInstance(Context context) {
         if (INSTANCE == null) {
@@ -50,7 +69,9 @@ public abstract class SekretessDatabase extends RoomDatabase {
                             context.getApplicationContext(),
                             SekretessDatabase.class,
                             "sekretess_database"
-                    ).build();
+                    )
+                            .allowMainThreadQueries()
+                            .build();
                 }
             }
         }
@@ -59,6 +80,5 @@ public abstract class SekretessDatabase extends RoomDatabase {
 
     public static final DateTimeFormatter dateTimeFormatter
             = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.systemDefault());
-
 
 }

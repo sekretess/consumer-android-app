@@ -1,49 +1,44 @@
 package io.sekretess.db.repository;
 
-import android.content.ContentValues;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
-import org.signal.libsignal.protocol.InvalidMessageException;
 import org.signal.libsignal.protocol.SignalProtocolAddress;
 import org.signal.libsignal.protocol.state.SessionRecord;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import io.sekretess.db.SekretessDatabase;
-import io.sekretess.db.model.SessionStoreEntity;
+import io.sekretess.db.dao.SessionDao;
+import io.sekretess.db.model.SessionEntity;
+import io.sekretess.dependency.SekretessDependencyProvider;
 
 public class SessionRepository {
     private final String TAG = SessionRepository.class.getName();
-    private final SekretessDatabase sekretessDatabase;
+    private final SessionDao sessionDao;
+    private final Base64.Encoder base64Encoder = Base64.getEncoder();
+    private final Base64.Decoder base64Decoder = Base64.getDecoder();
 
 
-    public SessionRepository(SekretessDatabase sekretessDatabase) {
-        this.sekretessDatabase = sekretessDatabase;
+    public SessionRepository() {
+        SekretessDatabase sekretessDatabase = SekretessDatabase
+                .getInstance(SekretessDependencyProvider.applicationContext());
+        sessionDao = sekretessDatabase.sessionDao();
     }
 
     public void removeSession(SignalProtocolAddress address) {
-        try (SQLiteDatabase db = sekretessDatabase.getWritableDatabase()) {
-            db.delete(SessionStoreEntity.TABLE_NAME,
-                    SessionStoreEntity.COLUMN_ADDRESS_NAME + " = ? AND "
-                            + SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID + " = ?",
-                    new String[]{address.getName(), String.valueOf(address.getDeviceId())});
-        }
+        sessionDao.removeSession(address.getName(), address.getDeviceId());
     }
 
     public void removeAllSessions(String name) {
-        try (SQLiteDatabase db = sekretessDatabase.getWritableDatabase()) {
-            db.delete(SessionStoreEntity.TABLE_NAME,
-                    SessionStoreEntity.COLUMN_ADDRESS_NAME + " = ?", new String[]{name});
-        }
+        sessionDao.removeSession(name);
     }
 
     public List<SessionRecord> loadExistingSessions(List<SignalProtocolAddress> addresses) {
         List<SessionRecord> sessionRecords = new ArrayList<>();
         for (SignalProtocolAddress address : addresses) {
-            SessionRecord sessionRecord = loadSession(address);
+            SessionRecord sessionRecord = findSession(address);
             if (sessionRecord != null) {
                 sessionRecords.add(sessionRecord);
             }
@@ -51,60 +46,41 @@ public class SessionRepository {
         return sessionRecords;
     }
 
-    public SessionRecord loadSession(SignalProtocolAddress address) {
-        try (Cursor cursor = sekretessDatabase.getReadableDatabase()
-                .query(SessionStoreEntity.TABLE_NAME, new String[]{SessionStoreEntity.COLUMN_SESSION},
-                        SessionStoreEntity.COLUMN_ADDRESS_NAME + " = ? AND "
-                                + SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID + " = ?",
-                        new String[]{address.getName(), String.valueOf(address.getDeviceId())},
-                        null, null, null)) {
-            while (cursor.moveToNext()) {
-                String sessionBase64Str = cursor.getString(cursor.getColumnIndexOrThrow(SessionStoreEntity.COLUMN_SESSION));
-                return new SessionRecord(SekretessDatabase.base64Decoder.decode(sessionBase64Str));
+    public SessionRecord findSession(SignalProtocolAddress address) {
+        SessionEntity sessionEntity = sessionDao.findSession(address.getDeviceId(),
+                address.getName());
+        if (sessionEntity != null) {
+            try {
+                return new SessionRecord(base64Decoder.decode(sessionEntity.getSession()));
+            } catch (Exception e) {
+                Log.e(TAG, "Error occurred during load session.", e);
+                return null;
             }
-        } catch (InvalidMessageException e) {
-            Log.e(TAG, "Error occurred during load session.", e);
         }
         return null;
     }
 
     public List<Integer> getSubDeviceSessions(String name) {
-        try (Cursor cursor = sekretessDatabase.getReadableDatabase()
-                .query(SessionStoreEntity.TABLE_NAME, new String[]{SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID},
-                        SessionStoreEntity.COLUMN_ADDRESS_NAME + " = ?", new String[]{name},
-                        null, null, null)) {
-            List<Integer> deviceIds = new ArrayList<>();
-            while (cursor.moveToNext()) {
-                int deviceId = cursor.getInt(cursor.getColumnIndexOrThrow(SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID));
-                if (deviceId != 1)
-                    deviceIds.add(deviceId);
-            }
-            return deviceIds;
-        }
+        return sessionDao.getSubDeviceSessions(name);
     }
 
     public boolean containsSession(SignalProtocolAddress address) {
-        return loadSession(address) != null;
+        return findSession(address) != null;
     }
 
 
     public void storeSession(SignalProtocolAddress address, SessionRecord sessionRecord) {
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(SessionStoreEntity.COLUMN_ADDRESS_NAME, address.getName());
-        contentValues.put(SessionStoreEntity.COLUMN_ADDRESS_DEVICE_ID, address.getDeviceId());
+        String serviceId = "";
         if (address.getServiceId() != null) {
-            contentValues.put(SessionStoreEntity.COLUMN_SERVICE_ID,
-                    SekretessDatabase.base64Encoder.encodeToString(address.getServiceId().toServiceIdBinary()));
+            serviceId = base64Encoder.encodeToString(address.getServiceId().toServiceIdBinary());
         }
-        contentValues.put(SessionStoreEntity.COLUMN_SESSION,
-                SekretessDatabase.base64Encoder.encodeToString(sessionRecord.serialize()));
-
-        sekretessDatabase.getWritableDatabase().insert(SessionStoreEntity.TABLE_NAME, null, contentValues);
-
-
+        SessionEntity sessionEntity =
+                new SessionEntity(base64Encoder.encodeToString(sessionRecord.serialize()),
+                        address.getName(), serviceId, address.getDeviceId(), System.currentTimeMillis());
+        sessionDao.insert(sessionEntity);
     }
 
     public void clearStorage() {
-        sekretessDatabase.getWritableDatabase().delete(SessionStoreEntity.TABLE_NAME, null, null);
+        sessionDao.clear();
     }
 }

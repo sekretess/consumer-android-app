@@ -161,7 +161,6 @@ public class SekretessCryptographicService {
             KeyBundle keyBundle = initializeKeyBundle();
 
             if (SekretessDependencyProvider.apiClient().upsertKeyStore(keyBundle)) {
-                sekretessSignalProtocolStore.clearStorage();
                 storeKyberPreKeyRecords(keyBundle.getKyberPreKeyRecords());
                 storePreKeyRecords(keyBundle.getOpk());
                 storeSignedPreKey(keyBundle.getSignedPreKeyRecord());

@@ -1,23 +1,21 @@
 package io.sekretess.db.model;
 
-import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "kyber_prekey_record_store")
-public class KyberPreKeyRecordEntity {
+public class KyberPreKeyEntity {
     @PrimaryKey(autoGenerate = true)
-    private int id;
+    private long id;
     private int prekeyId;
     private String kpkRecord;
-    private boolean used;
-    @ColumnInfo(name = "created_at", defaultValue = "CURRENT_TIMESTAMP")
-    private String createdAt;
+    private boolean used = false;
+    private long createdAt;
 
-    public KyberPreKeyRecordEntity(int prekeyId, String kpkRecord) {
+    public KyberPreKeyEntity(int prekeyId, String kpkRecord, long createdAt) {
         this.prekeyId = prekeyId;
         this.kpkRecord = kpkRecord;
-        this.used = false;
+        this.createdAt = createdAt;
     }
 
     public int getPrekeyId() {
@@ -44,11 +42,19 @@ public class KyberPreKeyRecordEntity {
         this.used = used;
     }
 
-    public String getCreatedAt() {
+    public long getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(String createdAt) {
+    public void setCreatedAt(long createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 }

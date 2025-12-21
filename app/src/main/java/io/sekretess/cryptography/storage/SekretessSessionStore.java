@@ -19,7 +19,7 @@ public class SekretessSessionStore implements SessionStore {
 
     @Override
     public SessionRecord loadSession(SignalProtocolAddress address) {
-        return sessionRepository.loadSession(address);
+        return sessionRepository.findSession(address);
     }
 
     @Override

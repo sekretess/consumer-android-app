@@ -10,115 +10,58 @@ import org.signal.libsignal.protocol.state.SignedPreKeyRecord;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import io.sekretess.db.SekretessDatabase;
-import io.sekretess.db.model.PreKeyRecordStoreEntity;
-import io.sekretess.db.model.SignedPreKeyRecordStoreEntity;
+import io.sekretess.db.dao.PreKeyDao;
+import io.sekretess.db.model.PreKeyRecordEntity;
+import io.sekretess.db.model.SignedPreKeyRecordEntity;
+import io.sekretess.dependency.SekretessDependencyProvider;
 
 public class PreKeyRepository {
-    private final SekretessDatabase sekretessDatabase;
+    private final PreKeyDao preKeyDao;
     private final String TAG = PreKeyRepository.class.getName();
+    private final Base64.Encoder base64Encoder = Base64.getEncoder();
+    private final Base64.Decoder base64Decoder = Base64.getDecoder();
 
-    public PreKeyRepository(SekretessDatabase sekretessDatabase) {
-        this.sekretessDatabase = sekretessDatabase;
+
+    public PreKeyRepository() {
+        SekretessDatabase sekretessDatabase = SekretessDatabase
+                .getInstance(SekretessDependencyProvider.applicationContext());
+        preKeyDao = sekretessDatabase.preKeyDao();
     }
 
-    public List<SignedPreKeyRecord> loadSignedPreKeys() {
-        List<SignedPreKeyRecord> signedPreKeyRecords = new ArrayList<>();
-        try (Cursor cursor = sekretessDatabase.getReadableDatabase().query(SignedPreKeyRecordStoreEntity.TABLE_NAME,
-                new String[]{SignedPreKeyRecordStoreEntity.COLUMN_SPK_RECORD}, null, null,
-                null, null, null)) {
-            while (cursor.moveToNext()) {
-                SignedPreKeyRecord signedPreKeyRecord = new SignedPreKeyRecord(SekretessDatabase
-                        .base64Decoder.decode(cursor.getString(cursor
-                                .getColumnIndexOrThrow(SignedPreKeyRecordStoreEntity.COLUMN_SPK_RECORD))));
-                signedPreKeyRecords.add(signedPreKeyRecord);
-            }
-        } catch (InvalidMessageException e) {
-            Log.e(TAG, "Error occurred during get spk from database", e);
-        }
-        return signedPreKeyRecords;
-    }
-
-    public SignedPreKeyRecord getSignedPreKeyRecord(int signedPreKeyId) {
-        try (Cursor cursor = sekretessDatabase.getReadableDatabase().query(SignedPreKeyRecordStoreEntity.TABLE_NAME,
-                new String[]{SignedPreKeyRecordStoreEntity._ID, SignedPreKeyRecordStoreEntity.COLUMN_SPK_RECORD},
-                SignedPreKeyRecordStoreEntity.COLUMN_SPK_ID + "=?", new String[]{String.valueOf(signedPreKeyId)},
-                null, null, null, null)) {
-            while (cursor.moveToNext()) {
-                try {
-                    return new SignedPreKeyRecord(SekretessDatabase.base64Decoder
-                            .decode(cursor
-                                    .getString(cursor
-                                            .getColumnIndexOrThrow(SignedPreKeyRecordStoreEntity
-                                                    .COLUMN_SPK_RECORD))));
-                } catch (Exception e) {
-                    Log.e(TAG, "Error occurred during get spk from database");
-                    return null;
-                }
-            }
-        }
-        return null;
-    }
-
-    public void removeSignedPreKey(int signedPreKeyId) {
-        sekretessDatabase.getWritableDatabase().delete(SignedPreKeyRecordStoreEntity.TABLE_NAME, SignedPreKeyRecordStoreEntity
-                .COLUMN_SPK_ID + "=?", new String[]{String.valueOf(signedPreKeyId)});
-    }
-
-    public void storeSignedPreKeyRecord(SignedPreKeyRecord signedPreKeyRecord) {
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(SignedPreKeyRecordStoreEntity.COLUMN_SPK_RECORD, SekretessDatabase.base64Encoder
-                .encodeToString(signedPreKeyRecord.serialize()));
-        contentValues.put(SignedPreKeyRecordStoreEntity.COLUMN_SPK_ID, signedPreKeyRecord.getId());
-        contentValues.put(SignedPreKeyRecordStoreEntity.COLUMN_CREATED_AT, SekretessDatabase.dateTimeFormatter.format(Instant.now()));
-        sekretessDatabase.getWritableDatabase().insert(SignedPreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
-    }
 
     public int count() {
-        try (Cursor cursor = sekretessDatabase.getReadableDatabase().query(PreKeyRecordStoreEntity.TABLE_NAME,
-                new String[]{PreKeyRecordStoreEntity._ID, PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD},
-                null, null, null, null, null);) {
-
-            return cursor.getCount();
-        }
+        return preKeyDao.getCount();
     }
 
     public void removePreKeyRecord(int prekeyId) {
-        sekretessDatabase.getWritableDatabase().delete(PreKeyRecordStoreEntity.TABLE_NAME,
-                PreKeyRecordStoreEntity.COLUMN_PREKEY_ID + "=?", new String[]{String.valueOf(prekeyId)});
+        preKeyDao.removePreKeyRecord(prekeyId);
     }
 
     public void storePreKeyRecord(PreKeyRecord preKeyRecord) {
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(PreKeyRecordStoreEntity.COLUMN_PREKEY_ID, preKeyRecord.getId());
-        contentValues.put(PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD,
-                SekretessDatabase.base64Encoder.encodeToString(preKeyRecord.serialize()));
-        contentValues.put(PreKeyRecordStoreEntity.COLUMN_CREATED_AT,
-                SekretessDatabase.dateTimeFormatter.format(Instant.now()));
-        sekretessDatabase.getWritableDatabase().insert(PreKeyRecordStoreEntity.TABLE_NAME, null, contentValues);
+        PreKeyRecordEntity preKeyRecordEntity = new PreKeyRecordEntity(preKeyRecord.getId(),
+                base64Encoder.encodeToString(preKeyRecord.serialize()), System.currentTimeMillis());
+        preKeyDao.insert(preKeyRecordEntity);
     }
 
     public PreKeyRecord loadPreKey(int preKeyId) {
-        try (Cursor cursor = sekretessDatabase.getReadableDatabase().query(PreKeyRecordStoreEntity.TABLE_NAME,
-                new String[]{PreKeyRecordStoreEntity._ID, PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD},
-                PreKeyRecordStoreEntity.COLUMN_PREKEY_ID + "=?", new String[]{String.valueOf(preKeyId)},
-                null, null, null)) {
-            while (cursor.moveToNext()) {
-                String preKeyRecordBase64Str = cursor.getString(cursor
-                        .getColumnIndexOrThrow(PreKeyRecordStoreEntity.COLUMN_PREKEY_RECORD));
-                return new PreKeyRecord(SekretessDatabase.base64Decoder.decode(preKeyRecordBase64Str));
-            }
-        } catch (InvalidMessageException e) {
-            Log.i(TAG, "Error occurred during get prekey from database", e);
+        PreKeyRecordEntity preKeyRecordEntity = preKeyDao.getPreKey(preKeyId);
+        if (preKeyRecordEntity == null) {
+            return null;
         }
 
-        return null;
+        try {
+            return new PreKeyRecord(base64Decoder.decode(preKeyRecordEntity.getPreKeyRecord()));
+        } catch (InvalidMessageException e) {
+            Log.e(TAG, "Error occurred during loadPreKey", e);
+            return null;
+        }
     }
 
     public void clearStorage() {
-        sekretessDatabase.getWritableDatabase().delete(PreKeyRecordStoreEntity.TABLE_NAME, null, null);
-
+        preKeyDao.clear();
     }
 }

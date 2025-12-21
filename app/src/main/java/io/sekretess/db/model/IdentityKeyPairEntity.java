@@ -9,16 +9,17 @@ import java.util.Date;
 @Entity(tableName = "identity_key_pair_store")
 public class IdentityKeyPairEntity {
     @PrimaryKey(autoGenerate = true)
-    private int id;
+    private long id;
     private String identityKeyPair;
-    @ColumnInfo(name = "created_at", defaultValue = "CURRENT_TIMESTAMP")
-    private String createdAt;
 
-    public IdentityKeyPairEntity(String identityKeyPair) {
+    private long createdAt;
+
+    public IdentityKeyPairEntity(String identityKeyPair, long createdAt) {
         this.identityKeyPair = identityKeyPair;
+        this.createdAt = createdAt;
     }
 
-    public String getCreatedAt() {
+    public long getCreatedAt() {
         return createdAt;
     }
 
@@ -26,9 +27,12 @@ public class IdentityKeyPairEntity {
         return identityKeyPair;
     }
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
+    public void setId(long id) {
+        this.id = id;
+    }
 
 }

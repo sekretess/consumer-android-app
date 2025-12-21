@@ -9,29 +9,31 @@ import org.signal.libsignal.protocol.state.SignedPreKeyStore;
 import java.util.List;
 
 import io.sekretess.db.repository.PreKeyRepository;
+import io.sekretess.db.repository.SignedPreKeyRepository;
 
 public class SekretessSignedPreKeyStore implements SignedPreKeyStore {
     private final String TAG = SekretessSignedPreKeyStore.class.getName();
     private final PreKeyRepository preKeyRepository;
+    private final SignedPreKeyRepository signedPreKeyRepository;
 
-    public SekretessSignedPreKeyStore(PreKeyRepository preKeyRepository) {
+    public SekretessSignedPreKeyStore(PreKeyRepository preKeyRepository, SignedPreKeyRepository signedPreKeyRepository) {
         this.preKeyRepository = preKeyRepository;
+        this.signedPreKeyRepository = signedPreKeyRepository;
     }
 
     @Override
     public SignedPreKeyRecord loadSignedPreKey(int signedPreKeyId) throws InvalidKeyIdException {
-        List<SignedPreKeyRecord> signedPreKeyRecords = loadSignedPreKeys();
-        return preKeyRepository.getSignedPreKeyRecord(signedPreKeyId);
+        return signedPreKeyRepository.getSignedPreKeyRecord(signedPreKeyId);
     }
 
     @Override
     public List<SignedPreKeyRecord> loadSignedPreKeys() {
-        return preKeyRepository.loadSignedPreKeys();
+        return signedPreKeyRepository.loadSignedPreKeys();
     }
 
     @Override
     public void storeSignedPreKey(int signedPreKeyId, SignedPreKeyRecord record) {
-        preKeyRepository.storeSignedPreKeyRecord(record);
+        signedPreKeyRepository.storeSignedPreKeyRecord(record);
     }
 
     @Override
@@ -46,7 +48,7 @@ public class SekretessSignedPreKeyStore implements SignedPreKeyStore {
 
     @Override
     public void removeSignedPreKey(int signedPreKeyId) {
-        preKeyRepository.removeSignedPreKey(signedPreKeyId);
+        signedPreKeyRepository.removeSignedPreKey(signedPreKeyId);
     }
 
     public void clearStorage() {

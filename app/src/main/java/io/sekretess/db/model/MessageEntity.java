@@ -2,24 +2,23 @@ package io.sekretess.db.model;
 
 import android.provider.BaseColumns;
 
-import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "sekretes_message_store")
-public class MessageStoreEntity implements BaseColumns {
+public class MessageEntity implements BaseColumns {
     @PrimaryKey(autoGenerate = true)
-    private int id;
+    private long id;
     private String username;
     private String sender;
-    @ColumnInfo(name = "created_at", defaultValue = "CURRENT_TIMESTAMP")
-    private String createdAt;
+    private long createdAt;
     private String messageBody;
 
-    public MessageStoreEntity(String username, String sender, String messageBody) {
+    public MessageEntity(String username, String sender, String messageBody, long createdAt) {
         this.username = username;
         this.sender = sender;
         this.messageBody = messageBody;
+        this.createdAt = createdAt;
     }
 
     public String getUsername() {
@@ -30,7 +29,7 @@ public class MessageStoreEntity implements BaseColumns {
         this.username = username;
     }
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
@@ -50,7 +49,11 @@ public class MessageStoreEntity implements BaseColumns {
         this.sender = sender;
     }
 
-    public String getCreatedAt() {
+    public long getCreatedAt() {
         return createdAt;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 }

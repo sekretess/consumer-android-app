@@ -6,21 +6,21 @@ import androidx.room.Query;
 
 import java.util.List;
 
-import io.sekretess.db.model.KyberPreKeyRecordEntity;
+import io.sekretess.db.model.KyberPreKeyEntity;
 
 @Dao
-public interface KyberPreKeyRecordDao {
+public interface KyberPreKeyDao {
     @Query("UPDATE kyber_prekey_record_store SET used = 1 WHERE prekeyId = :kyberPreKeyId")
     void markUsed(int kyberPreKeyId);
 
     @Insert
-    void insert(KyberPreKeyRecordEntity kyberPreKeyRecordEntity);
+    void insert(KyberPreKeyEntity kyberPreKeyEntity);
 
     @Query("SELECT * FROM kyber_prekey_record_store WHERE prekeyId = :kyberPreKeyId")
-    KyberPreKeyRecordEntity loadKyberPreKey(int kyberPreKeyId);
+    KyberPreKeyEntity loadKyberPreKey(int kyberPreKeyId);
 
     @Query("SELECT * FROM kyber_prekey_record_store")
-    List<KyberPreKeyRecordEntity> loadKyberPreKeys();
+    List<KyberPreKeyEntity> loadKyberPreKeys();
 
     @Query("DELETE FROM kyber_prekey_record_store")
     void clear();
