@@ -13,7 +13,17 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.signal.libsignal.protocol.DuplicateMessageException;
+import org.signal.libsignal.protocol.InvalidKeyException;
+import org.signal.libsignal.protocol.InvalidKeyIdException;
+import org.signal.libsignal.protocol.InvalidMessageException;
+import org.signal.libsignal.protocol.InvalidVersionException;
+import org.signal.libsignal.protocol.LegacyMessageException;
+import org.signal.libsignal.protocol.NoSessionException;
+import org.signal.libsignal.protocol.UntrustedIdentityException;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -52,31 +62,32 @@ public class SekretessMessageService {
     }
 
 
-    public void handleMessage(String jsonPayload) {
-        try {
-            MessageDto message = objectMapper.readValue(jsonPayload, MessageDto.class);
-            String sender = message.getSender();
-            Log.i(TAG, "Received payload: " + jsonPayload + " sender:");
-            String encryptedText = message.getText();
-            MessageType messageType = MessageType.getInstance(message.getType());
-            switch (messageType) {
-                case ADVERTISEMENT:
-                    processAdvertisementMessage(encryptedText, sender);
-                    break;
-                case KEY_DISTRIBUTION:
-                case PRIVATE:
-                    sender = message.getSender();
-                    Log.i(TAG, "Private message received. Sender: " + sender + " sender: " + sender);
-                    processPrivateMessage(encryptedText, sender, messageType);
-                    break;
-            }
-            Log.i(TAG, "Encoded message received : " + message);
-        } catch (Throwable e) {
-            Log.e(TAG, e.getMessage(), e);
+    public MessageDto handleMessage(String jsonPayload) throws InvalidMessageException,
+            UntrustedIdentityException, DuplicateMessageException, InvalidVersionException,
+            InvalidKeyIdException, LegacyMessageException, InvalidKeyException, NoSessionException,
+            JsonProcessingException {
+
+        MessageDto message = objectMapper.readValue(jsonPayload, MessageDto.class);
+        String sender = message.getSender();
+        Log.i(TAG, "Received payload: " + jsonPayload + " sender:");
+        String encryptedText = message.getText();
+        MessageType messageType = MessageType.getInstance(message.getType());
+        switch (messageType) {
+            case ADVERTISEMENT:
+                processAdvertisementMessage(encryptedText, sender);
+                break;
+            case KEY_DISTRIBUTION:
+            case PRIVATE:
+                sender = message.getSender();
+                Log.i(TAG, "Private message received. Sender: " + sender + " sender: " + sender);
+                processPrivateMessage(encryptedText, sender, messageType);
+                break;
         }
+        Log.i(TAG, "Encoded message received : " + message);
+        return message;
     }
 
-    private void processAdvertisementMessage(String base64Message, String sender) {
+    private void processAdvertisementMessage(String base64Message, String sender) throws NoSessionException, InvalidMessageException, DuplicateMessageException, LegacyMessageException {
         String username = SekretessDependencyProvider.authService().getUsername();
         SekretessDependencyProvider.cryptographicService()
                 .decryptGroupChatMessage(sender, base64Message)
@@ -87,7 +98,7 @@ public class SekretessMessageService {
                 });
     }
 
-    private void processPrivateMessage(String base64Message, String sender, MessageType messageType) {
+    private void processPrivateMessage(String base64Message, String sender, MessageType messageType) throws InvalidMessageException, UntrustedIdentityException, DuplicateMessageException, InvalidVersionException, InvalidKeyIdException, LegacyMessageException, InvalidKeyException {
         SekretessCryptographicService sekretessCryptographicService = SekretessDependencyProvider.cryptographicService();
         sekretessCryptographicService
                 .decryptPrivateMessage(sender, base64Message)

@@ -8,8 +8,7 @@ public class MessageDto {
     @JsonProperty("businessName")
     private String sender;
     private String type;
-
-
+    private String messageId;
 
 
     public String getText() {
@@ -35,11 +34,20 @@ public class MessageDto {
     public void setType(String type) {
         this.type = type;
     }
+
     public String getConsumerName() {
         return consumerName;
     }
 
     public void setConsumerName(String consumerName) {
         this.consumerName = consumerName;
+    }
+
+    public String getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(String messageId) {
+        this.messageId = messageId;
     }
 }

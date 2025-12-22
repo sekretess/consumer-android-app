@@ -106,7 +106,7 @@ public class ApiClient {
         OkHttpClient httpClient = authorizedHttpClient();
         Request request = new Request
                 .Builder()
-                .url(BuildConfig.CONSUMER_API_URL + "/businesses/"+business+"/subscriptions/ads" )
+                .url(BuildConfig.CONSUMER_API_URL + "/businesses/"+business+"/subscriptions" )
                 .post(Util.EMPTY_REQUEST).build();
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
@@ -138,7 +138,7 @@ public class ApiClient {
     private boolean unSubscribeFromBusinessInternal(String business) {
         OkHttpClient httpClient = authorizedHttpClient();
         Request request = new Request.Builder()
-                .url(BuildConfig.CONSUMER_API_URL + "/businesses/" + business+"/subscriptions/ads")
+                .url(BuildConfig.CONSUMER_API_URL + "/businesses/" + business+"/subscriptions")
                 .delete()
                 .build();
 
@@ -208,7 +208,7 @@ public class ApiClient {
 
     private List<String> getSubscribedBusinessesInternal() {
         OkHttpClient httpClient = authorizedHttpClient();
-        Request request = new Request.Builder().url(BuildConfig.CONSUMER_API_URL + "/businesses/subscriptions/ads")
+        Request request = new Request.Builder().url(BuildConfig.CONSUMER_API_URL + "/businesses/subscriptions")
                 .get().build();
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {

@@ -9,6 +9,8 @@ import java.nio.charset.StandardCharsets;
 
 import io.sekretess.BuildConfig;
 import io.sekretess.dependency.SekretessDependencyProvider;
+import io.sekretess.dto.MessageAckDto;
+import io.sekretess.dto.MessageDto;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -30,14 +32,24 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
     @Override
     public void onMessage(okhttp3.WebSocket webSocket, String text) {
         Log.i("SekretessWebSocketClient", "Received message: " + text);
-        SekretessDependencyProvider.messageService().handleMessage(text);
+        try {
+            MessageDto message = SekretessDependencyProvider.messageService().handleMessage(text);
+            webSocket.send(new MessageAckDto(message.getMessageId()).jsonString());
+        } catch (Exception e) {
+            Log.e("SekretessWebSocketClient", "Error occurred during handle message", e);
+        }
     }
 
     @Override
     public void onMessage(@NonNull WebSocket webSocket, @NonNull ByteString bytes) {
         Log.i("SekretessWebSocketClient", "Received message: " + bytes.string(StandardCharsets.UTF_8));
-        SekretessDependencyProvider.messageService().handleMessage(bytes.string(StandardCharsets.UTF_8));
-        super.onMessage(webSocket, bytes);
+        try {
+            MessageDto message = SekretessDependencyProvider.messageService()
+                    .handleMessage(bytes.string(StandardCharsets.UTF_8));
+            webSocket.send(new MessageAckDto(message.getMessageId()).jsonString());
+        } catch (Exception e) {
+            Log.e("SekretessWebSocketClient", "Error occurred during handle message", e);
+        }
     }
 
     @Override
@@ -74,7 +86,7 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
         this.connectionState = ConnectionState.DISCONNECTED;
         webSocketMonitor.stop();
         webSocket.close(1000, "Error connecting to WebSocket");
-        Log.e("SekretessWebSocketClient", "Error connecting to WebSocket", t);  
+        Log.e("SekretessWebSocketClient", "Error connecting to WebSocket", t);
     }
 
     public void connect() {

@@ -5,11 +5,15 @@ import android.widget.Toast;
 
 import org.signal.libsignal.protocol.DuplicateMessageException;
 import org.signal.libsignal.protocol.IdentityKeyPair;
+import org.signal.libsignal.protocol.InvalidKeyException;
+import org.signal.libsignal.protocol.InvalidKeyIdException;
 import org.signal.libsignal.protocol.InvalidMessageException;
+import org.signal.libsignal.protocol.InvalidVersionException;
 import org.signal.libsignal.protocol.LegacyMessageException;
 import org.signal.libsignal.protocol.NoSessionException;
 import org.signal.libsignal.protocol.SessionCipher;
 import org.signal.libsignal.protocol.SignalProtocolAddress;
+import org.signal.libsignal.protocol.UntrustedIdentityException;
 import org.signal.libsignal.protocol.UsePqRatchet;
 import org.signal.libsignal.protocol.ecc.ECKeyPair;
 import org.signal.libsignal.protocol.ecc.ECPrivateKey;
@@ -177,28 +181,15 @@ public class SekretessCryptographicService {
         return true;
     }
 
-    public Optional<String> decryptGroupChatMessage(String sender, String base64Message) {
-        try {
+    public Optional<String> decryptGroupChatMessage(String sender, String base64Message) throws NoSessionException, InvalidMessageException, DuplicateMessageException, LegacyMessageException {
             GroupCipher groupCipher = new GroupCipher(sekretessSignalProtocolStore, new SignalProtocolAddress(sender, 1));
             return Optional.of(new String(groupCipher.decrypt(base64Decoder.decode(base64Message))));
-        } catch (DuplicateMessageException | LegacyMessageException | InvalidMessageException |
-                 NoSessionException duplicateMessageException) {
-            Log.e(TAG, "Error occurred while decrypting group chat message. Sender: " + sender);
-            return Optional.empty();
-        }
     }
 
-    public Optional<String> decryptPrivateMessage(String sender, String base64Message) {
-        try {
+    public Optional<String> decryptPrivateMessage(String sender, String base64Message) throws InvalidMessageException, InvalidVersionException, LegacyMessageException, InvalidKeyException, UntrustedIdentityException, DuplicateMessageException, InvalidKeyIdException {
             PreKeySignalMessage preKeySignalMessage = new PreKeySignalMessage(base64Decoder.decode(base64Message));
             SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(sender, 1);
             SessionCipher sessionCipher = new SessionCipher(sekretessSignalProtocolStore, signalProtocolAddress);
             return Optional.of(new String(sessionCipher.decrypt(preKeySignalMessage, UsePqRatchet.YES)));
-        } catch (Exception e) {
-            Log.e(TAG, "Error during decrypt private message", e);
-            Toast.makeText(SekretessDependencyProvider.applicationContext(),
-                    "Error during decrypt private message" + e.getMessage(), Toast.LENGTH_LONG).show();
-            return Optional.empty();
-        }
     }
 }

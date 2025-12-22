@@ -28,7 +28,6 @@ public class SekretessDependencyProvider {
     private static SekretessAuthenticatedWebSocket sekretessAuthenticatedWebSocket;
     private static AuthService authService;
     private static ApiClient apiClient;
-    private static SekretessDatabase sekretessDatabase;
     private static Context rootContext;
     private static MutableLiveData<String> messageEventStream = new MutableLiveData<>();
 
