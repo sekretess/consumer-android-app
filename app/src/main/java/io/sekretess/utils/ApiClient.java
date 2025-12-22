@@ -65,7 +65,11 @@ public class ApiClient {
             Future<Boolean> future = networkExecutors
                     .submit(this::deleteUserInternal);
             return future.get(20, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            Log.e("ApiClient", "Error occurred during wait subscribe to business api result", ie);
+            return false;
+        } catch (ExecutionException | TimeoutException e) {
             Log.e("ApiClient", "Error occurred during wait subscribe to business api result", e);
             showToast("Error occurred: " + e.getMessage());
             return false;
@@ -106,7 +110,7 @@ public class ApiClient {
         OkHttpClient httpClient = authorizedHttpClient();
         Request request = new Request
                 .Builder()
-                .url(BuildConfig.CONSUMER_API_URL + "/businesses/"+business+"/subscriptions" )
+                .url(BuildConfig.CONSUMER_API_URL + "/businesses/" + business + "/subscriptions")
                 .post(Util.EMPTY_REQUEST).build();
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
@@ -138,7 +142,7 @@ public class ApiClient {
     private boolean unSubscribeFromBusinessInternal(String business) {
         OkHttpClient httpClient = authorizedHttpClient();
         Request request = new Request.Builder()
-                .url(BuildConfig.CONSUMER_API_URL + "/businesses/" + business+"/subscriptions")
+                .url(BuildConfig.CONSUMER_API_URL + "/businesses/" + business + "/subscriptions")
                 .delete()
                 .build();
 
