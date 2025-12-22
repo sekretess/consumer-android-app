@@ -31,13 +31,10 @@ import org.signal.libsignal.protocol.util.Medium;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Optional;
-import java.util.Random;
 
-import io.sekretess.SekretessApplication;
 import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.KeyBundle;
 import io.sekretess.cryptography.storage.SekretessSignalProtocolStore;
-import io.sekretess.utils.ApiClient;
 
 
 public class SekretessCryptographicService {
@@ -80,7 +77,7 @@ public class SekretessCryptographicService {
     }
 
     private KyberPreKeyRecord generateKyberPreKey(ECPrivateKey ecPrivateKey) {
-        int kyberSignedPreKeyId = new Random().nextInt(Medium.MAX_VALUE - 1);
+        int kyberSignedPreKeyId = new SecureRandom().nextInt(Medium.MAX_VALUE - 1);
         KEMKeyPair kemKeyPair = KEMKeyPair.generate(KEMKeyType.KYBER_1024);
         KyberPreKeyRecord kyberPreKeyRecord = new KyberPreKeyRecord(kyberSignedPreKeyId,
                 System.currentTimeMillis(), kemKeyPair,
@@ -122,7 +119,7 @@ public class SekretessCryptographicService {
 
     private SignedPreKeyRecord generateSignedPreKey(ECKeyPair keyPair, byte[] signature) {
         //Generate signed prekeyRecord
-        int signedPreKeyId = new Random().nextInt(Medium.MAX_VALUE - 1);
+        int signedPreKeyId = new SecureRandom().nextInt(Medium.MAX_VALUE - 1);
         return new SignedPreKeyRecord(signedPreKeyId, System.currentTimeMillis(), keyPair, signature);
     }
 
