@@ -22,6 +22,9 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
     private final WebSocketMonitor webSocketMonitor;
     private okhttp3.WebSocket webSocket;
     private ConnectionState connectionState;
+    public final int MESSAGE_DECRYPTION_FAILED = 1;
+    public final int MESSAGE_HANDLING_SUCCESS = 2;
+    public final int MESSAGE_HANDLING_FAILED = 3;
 
 
     public SekretessAuthenticatedWebSocket() {
@@ -34,7 +37,7 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
         Log.i("SekretessWebSocketClient", "Received message: " + text);
         try {
             MessageDto message = SekretessDependencyProvider.messageService().handleMessage(text);
-            webSocket.send(new MessageAckDto(message.getMessageId()).jsonString());
+            webSocket.send(new MessageAckDto(message.getMessageId(), MESSAGE_HANDLING_SUCCESS).jsonString());
         } catch (Exception e) {
             Log.e("SekretessWebSocketClient", "Error occurred during handle message", e);
         }
@@ -46,7 +49,7 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
         try {
             MessageDto message = SekretessDependencyProvider.messageService()
                     .handleMessage(bytes.string(StandardCharsets.UTF_8));
-            webSocket.send(new MessageAckDto(message.getMessageId()).jsonString());
+            webSocket.send(new MessageAckDto(message.getMessageId(), MESSAGE_HANDLING_SUCCESS).jsonString());
         } catch (Exception e) {
             Log.e("SekretessWebSocketClient", "Error occurred during handle message", e);
         }

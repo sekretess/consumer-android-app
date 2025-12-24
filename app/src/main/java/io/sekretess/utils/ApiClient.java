@@ -53,7 +53,7 @@ public class ApiClient {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private static ExecutorService networkExecutors = Executors.newFixedThreadPool(1);
+    private static final ExecutorService networkExecutors = Executors.newFixedThreadPool(1);
 
     public ApiClient() {
 
@@ -164,7 +164,7 @@ public class ApiClient {
     public List<BusinessDto> getBusinesses() {
         try {
             Future<List<BusinessDto>> future = networkExecutors
-                    .submit(() -> getBusinessesInternal());
+                    .submit(this::getBusinessesInternal);
             return future.get(20, TimeUnit.SECONDS);
         } catch (Exception e) {
             Log.e("ApiClient", "Error occurred during get businesses.", e);
@@ -409,7 +409,6 @@ public class ApiClient {
             Request request = new Request.Builder().url(new URL(BuildConfig.CONSUMER_API_URL))
                     .post(RequestBody.create(MediaType.parse("application/json"), jsonObject))
                     .build();
-            largeLog("ApiClient", jsonObject);
 
             try (Response response = httpClient.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
@@ -427,17 +426,6 @@ public class ApiClient {
         return false;
     }
 
-    private void largeLog(String tag, String content) {
-        final int SEG_LENGTH = 4000;
-        do {
-            if (content.length() <= SEG_LENGTH) {
-                Log.d(tag, content);
-                break;
-            }
-            Log.d(tag, content.substring(0, SEG_LENGTH));
-            content = content.substring(SEG_LENGTH);
-        } while (!content.isEmpty());
-    }
 
     private void showToast(String text) {
         Context applicationContext = SekretessDependencyProvider.applicationContext();

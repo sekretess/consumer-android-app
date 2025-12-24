@@ -15,8 +15,10 @@ import io.sekretess.dto.AuthRequest;
 import io.sekretess.dto.AuthResponse;
 import io.sekretess.dto.RefreshTokenRequestDto;
 import io.sekretess.exception.IncorrectTokenSyntaxException;
+import io.sekretess.exception.RefreshTokenExpiredException;
 import io.sekretess.exception.TokenExpiredException;
 import io.sekretess.db.repository.AuthRepository;
+import io.sekretess.exception.UnAuhthorizedException;
 
 public class AuthService {
     private final String TAG = AuthService.class.getName();
@@ -58,26 +60,30 @@ public class AuthService {
         SekretessDependencyProvider.apiClient().logout();
     }
 
-    private Optional<AuthResponse> refreshAccessToken() throws TokenExpiredException, JsonProcessingException {
+    private Optional<AuthResponse> refreshAccessToken() throws TokenExpiredException, JsonProcessingException,
+            RefreshTokenExpiredException {
         JWT refreshToken = getRefreshToken();
         if (refreshToken.isExpired(0)) {
-            throw new TokenExpiredException("Refresh token expired at " + refreshToken.getExpiresAt());
+            authRepository.removeAuthState();
+            throw new RefreshTokenExpiredException("Refresh token expired at " + refreshToken.getExpiresAt());
         }
         RefreshTokenRequestDto refreshTokenRequestDto = new RefreshTokenRequestDto(refreshToken.toString());
         return SekretessDependencyProvider.apiClient().refresh(refreshTokenRequestDto);
     }
 
 
-    public JWT getAccessToken() throws TokenExpiredException, IncorrectTokenSyntaxException {
+    public JWT getAccessToken() throws TokenExpiredException, IncorrectTokenSyntaxException,
+            UnAuhthorizedException, RefreshTokenExpiredException {
         try {
             String authState = authRepository.getAuthState()
-                    .orElseThrow(() -> new TokenExpiredException("Token not found"));
+                    .orElseThrow(() -> new UnAuhthorizedException("Token not found"));
 
             AuthResponse authResponse = objectMapper.readValue(authState, AuthResponse.class);
             String token = authResponse.accessToken();
             JWT jwt = new JWT(token);
             if (jwt.isExpired(5)) {
-                authResponse = refreshAccessToken().orElseThrow(() -> new TokenExpiredException("Invalid access token"));
+                authResponse = refreshAccessToken()
+                        .orElseThrow(() -> new TokenExpiredException("Invalid access token"));
                 authRepository.storeAuthState(objectMapper.writeValueAsString(authResponse));
                 return new JWT(authResponse.accessToken());
             }

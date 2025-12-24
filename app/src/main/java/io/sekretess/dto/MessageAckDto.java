@@ -12,6 +12,14 @@ public class MessageAckDto {
         this.messageId = messageId;
     }
 
+    public MessageAckDto() {
+
+    }
+
+    public MessageAckDto(String messageId, int resultCode) {
+        this.messageId = messageId;
+        this.resultCode = resultCode;
+    }
     public String getMessageId() {
         return messageId;
     }
