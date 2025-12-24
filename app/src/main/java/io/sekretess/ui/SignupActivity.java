@@ -2,27 +2,41 @@ package io.sekretess.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
+import io.sekretess.SekretessApplication;
+import io.sekretess.dependency.SekretessDependencyProvider;
+import io.sekretess.dto.KeyBundle;
+import io.sekretess.utils.ApiClient;
 
 public class SignupActivity extends AppCompatActivity {
-
+    private SekretessApplication sekretessApplication;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        this.sekretessApplication = (SekretessApplication) getApplication();
 
         setContentView(R.layout.activity_signup);
         Button btnSignup = findViewById(R.id.btnSignUp);
-        btnSignup.setOnClickListener(v -> broadcastSignup());
+        btnSignup.setOnClickListener(v -> signup());
+
+        TextView txtLoginLink = findViewById(R.id.txtLoginLink);
+        txtLoginLink.setOnClickListener(v -> {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        });
     }
 
-    private void broadcastSignup (){
+    private void signup() {
 
         String email = ((EditText) findViewById(R.id.txtSignupEmail)).getText().toString();
 
@@ -38,16 +52,14 @@ public class SignupActivity extends AppCompatActivity {
             return;
         }
 
-        if (!confirmPasswordEdit.getText().toString().equals(passwordEdit.getText().toString())){
+        if (!confirmPasswordEdit.getText().toString().equals(passwordEdit.getText().toString())) {
             confirmPasswordEdit.setError("Not matched with password");
             return;
         }
 
-            Intent intent = new Intent(Constants.EVENT_SIGNUP);
-        intent.putExtra("email", email);
-        intent.putExtra("username", username);
-        intent.putExtra("password", password);
-        sendBroadcast(intent);
+        KeyBundle keyBundle = SekretessDependencyProvider.cryptographicService()
+                .initializeKeyBundle();
+        SekretessDependencyProvider.apiClient().createUser(username, email, password, keyBundle);
     }
 
     private boolean validateUserName(EditText usernameEdit) {
@@ -57,6 +69,12 @@ public class SignupActivity extends AppCompatActivity {
             return false;
         }
         return true;
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.i("SignupActivity", "New intent received");
     }
 
     private boolean validatePassword(EditText passwordEdit) {

@@ -27,7 +27,6 @@ public class MessageAdapter extends RecyclerView.Adapter<ConcreteChatCustomViewH
 
     private final List<MessageRecordDto> messages;
 
-    private String currentGroupingDate = "";
 
     public MessageAdapter(List<MessageRecordDto> messages) {
         this.messages = messages;
@@ -37,8 +36,7 @@ public class MessageAdapter extends RecyclerView.Adapter<ConcreteChatCustomViewH
     @Override
     public int getItemViewType(int position) {
         MessageRecordDto messageRecordDto = messages.get(position);
-        if (messageRecordDto.getItemType() == ItemType.HEADER) return 1;
-        return 0;
+        return messageRecordDto.getItemType() == ItemType.HEADER ? 1 : 0;
     }
 
     @NonNull

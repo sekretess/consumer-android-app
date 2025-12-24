@@ -5,13 +5,13 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 @JsonNaming(PropertyNamingStrategies.LowerCamelCaseStrategy.class)
 public class RefreshTokenRequestDto {
-    private String refreshToken;
+    private final String refreshToken;
+
+    public RefreshTokenRequestDto(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
 
     public String getRefreshToken() {
         return refreshToken;
-    }
-
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
     }
 }

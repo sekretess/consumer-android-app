@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="#0D0D0D"
     android:fitsSystemWindows="true"
-    tools:context="io.sekretess.MainActivity">
+    tools:context="io.sekretess.ui.MainActivity">
 
     <FrameLayout
         android:id="@+id/frame_layout"
@@ -17,7 +17,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/my_toolbar" />
 
-    <androidx.appcompat.widget.Toolbar
+    <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/my_toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
@@ -28,8 +28,12 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+        app:title="Main"
+        app:titleCentered="true"
         app:titleTextColor="@color/white">
-    </androidx.appcompat.widget.Toolbar>
+
+
+    </com.google.android.material.appbar.MaterialToolbar>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigationView"

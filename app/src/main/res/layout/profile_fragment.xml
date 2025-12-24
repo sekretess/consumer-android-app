@@ -15,7 +15,7 @@
 
         android:layout_marginTop="60dp"
         android:scaleType="center"
-        android:src="@drawable/ic_appearance"
+        android:src="@drawable/user_3331256"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
@@ -31,6 +31,7 @@
         android:layout_marginTop="4dp"
         android:text="elnur"
         android:textAlignment="center"
+        android:textColor="@color/white"
         android:textSize="30sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -51,29 +52,67 @@
 
         <Button
             android:id="@+id/btnLogout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="@color/white"
+            android:layout_width="362dp"
+            android:layout_height="46dp"
             android:layout_marginStart="8dp"
-            android:layout_marginTop="132dp"
-            android:background="#111720"
+            android:layout_marginTop="68dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/oval_gradient_layout_background"
             android:drawableStart="@drawable/ic_logout"
             android:text="Logout"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
         <Button
             android:id="@+id/btnDeleteAccount"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="@color/white"
+            android:layout_width="362dp"
+            android:layout_height="46dp"
             android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
-            android:background="#111720"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/oval_gradient_layout_background"
             android:drawableStart="@drawable/ic_delete_account"
             android:text="Delete account"
+            android:textAllCaps="false"
+            android:textColor="@android:color/holo_red_light"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/btnAbout" />
+
+        <Button
+            android:id="@+id/btnResetKeys"
+            android:layout_width="362dp"
+            android:layout_height="46dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/oval_gradient_layout_background"
+            android:drawableStart="@drawable/outline_autorenew_24"
+            android:text="Reset Encryption Keys"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/btnLogout" />
+
+        <Button
+            android:id="@+id/btnAbout"
+            android:layout_width="362dp"
+            android:layout_height="46dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/oval_gradient_layout_background"
+            android:drawableStart="@drawable/outline_chat_info_24"
+            android:text="About"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/btnResetKeys" />
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>

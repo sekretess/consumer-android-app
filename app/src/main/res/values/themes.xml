@@ -11,6 +11,7 @@
         <item name="colorOnSecondary">@color/black</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:textColorPrimary">@color/white</item>
         <!-- Customize your theme here. -->
     </style>
 
@@ -22,4 +23,11 @@
     <style name="Theme.Sekretess.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
     <style name="Theme.Sekretess.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
+    <style name="Theme.App.Starting" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Set the splash screen background to your gradient -->
+        <item name="windowSplashScreenBackground">@drawable/splash_gradient</item>
+        <!-- You can also set your app's icon here -->
+        <!-- <item name="windowSplashScreenAnimatedIcon">@drawable/your_app_icon</item> -->
+    </style>
 </resources>

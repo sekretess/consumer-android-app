@@ -16,4 +16,16 @@
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">50%</item>
     </style>
+
+    <style name="circleImageView10" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">15%</item>
+    </style>
+
+    <style name="MySearchViewStyle" parent="Widget.AppCompat.SearchView">
+        <item name="android:textColorHint">@color/white</item>
+        <item name="editTextColor">@color/white</item>
+        <!-- You might also need to set android:textColor for full compatibility -->
+        <item name="android:textColor">@color/white</item>
+    </style>
 </resources>

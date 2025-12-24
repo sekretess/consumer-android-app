@@ -30,7 +30,8 @@ public class BusinessViewOnClickListener implements View.OnClickListener {
     public void onClick(View v) {
         Bundle args = new Bundle();
         args.putString("businessIcon", businessDto.getIcon());
-        args.putString("businessName", businessDto.getBusinessName());
+        args.putString("businessName", businessDto.getName());
+        args.putString("displayName", businessDto.getDisplayName());
         args.putBoolean("subscribed", businessDto.isSubscribed());
         args.putInt("position", position);
 

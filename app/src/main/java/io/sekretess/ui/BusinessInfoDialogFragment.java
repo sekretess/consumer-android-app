@@ -16,7 +16,9 @@ import com.squareup.picasso.Picasso;
 
 
 import io.sekretess.R;
+import io.sekretess.SekretessApplication;
 import io.sekretess.adapters.BusinessesAdapter;
+import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.BusinessDto;
 import io.sekretess.utils.ApiClient;
 import io.sekretess.utils.ImageUtils;
@@ -36,22 +38,27 @@ public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.business_info_dialog_fragment_layout, container,
                 false);
+        SekretessApplication application = (SekretessApplication) requireActivity().getApplication();
         Bundle args = getArguments();
         String icon = args.getString("businessIcon");
         String businessName = args.getString("businessName");
         boolean subscribed = args.getBoolean("subscribed");
-        int position = args.getInt("position");
 
         SwitchCompat swSubscription = view.findViewById(R.id.swSubscription);
         swSubscription.setChecked(subscribed);
-        swSubscription.setOnClickListener(v -> {
-            if (subscribed) {
-                if (ApiClient.unSubscribeFromBusiness(getContext(), businessName)) {
-                    businessesAdapter.notifyItemChanged(position, new BusinessDto(businessName, icon, false));
+        swSubscription.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                if (SekretessDependencyProvider.apiClient().subscribeToBusiness(businessName)) {
+                    businessesAdapter.subscribed(businessName);
+                    businessesAdapter.rearrangeData();
+                    businessesAdapter.notifyDataSetChanged();
                 }
+
             } else {
-                if (ApiClient.subscribeToBusiness(getContext(), businessName)) {
-                    businessesAdapter.notifyItemChanged(position, new BusinessDto(businessName, icon, true));
+                if (SekretessDependencyProvider.apiClient().unSubscribeFromBusiness(businessName)) {
+                    businessesAdapter.unsubscribed(businessName);
+                    businessesAdapter.rearrangeData();
+                    businessesAdapter.notifyDataSetChanged();
                 }
             }
         });
@@ -74,9 +81,9 @@ public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
         swVibration.setChecked(NotificationPreferencesUtils
                 .getVibrationPreferences(getContext(), businessName));
 
-        swVibration.setOnClickListener(v -> {
+        swVibration.setOnCheckedChangeListener((buttonView, isChecked) -> {
             NotificationPreferencesUtils
-                    .setVibrationPreferences(getContext(), businessName, swVibration.isChecked());
+                    .setVibrationPreferences(getContext(), businessName, isChecked);
         });
     }
 
@@ -85,9 +92,9 @@ public class BusinessInfoDialogFragment extends BottomSheetDialogFragment {
         swSoundAlerts.setChecked(NotificationPreferencesUtils
                 .getSoundAlertsPreferences(getContext(), businessName));
 
-        swSoundAlerts.setOnClickListener(v -> {
+        swSoundAlerts.setOnCheckedChangeListener(((buttonView, isChecked) -> {
             NotificationPreferencesUtils
-                    .setSoundAlertsPreferences(getContext(), businessName, swSoundAlerts.isChecked());
-        });
+                    .setSoundAlertsPreferences(getContext(), businessName, isChecked);
+        }));
     }
 }

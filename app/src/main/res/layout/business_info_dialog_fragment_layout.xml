@@ -76,6 +76,8 @@
                 android:id="@+id/swSubscription"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textOn="Unsubscribe"
+                android:textOff ="Subscribe"
                 app:layout_constraintBottom_toBottomOf="@+id/textView6"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@+id/textView6" />
@@ -94,6 +96,8 @@
                 android:id="@+id/swSoundAlerts"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textOn="Unsubscribe"
+                android:textOff ="Subscribe"
                 app:layout_constraintBottom_toBottomOf="@+id/textView5"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@+id/textView5" />
@@ -112,6 +116,8 @@
                 android:id="@+id/swVibration"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textOn="Unsubscribe"
+                android:textOff ="Subscribe"
                 app:layout_constraintBottom_toBottomOf="@+id/textView7"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@+id/textView7" />
