@@ -9,6 +9,8 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.textfield.TextInputEditText;
+
 import io.sekretess.BuildConfig;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
@@ -70,8 +72,8 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
 
         Button btnLogin = findViewById(R.id.btnLogin);
-        TextView txtUserName = findViewById(R.id.txtLoginUsername);
-        TextView txtPassword = findViewById(R.id.txtLoginPassword);
+        TextInputEditText txtUserName = findViewById(R.id.txtLoginUsername);
+        TextInputEditText txtPassword = findViewById(R.id.txtLoginPassword);
 
 
         TextView textView = findViewById(R.id.txtSignupLink);

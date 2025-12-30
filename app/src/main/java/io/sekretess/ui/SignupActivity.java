@@ -9,6 +9,8 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.textfield.TextInputEditText;
+
 import io.sekretess.Constants;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
@@ -38,11 +40,11 @@ public class SignupActivity extends AppCompatActivity {
 
     private void signup() {
 
-        String email = ((EditText) findViewById(R.id.txtSignupEmail)).getText().toString();
+        String email = ((TextInputEditText) findViewById(R.id.txtSignupEmail)).getText().toString();
 
-        EditText userNameEdit = findViewById(R.id.txtSignupUsername);
-        EditText passwordEdit = findViewById(R.id.txtSignupPassword);
-        EditText confirmPasswordEdit = findViewById(R.id.txtPasswordVerify);
+        TextInputEditText userNameEdit = findViewById(R.id.txtSignupUsername);
+        TextInputEditText passwordEdit = findViewById(R.id.txtSignupPassword);
+        TextInputEditText confirmPasswordEdit = findViewById(R.id.txtPasswordVerify);
 
 
         String username = userNameEdit.getText().toString();
@@ -84,15 +86,19 @@ public class SignupActivity extends AppCompatActivity {
             return false;
         }
 
+
+
         if (!password.matches("(.*)[A-Z]+(.*)")) {
             passwordEdit.setError("Password must contain at least one capital letter");
             return false;
         }
 
+
         if (!password.matches("(.*)[a-z]+(.*)")) {
             passwordEdit.setError("Password must contain at least one lowercase letter");
             return false;
         }
+
 
         if (!password.matches("(.*)[!@#$%^&*()]+(.*)")) {
             passwordEdit.setError("Password must contain at least one special character !@#$%^&*()");
@@ -103,6 +109,7 @@ public class SignupActivity extends AppCompatActivity {
             passwordEdit.setError("Password must contain at least one number");
             return false;
         }
+
 
         return true;
     }
