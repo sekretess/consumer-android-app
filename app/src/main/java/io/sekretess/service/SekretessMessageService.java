@@ -13,9 +13,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.signal.libsignal.protocol.DuplicateMessageException;
 import org.signal.libsignal.protocol.InvalidKeyException;
 import org.signal.libsignal.protocol.InvalidKeyIdException;
@@ -34,6 +31,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
@@ -50,7 +48,6 @@ import io.sekretess.utils.NotificationPreferencesUtils;
 public class SekretessMessageService {
     private final MessageRepository messageRepository;
     private final String TAG = SekretessMessageService.class.getName();
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final DateTimeFormatter WEEK_FORMATTER = DateTimeFormatter.ofPattern("EEEE");
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM");
@@ -62,14 +59,10 @@ public class SekretessMessageService {
     }
 
 
-    public MessageDto handleMessage(String jsonPayload) throws InvalidMessageException,
+    public void handleMessage(MessageDto message) throws InvalidMessageException,
             UntrustedIdentityException, DuplicateMessageException, InvalidVersionException,
-            InvalidKeyIdException, LegacyMessageException, InvalidKeyException, NoSessionException,
-            JsonProcessingException {
-
-        MessageDto message = objectMapper.readValue(jsonPayload, MessageDto.class);
+            InvalidKeyIdException, LegacyMessageException, InvalidKeyException, NoSessionException {
         String sender = message.getSender();
-        Log.i(TAG, "Received payload: " + jsonPayload + " sender:");
         String encryptedText = message.getText();
         MessageType messageType = MessageType.getInstance(message.getType());
         switch (messageType) {
@@ -84,7 +77,6 @@ public class SekretessMessageService {
                 break;
         }
         Log.i(TAG, "Encoded message received : " + message);
-        return message;
     }
 
     private void processAdvertisementMessage(String base64Message, String sender) throws NoSessionException, InvalidMessageException, DuplicateMessageException, LegacyMessageException {
@@ -137,10 +129,10 @@ public class SekretessMessageService {
     public List<MessageRecordDto> loadMessages(String from) {
         String username = SekretessDependencyProvider.authService().getUsername();
 
-        return messageRepository.getMessages(from, username)
+        return messageRepository.getMessages(username, from)
                 .stream()
                 .map(this::messageRecordDto)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public String dateTimeText(LocalDate dateTime) {

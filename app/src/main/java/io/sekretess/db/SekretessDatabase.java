@@ -71,6 +71,7 @@ public abstract class SekretessDatabase extends RoomDatabase {
                             "sekretess_database"
                     )
                             .allowMainThreadQueries()
+                            .setJournalMode(JournalMode.TRUNCATE)
                             .build();
                 }
             }

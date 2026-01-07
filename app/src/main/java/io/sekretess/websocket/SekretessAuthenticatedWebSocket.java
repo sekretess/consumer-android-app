@@ -5,6 +5,8 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.nio.charset.StandardCharsets;
 
 import io.sekretess.BuildConfig;
@@ -25,7 +27,7 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
     public final int MESSAGE_DECRYPTION_FAILED = 1;
     public final int MESSAGE_HANDLING_SUCCESS = 2;
     public final int MESSAGE_HANDLING_FAILED = 3;
-
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public SekretessAuthenticatedWebSocket() {
         this.webSocketMonitor = new WebSocketMonitor();
@@ -35,23 +37,32 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
     @Override
     public void onMessage(okhttp3.WebSocket webSocket, String text) {
         Log.i("SekretessWebSocketClient", "Received message: " + text);
+        MessageDto message = null;
         try {
-            MessageDto message = SekretessDependencyProvider.messageService().handleMessage(text);
+            message = objectMapper.readValue(text, MessageDto.class);
+            SekretessDependencyProvider.messageService().handleMessage(message);
             webSocket.send(new MessageAckDto(message.getMessageId(), MESSAGE_HANDLING_SUCCESS).jsonString());
         } catch (Exception e) {
             Log.e("SekretessWebSocketClient", "Error occurred during handle message", e);
+            if (message != null) {
+                webSocket.send(new MessageAckDto(message.getMessageId(), MESSAGE_HANDLING_FAILED).jsonString());
+            }
         }
     }
 
     @Override
     public void onMessage(@NonNull WebSocket webSocket, @NonNull ByteString bytes) {
         Log.i("SekretessWebSocketClient", "Received message: " + bytes.string(StandardCharsets.UTF_8));
+        MessageDto message = null;
         try {
-            MessageDto message = SekretessDependencyProvider.messageService()
-                    .handleMessage(bytes.string(StandardCharsets.UTF_8));
+            message = objectMapper.readValue(bytes.string(StandardCharsets.UTF_8), MessageDto.class);
+            SekretessDependencyProvider.messageService().handleMessage(message);
             webSocket.send(new MessageAckDto(message.getMessageId(), MESSAGE_HANDLING_SUCCESS).jsonString());
         } catch (Exception e) {
             Log.e("SekretessWebSocketClient", "Error occurred during handle message", e);
+            if (message != null) {
+                webSocket.send(new MessageAckDto(message.getMessageId(), MESSAGE_HANDLING_FAILED).jsonString());
+            }
         }
     }
 

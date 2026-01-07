@@ -27,4 +27,5 @@
 
     <string name="title_activity_subscription">SubscriptionActivity</string>
     <string name="clickable_link">Don\'t have an account? <a href="sekretess://signupactivity/open">Sign Up</a>.</string>
+    <string name="clickable_login_link">Already have an account? <a href="sekretess://loginactivitiy/open">Log In</a></string>
 </resources>

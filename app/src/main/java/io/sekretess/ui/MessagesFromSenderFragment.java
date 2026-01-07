@@ -33,19 +33,18 @@ public class MessagesFromSenderFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
         SekretessDependencyProvider.messageEventStream().removeObservers(getViewLifecycleOwner());
     }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        SekretessDependencyProvider.messageEventStream().observe(getViewLifecycleOwner(), event -> {
-            Log.i("MessageFromSenderFragment", "new-incoming-message event received");
-            messages = SekretessDependencyProvider.messageService().loadMessages(from);
-            messageAdapter = new MessageAdapter(messages);
-            recyclerView.setAdapter(messageAdapter);
-            messageAdapter.notifyItemInserted(messages.size());
-        });
+
     }
 
     @Override
@@ -85,6 +84,15 @@ public class MessagesFromSenderFragment extends Fragment {
         itemTouchHelper.attachToRecyclerView(recyclerView);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext());
         recyclerView.setLayoutManager(linearLayoutManager);
+
+        SekretessDependencyProvider.messageEventStream().observe(getViewLifecycleOwner(), event -> {
+            Log.i("MessageFromSenderFragment", "new-incoming-message event received");
+            messages = SekretessDependencyProvider.messageService().loadMessages(from);
+            messageAdapter = new MessageAdapter(messages);
+            recyclerView.setAdapter(messageAdapter);
+            messageAdapter.notifyItemInserted(messages.size());
+        });
+
         return view;
     }
 

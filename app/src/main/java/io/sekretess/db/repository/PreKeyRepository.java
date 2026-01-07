@@ -49,7 +49,9 @@ public class PreKeyRepository {
 
     public PreKeyRecord loadPreKey(int preKeyId) {
         PreKeyRecordEntity preKeyRecordEntity = preKeyDao.getPreKey(preKeyId);
+        Log.i(TAG, "preKeyRecordEntity: " + preKeyRecordEntity + " preKeyId:" + preKeyId);
         if (preKeyRecordEntity == null) {
+            Log.e(TAG, "PreKeyRecord not found. preKeyId: " + preKeyId);
             return null;
         }
 

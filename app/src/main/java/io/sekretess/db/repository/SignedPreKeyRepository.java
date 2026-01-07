@@ -46,7 +46,9 @@ public class SignedPreKeyRepository {
 
     public SignedPreKeyRecord getSignedPreKeyRecord(int signedPreKeyId) {
         SignedPreKeyRecordEntity signedPreKeyRecordEntity = signedPreKeyDao.getSignedPreKeyRecord(signedPreKeyId);
+        Log.i(TAG, "getSignedPreKeyRecord: spkId " + signedPreKeyId );
         if (signedPreKeyRecordEntity == null) {
+            Log.i(TAG, "getSignedPreKeyRecord: spk is null");
             return null;
         }
 

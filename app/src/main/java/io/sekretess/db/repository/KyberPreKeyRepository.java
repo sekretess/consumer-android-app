@@ -36,13 +36,14 @@ public class KyberPreKeyRepository {
     public void storeKyberPreKey(KyberPreKeyRecord kyberPreKeyRecord) {
         KyberPreKeyEntity kyberPreKeyEntity
                 = new KyberPreKeyEntity(kyberPreKeyRecord.getId(),
-                base64Encoder.encodeToString(kyberPreKeyRecord.getSignature()), System.currentTimeMillis());
+                base64Encoder.encodeToString(kyberPreKeyRecord.serialize()), System.currentTimeMillis());
         kyberPreKeyDao.insert(kyberPreKeyEntity);
     }
 
     public KyberPreKeyRecord loadKyberPreKey(int kyberPreKeyId) {
         KyberPreKeyEntity kyberPreKeyEntity = kyberPreKeyDao
                 .loadKyberPreKey(kyberPreKeyId);
+        Log.i(TAG, "kyberPreKeyEntity: " + kyberPreKeyEntity + " kyberPreKeyId:" + kyberPreKeyId);
         try {
             if (kyberPreKeyEntity != null) {
                 return new KyberPreKeyRecord(base64Decoder.decode(kyberPreKeyEntity.getKpkRecord()));
@@ -51,6 +52,7 @@ public class KyberPreKeyRepository {
             Log.e(TAG, "Error loading KyberPreKeyRecord", e);
             return null;
         }
+        Log.e(TAG, "KyberPreKeyRecord not found. kyberPreKeyId: " + kyberPreKeyId );
         return null;
     }
 
