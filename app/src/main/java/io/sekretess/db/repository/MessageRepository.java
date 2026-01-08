@@ -36,4 +36,8 @@ public class MessageRepository {
     public void deleteMessage(Long messageId) {
         messageDao.deleteMessage(messageId);
     }
+
+    public void clearDatabase() {
+        messageDao.clear();
+    }
 }

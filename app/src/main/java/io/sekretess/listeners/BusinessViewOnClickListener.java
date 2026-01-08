@@ -25,7 +25,6 @@ public class BusinessViewOnClickListener implements View.OnClickListener {
         this.fragmentManager = fragmentManager;
     }
 
-
     @Override
     public void onClick(View v) {
         Bundle args = new Bundle();

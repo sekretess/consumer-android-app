@@ -20,6 +20,7 @@ import java.io.File;
 import io.sekretess.BuildConfig;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
+import io.sekretess.db.SekretessDatabase;
 import io.sekretess.dependency.SekretessDependencyProvider;
 
 public class MainActivity extends AppCompatActivity {
@@ -56,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
 
             Log.i("MainActivity", "Notify login...");
             replaceFragment(new HomeFragment());
+//            SekretessDependencyProvider.messageService().insertTestData();
             bottomNavigationView.setOnItemSelectedListener(item -> {
                 if (item.getItemId() == R.id.menu_item_business) {
                     replaceFragment(new BusinessesFragment());

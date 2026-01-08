@@ -106,6 +106,8 @@ public class SekretessMessageService {
                 });
     }
 
+
+
     public List<MessageBriefDto> getMessageBriefs() {
         String username = SekretessDependencyProvider.authService().getUsername();
         try {
@@ -128,7 +130,7 @@ public class SekretessMessageService {
 
     public List<MessageRecordDto> loadMessages(String from) {
         String username = SekretessDependencyProvider.authService().getUsername();
-
+        this.dateTimeText = "";
         return messageRepository.getMessages(username, from)
                 .stream()
                 .map(this::messageRecordDto)
@@ -218,5 +220,17 @@ public class SekretessMessageService {
                 Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             notificationManager.notify(m, notification.build());
         }
+    }
+
+    public void insertTestData() {
+        messageRepository.clearDatabase();
+        messageRepository.storeDecryptedMessage("test_business", "TestMesssage1", "elnur");
+        messageRepository.storeDecryptedMessage("test_business", "TestMesssage2", "elnur");
+        messageRepository.storeDecryptedMessage("test_business", "TestMesssage3", "elnur");
+        messageRepository.storeDecryptedMessage("test_business", "TestMesssage4", "elnur");
+
+        messageRepository.storeDecryptedMessage("test_business1", "TestMesssage1", "elnur");
+        messageRepository.storeDecryptedMessage("test_business1", "TestMesssage2", "elnur");
+        messageRepository.storeDecryptedMessage("test_business1", "TestMesssage3", "elnur");
     }
 }

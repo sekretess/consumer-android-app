@@ -1,6 +1,7 @@
 package io.sekretess.db.dao;
 
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
 
@@ -13,7 +14,11 @@ public interface MessageDao {
     @Insert
     void insert(MessageEntity messageEntity);
 
-    @Query("SELECT * FROM sekretes_message_store WHERE username=:username ORDER BY createdAt DESC")
+    @Query("""
+            SELECT * FROM sekretes_message_store WHERE createdAt IN (SELECT MAX(createdAt) 
+            FROM sekretes_message_store AS inner_ms WHERE inner_ms.sender = sekretes_message_store.sender) 
+            AND username = :username
+            """)
     List<MessageEntity> getMessages(String username);
 
     @Query("SELECT * FROM sekretes_message_store WHERE username=:username AND sender=:sender ORDER BY createdAt DESC")
@@ -24,4 +29,7 @@ public interface MessageDao {
 
     @Query("DELETE FROM sekretes_message_store WHERE id=:messageId")
     void deleteMessage(Long messageId);
+
+    @Query("DELETE FROM sekretes_message_store")
+    void clear();
 }
