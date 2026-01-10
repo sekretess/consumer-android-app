@@ -41,15 +41,15 @@ public class SekretessDependencyProvider {
         SekretessSignalProtocolStore sekretessSignalProtocolStore = getSekretessSignalProtocolStore();
         sekretessCryptographicService = new SekretessCryptographicService(sekretessSignalProtocolStore);
 
-        MessageRepository messageRepository = new MessageRepository();
-        sekretessMessageService = new SekretessMessageService(messageRepository);
+
 
         apiClient = new ApiClient();
 
         AuthRepository authRepository = new AuthRepository();
         authService = new AuthService(authRepository, apiClient());
 
-
+        MessageRepository messageRepository = new MessageRepository();
+        sekretessMessageService = new SekretessMessageService(messageRepository);
 
         sekretessAuthenticatedWebSocket = new SekretessAuthenticatedWebSocket();
     }

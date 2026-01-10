@@ -14,9 +14,16 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.play.core.appupdate.AppUpdateInfo;
+import com.google.android.play.core.appupdate.AppUpdateManager;
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory;
+import com.google.android.play.core.appupdate.AppUpdateOptions;
+import com.google.android.play.core.install.model.AppUpdateType;
+import com.google.android.play.core.install.model.UpdateAvailability;
 
 import java.io.File;
 
@@ -32,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        checkForAppUpdate();
         SekretessApplication sekretessApplication = (SekretessApplication) getApplication();
         setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light_NoActionBar);
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
@@ -67,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
                             snackbar.dismiss();
                         } else if (sekretessEvent == SekretessEvent.WEBSOCKET_CONNECTION_LOST) {
                             if (!snackbar.isShown()) {
-                                snackbar.setText("Disconnected");
                                 snackbar.setGestureInsetBottomIgnored(true);
                                 snackbar.setAction("Reconnect",
                                         view -> {
@@ -142,4 +149,24 @@ public class MainActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
     }
+
+
+    private void checkForAppUpdate() {
+
+        AppUpdateManager appUpdateManager = AppUpdateManagerFactory.create(this);
+
+        Task<AppUpdateInfo> appUpdateInfoTask = appUpdateManager.getAppUpdateInfo();
+
+        appUpdateInfoTask.addOnSuccessListener(appUpdateInfo -> {
+            if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
+                    && (appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)
+                    || appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE))) {
+
+                appUpdateManager.startUpdateFlow(appUpdateInfo, this,
+                        AppUpdateOptions.defaultOptions(AppUpdateType.FLEXIBLE));
+            }
+        });
+
+    }
+
 }

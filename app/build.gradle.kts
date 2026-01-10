@@ -18,8 +18,8 @@ android {
         applicationId = "io.sekretess"
         minSdk = 30
         targetSdk = 35
-        versionCode = 32
-        versionName = "1.0.32"
+        versionCode = 34
+        versionName = "1.0.34"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -129,6 +129,7 @@ android {
 }
 
 dependencies {
+    implementation("com.google.android.play:app-update:2.1.0")
     implementation ("androidx.room:room-runtime:2.6.1")
     annotationProcessor ("androidx.room:room-compiler:2.6.1")
     implementation("androidx.core:core-splashscreen:1.0.1")

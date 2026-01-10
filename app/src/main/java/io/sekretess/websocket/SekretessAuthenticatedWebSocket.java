@@ -1,5 +1,7 @@
 package io.sekretess.websocket;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -134,12 +136,14 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
         this.webSocket = client.newWebSocket(request, this);
     }
 
-    public void ping() {
+    public boolean ping() {
         if (connectionState == ConnectionState.CONNECTED) {
             webSocket.send("sekretess-ping:" + System.currentTimeMillis());
             Log.i("SekretessWebSocketListener", "Ping sent");
+            return true;
         } else {
             Log.e("SekretessWebSocketClient", "WebSocket is not connected");
+            return false;
         }
     }
 
@@ -156,11 +160,9 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
     }
 
     private void notify(SekretessEvent sekretessEvent) {
-        try {
-            Thread.sleep(2000);
-        } catch (Exception e) {
-        }
-        SekretessDependencyProvider.getSekretessEventMutableLiveData().postValue(sekretessEvent);
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            SekretessDependencyProvider.getSekretessEventMutableLiveData().postValue(sekretessEvent);
+        }, 2000);
     }
 
     public enum ConnectionState {
