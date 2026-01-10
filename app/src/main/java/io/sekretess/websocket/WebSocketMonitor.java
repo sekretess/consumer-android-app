@@ -21,9 +21,9 @@ public class WebSocketMonitor {
             this.pingTask.cancel(true);
         }
 
-        this.pingTask = scheduledExecutorService.schedule(() -> {
+        this.pingTask = scheduledExecutorService.scheduleAtFixedRate(() -> {
             SekretessDependencyProvider.authenticatedWebSocket().ping();
-        }, 10, TimeUnit.SECONDS);
+        }, 10, 10,TimeUnit.SECONDS);
     }
 
     public void stop() {
