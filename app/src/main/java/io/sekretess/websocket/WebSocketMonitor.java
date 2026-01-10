@@ -22,7 +22,6 @@ public class WebSocketMonitor {
                 try {
                     ThreadUtils.sleep(Duration.ofSeconds(10));
                     SekretessDependencyProvider.authenticatedWebSocket().ping();
-                    Log.i("SekretessWebSocketListener", "Ping sent");
                 } catch (InterruptedException e) {
                     Log.e("SekretessWebSocketListener", "Error occurred during WebSocket monitoring", e);
                     webSocketMonitorThread.interrupt();

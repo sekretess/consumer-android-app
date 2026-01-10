@@ -10,12 +10,14 @@ public class PreKeyRecordEntity {
     private int id;
     private int preKeyId;
     private String preKeyRecord;
+    private boolean used;
     private long createdAt;
 
 
-    public PreKeyRecordEntity(int preKeyId, String preKeyRecord, long createdAt) {
+    public PreKeyRecordEntity(int preKeyId, String preKeyRecord, boolean used, long createdAt) {
         this.preKeyId = preKeyId;
         this.preKeyRecord = preKeyRecord;
+        this.used = used;
         this.createdAt = createdAt;
     }
 
@@ -48,4 +50,11 @@ public class PreKeyRecordEntity {
         return createdAt;
     }
 
+    public boolean isUsed() {
+        return used;
+    }
+
+    public void setUsed(boolean used) {
+        this.used = used;
+    }
 }

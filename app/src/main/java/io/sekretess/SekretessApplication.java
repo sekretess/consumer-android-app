@@ -16,6 +16,7 @@ public class SekretessApplication extends Application {
     private ConnectivityManager connectivityManager;
     private SekretessNetworkMonitor sekretessNetworkMonitor;
 
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -32,7 +33,7 @@ public class SekretessApplication extends Application {
             unregisterNetworkStatusMonitor();
         }
 
-        SekretessNetworkMonitor sekretessNetworkMonitor = new SekretessNetworkMonitor();
+        this.sekretessNetworkMonitor = new SekretessNetworkMonitor();
         connectivityManager.registerNetworkCallback(request, sekretessNetworkMonitor);
     }
 

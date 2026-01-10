@@ -179,14 +179,15 @@ public class SekretessCryptographicService {
     }
 
     public Optional<String> decryptGroupChatMessage(String sender, String base64Message) throws NoSessionException, InvalidMessageException, DuplicateMessageException, LegacyMessageException {
-            GroupCipher groupCipher = new GroupCipher(sekretessSignalProtocolStore, new SignalProtocolAddress(sender, 1));
-            return Optional.of(new String(groupCipher.decrypt(base64Decoder.decode(base64Message))));
+        GroupCipher groupCipher = new GroupCipher(sekretessSignalProtocolStore, new SignalProtocolAddress(sender, 1));
+        String decryptedMessage = new String(groupCipher.decrypt(base64Decoder.decode(base64Message)));
+        return Optional.of(decryptedMessage);
     }
 
     public Optional<String> decryptPrivateMessage(String sender, String base64Message) throws InvalidMessageException, InvalidVersionException, LegacyMessageException, InvalidKeyException, UntrustedIdentityException, DuplicateMessageException, InvalidKeyIdException {
-            PreKeySignalMessage preKeySignalMessage = new PreKeySignalMessage(base64Decoder.decode(base64Message));
-            SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(sender, 1);
-            SessionCipher sessionCipher = new SessionCipher(sekretessSignalProtocolStore, signalProtocolAddress);
-            return Optional.of(new String(sessionCipher.decrypt(preKeySignalMessage, UsePqRatchet.YES)));
+        PreKeySignalMessage preKeySignalMessage = new PreKeySignalMessage(base64Decoder.decode(base64Message));
+        SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(sender, 1);
+        SessionCipher sessionCipher = new SessionCipher(sekretessSignalProtocolStore, signalProtocolAddress);
+        return Optional.of(new String(sessionCipher.decrypt(preKeySignalMessage, UsePqRatchet.YES)));
     }
 }

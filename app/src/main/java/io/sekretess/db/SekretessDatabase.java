@@ -1,6 +1,7 @@
 package io.sekretess.db;
 
 import android.content.Context;
+import android.util.Log;
 
 
 import androidx.room.Database;
@@ -65,6 +66,7 @@ public abstract class SekretessDatabase extends RoomDatabase {
         if (INSTANCE == null) {
             synchronized (SekretessDatabase.class) {
                 if (INSTANCE == null) {
+                    Log.i("SekretessDatabase", "Sekretess database created");
                     INSTANCE = Room.databaseBuilder(
                             context.getApplicationContext(),
                             SekretessDatabase.class,

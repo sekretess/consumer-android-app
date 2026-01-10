@@ -34,7 +34,6 @@ import io.sekretess.adapters.TrustedSendersAdapter;
 import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.dto.MessageBriefDto;
 import io.sekretess.dto.TrustedSender;
-import io.sekretess.db.SekretessDatabase;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -74,6 +73,12 @@ public class HomeFragment extends Fragment {
         toolbar.setTitle("Home");
         SearchView searchView = fragmentView.findViewById(R.id.searchView);
         prepareSearchView(searchView);
+
+        SekretessDependencyProvider.messageEventStream().observe(getViewLifecycleOwner(), event -> {
+            Log.i("MessageFromSenderFragment", "new-incoming-message event received");
+            sendersAdapter = updateMessageAdapter();
+            messagesRecycleView.setAdapter(sendersAdapter);
+        });
         return fragmentView;
     }
 

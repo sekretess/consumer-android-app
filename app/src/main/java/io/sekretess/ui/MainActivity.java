@@ -1,6 +1,7 @@
 package io.sekretess.ui;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -14,14 +15,15 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.snackbar.BaseTransientBottomBar;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.io.File;
 
-import io.sekretess.BuildConfig;
 import io.sekretess.R;
 import io.sekretess.SekretessApplication;
-import io.sekretess.db.SekretessDatabase;
 import io.sekretess.dependency.SekretessDependencyProvider;
+import io.sekretess.enums.SekretessEvent;
 
 public class MainActivity extends AppCompatActivity {
     private final String TAG = MainActivity.class.getName();
@@ -57,6 +59,29 @@ public class MainActivity extends AppCompatActivity {
 
             Log.i("MainActivity", "Notify login...");
             replaceFragment(new HomeFragment());
+            Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), "Network lost...",
+                    Snackbar.LENGTH_INDEFINITE);
+            SekretessDependencyProvider.getSekretessEventMutableLiveData()
+                    .observe(this, sekretessEvent -> {
+                        if (sekretessEvent == SekretessEvent.WEBSOCKET_CONNECTION_ESTABLISHED) {
+                            snackbar.dismiss();
+                        } else if (sekretessEvent == SekretessEvent.WEBSOCKET_CONNECTION_LOST) {
+                            if (!snackbar.isShown()) {
+                                snackbar.setText("Disconnected");
+                                snackbar.setGestureInsetBottomIgnored(true);
+                                snackbar.setAction("Reconnect",
+                                        view -> {
+                                            SekretessDependencyProvider
+                                                    .authenticatedWebSocket().connect();
+                                        });
+                                snackbar.setBehavior(new BaseTransientBottomBar.Behavior());
+                                snackbar.show();
+                            }
+                        } else if (sekretessEvent == SekretessEvent.AUTH_FAILED) {
+                            SekretessDependencyProvider.authenticatedWebSocket().disconnect();
+                            startLoginActivity(getApplicationContext());
+                        }
+                    });
 //            SekretessDependencyProvider.messageService().insertTestData();
             bottomNavigationView.setOnItemSelectedListener(item -> {
                 if (item.getItemId() == R.id.menu_item_business) {
@@ -70,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
             });
         } else {
             Log.i("MainActivity", "Starting login activity");
-            startLoginActivity();
+            startLoginActivity(this);
         }
     }
 
@@ -91,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        SekretessDependencyProvider.getSekretessEventMutableLiveData().removeObservers(this);
     }
 
     private void replaceFragment(Fragment fragment) {
@@ -108,11 +134,11 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, "Error occurred during logout", e);
         }
 
-        startLoginActivity();
+        startLoginActivity(this);
     }
 
-    private void startLoginActivity() {
-        Intent intent = new Intent(this, LoginActivity.class);
+    private void startLoginActivity(Context context) {
+        Intent intent = new Intent(context, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
     }

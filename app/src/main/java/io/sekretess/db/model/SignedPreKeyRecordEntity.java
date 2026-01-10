@@ -6,14 +6,16 @@ import androidx.room.PrimaryKey;
 @Entity(tableName = "signed_pre_key_record_store")
 public class SignedPreKeyRecordEntity {
     @PrimaryKey(autoGenerate = true)
-    public long id;
-    public String spkRecord;
-    public int spkId;
-    public long createdAt;
+    private long id;
+    private String spkRecord;
+    private int spkId;
+    private boolean used;
+    private long createdAt;
 
-    public SignedPreKeyRecordEntity(String spkRecord, int spkId, long createdAt) {
+    public SignedPreKeyRecordEntity(String spkRecord, int spkId, boolean used, long createdAt) {
         this.spkRecord = spkRecord;
         this.spkId = spkId;
+        this.used = used;
         this.createdAt = createdAt;
     }
 
@@ -45,4 +47,11 @@ public class SignedPreKeyRecordEntity {
         return createdAt;
     }
 
+    public boolean isUsed() {
+        return used;
+    }
+
+    public void setUsed(boolean used) {
+        this.used = used;
+    }
 }

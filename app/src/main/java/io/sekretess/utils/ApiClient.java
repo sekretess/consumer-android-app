@@ -26,6 +26,7 @@ import io.sekretess.dto.KeyBundle;
 import io.sekretess.dto.OneTimeKeyBundleDto;
 import io.sekretess.dto.RefreshTokenRequestDto;
 import io.sekretess.dto.UserDto;
+import io.sekretess.service.HttpClientProvider;
 import io.sekretess.ui.LoginActivity;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -78,7 +79,7 @@ public class ApiClient {
 
     private boolean deleteUserInternal() {
         Request request = new Request.Builder().delete().url(BuildConfig.CONSUMER_API_URL).build();
-        OkHttpClient httpClient = authorizedHttpClient();
+        OkHttpClient httpClient = HttpClientProvider.authorizedHttpClient();
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
@@ -107,7 +108,7 @@ public class ApiClient {
     }
 
     private boolean subscribeToBusinessInternal(String business) {
-        OkHttpClient httpClient = authorizedHttpClient();
+        OkHttpClient httpClient = HttpClientProvider.authorizedHttpClient();
         Request request = new Request
                 .Builder()
                 .url(BuildConfig.CONSUMER_API_URL + "/businesses/" + business + "/subscriptions")
@@ -140,7 +141,7 @@ public class ApiClient {
     }
 
     private boolean unSubscribeFromBusinessInternal(String business) {
-        OkHttpClient httpClient = authorizedHttpClient();
+        OkHttpClient httpClient = HttpClientProvider.authorizedHttpClient();
         Request request = new Request.Builder()
                 .url(BuildConfig.CONSUMER_API_URL + "/businesses/" + business + "/subscriptions")
                 .delete()
@@ -174,7 +175,7 @@ public class ApiClient {
     }
 
     private List<BusinessDto> getBusinessesInternal() {
-        OkHttpClient httpClient = authorizedHttpClient();
+        OkHttpClient httpClient = HttpClientProvider.authorizedHttpClient();
         Request request = new Request.Builder().url(BuildConfig.BUSINESS_API_URL)
                 .get().build();
 
@@ -211,7 +212,7 @@ public class ApiClient {
     }
 
     private List<String> getSubscribedBusinessesInternal() {
-        OkHttpClient httpClient = authorizedHttpClient();
+        OkHttpClient httpClient = HttpClientProvider.authorizedHttpClient();
         Request request = new Request.Builder().url(BuildConfig.CONSUMER_API_URL + "/businesses/subscriptions")
                 .get().build();
         try (Response response = httpClient.newCall(request).execute()) {
@@ -242,7 +243,7 @@ public class ApiClient {
     }
 
     private boolean internalUpsertKeyStore(KeyBundle keyBundle) {
-        OkHttpClient httpClient = authorizedHttpClient();
+        OkHttpClient httpClient = HttpClientProvider.authorizedHttpClient();
         try {
 
             KeyBundleDto keyBundleDto = Mappers.toKeyBundleDto(keyBundle);
@@ -284,7 +285,7 @@ public class ApiClient {
     private AuthResponse loginInternal(String username, String password) throws Exception {
         AuthRequest authRequest = new AuthRequest(username, password);
         String jsonObject = objectMapper.writeValueAsString(authRequest);
-        OkHttpClient httpClient = anonymousHttpClient();
+        OkHttpClient httpClient = HttpClientProvider.anonymousHttpClient();
 
         Request request = new Request
                 .Builder()
@@ -322,7 +323,7 @@ public class ApiClient {
             OneTimeKeyBundleDto oneTimeKeyBundleDto = new OneTimeKeyBundleDto(preKeyRecords, kyberPreKeyRecords);
 
             String jsonObject = objectMapper.writeValueAsString(oneTimeKeyBundleDto);
-            OkHttpClient httpClient = authorizedHttpClient();
+            OkHttpClient httpClient = HttpClientProvider.authorizedHttpClient();
             Request request = new Request
                     .Builder()
                     .post(RequestBody
@@ -360,7 +361,7 @@ public class ApiClient {
     }
 
     private Optional<AuthResponse> refreshInternal(RefreshTokenRequestDto refreshTokenRequestDto) throws JsonProcessingException, MalformedURLException {
-        OkHttpClient httpClient = anonymousHttpClient();
+        OkHttpClient httpClient = HttpClientProvider.anonymousHttpClient();
         String jsonObject = objectMapper.writeValueAsString(refreshTokenRequestDto);
         Request request = new Request
                 .Builder()
@@ -394,7 +395,7 @@ public class ApiClient {
     }
 
     private boolean createUserInternal(String username, String email, String password, KeyBundle keyBundle) {
-        OkHttpClient httpClient = anonymousHttpClient();
+        OkHttpClient httpClient = HttpClientProvider.anonymousHttpClient();
         try {
             UserDto userDto = new UserDto();
             userDto.setUsername(username);
@@ -433,38 +434,6 @@ public class ApiClient {
                 .execute(() -> Toast
                         .makeText(applicationContext, text, Toast.LENGTH_LONG)
                         .show());
-    }
-
-    private OkHttpClient authorizedHttpClient() {
-        Context applicationContext = SekretessDependencyProvider.applicationContext();
-        try {
-            String accessToken = SekretessDependencyProvider.authService().getAccessToken().toString();
-            HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
-            // Set the logging level (BODY logs headers and body)
-            loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
-
-            return new OkHttpClient.Builder()
-                    .addInterceptor(loggingInterceptor)
-                    .addInterceptor(new SekretessHttpInterceptor(accessToken))
-                    .authenticator(new BearerAuthenticator())
-                    .build();
-        } catch (Exception e) {
-            Intent intent = new Intent(applicationContext, LoginActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            ContextCompat.startActivity(applicationContext, intent
-                    , null);
-            return null;
-        }
-    }
-
-    private OkHttpClient anonymousHttpClient() {
-        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
-        // Set the logging level (BODY logs headers and body)
-        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
-
-        return new OkHttpClient.Builder()
-                .addInterceptor(loggingInterceptor)
-                .build();
     }
 
     public void logout() {

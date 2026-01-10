@@ -43,7 +43,7 @@ public class PreKeyRepository {
 
     public void storePreKeyRecord(PreKeyRecord preKeyRecord) {
         PreKeyRecordEntity preKeyRecordEntity = new PreKeyRecordEntity(preKeyRecord.getId(),
-                base64Encoder.encodeToString(preKeyRecord.serialize()), System.currentTimeMillis());
+                base64Encoder.encodeToString(preKeyRecord.serialize()), false, System.currentTimeMillis());
         preKeyDao.insert(preKeyRecordEntity);
     }
 
