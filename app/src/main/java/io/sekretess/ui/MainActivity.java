@@ -4,6 +4,8 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -66,28 +68,29 @@ public class MainActivity extends AppCompatActivity {
             BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
 
             Log.i("MainActivity", "Notify login...");
+            Handler handler = new Handler(Looper.getMainLooper());
             replaceFragment(new HomeFragment());
             Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), "Network lost...",
                     Snackbar.LENGTH_INDEFINITE);
             SekretessDependencyProvider.getSekretessEventMutableLiveData()
                     .observe(this, sekretessEvent -> {
-                        if (sekretessEvent == SekretessEvent.WEBSOCKET_CONNECTION_ESTABLISHED) {
-                            snackbar.dismiss();
-                        } else if (sekretessEvent == SekretessEvent.WEBSOCKET_CONNECTION_LOST) {
-                            if (!snackbar.isShown()) {
-                                snackbar.setGestureInsetBottomIgnored(true);
+                        handler.removeCallbacksAndMessages(null);
+                        handler.postDelayed(() -> {
+                            Log.i("MainActivity", "Sekretess event: " + sekretessEvent);
+                            if (sekretessEvent == SekretessEvent.WEBSOCKET_CONNECTION_ESTABLISHED) {
+                                snackbar.dismiss();
+                            } else if (sekretessEvent == SekretessEvent.WEBSOCKET_CONNECTION_LOST) {
                                 snackbar.setAction("Reconnect",
                                         view -> {
                                             SekretessDependencyProvider
                                                     .authenticatedWebSocket().connect();
                                         });
-                                snackbar.setBehavior(new BaseTransientBottomBar.Behavior());
                                 snackbar.show();
+                            } else if (sekretessEvent == SekretessEvent.AUTH_FAILED) {
+                                SekretessDependencyProvider.authenticatedWebSocket().disconnect();
+                                startLoginActivity(getApplicationContext());
                             }
-                        } else if (sekretessEvent == SekretessEvent.AUTH_FAILED) {
-                            SekretessDependencyProvider.authenticatedWebSocket().disconnect();
-                            startLoginActivity(getApplicationContext());
-                        }
+                        }, 2000);
                     });
 //            SekretessDependencyProvider.messageService().insertTestData();
             bottomNavigationView.setOnItemSelectedListener(item -> {

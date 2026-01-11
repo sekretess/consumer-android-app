@@ -76,7 +76,7 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
 
     @Override
     public void onClosed(okhttp3.WebSocket webSocket, int code, String reason) {
-        super.onClosed(webSocket, code, reason);
+//        super.onClosed(webSocket, code, reason);
         notify(SekretessEvent.WEBSOCKET_CONNECTION_LOST);
         this.connectionState = ConnectionState.DISCONNECTED;
         webSocketMonitor.stop();
@@ -85,13 +85,13 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
 
     @Override
     public void onClosing(okhttp3.WebSocket webSocket, int code, String reason) {
-        super.onClosing(webSocket, code, reason);
+//        super.onClosing(webSocket, code, reason);
         Log.i("SekretessWebSocketClient", "WebSocket closing");
     }
 
     @Override
     public void onOpen(okhttp3.WebSocket webSocket, Response response) {
-        super.onOpen(webSocket, response);
+//        super.onOpen(webSocket, response);
         Log.i("SekretessWebSocketClient", "WebSocket connected");
         try {
             webSocket.send(SekretessDependencyProvider.authService().getAccessToken().toString());
@@ -112,7 +112,7 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
 
     @Override
     public void onFailure(WebSocket webSocket, Throwable t, @Nullable Response response) {
-        super.onFailure(webSocket, t, response);
+//        super.onFailure(webSocket, t, response);
         notify(SekretessEvent.WEBSOCKET_CONNECTION_LOST);
         connectionState = ConnectionState.DISCONNECTED;
         webSocketMonitor.stop();
@@ -160,9 +160,7 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
     }
 
     private void notify(SekretessEvent sekretessEvent) {
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            SekretessDependencyProvider.getSekretessEventMutableLiveData().postValue(sekretessEvent);
-        }, 2000);
+        SekretessDependencyProvider.getSekretessEventMutableLiveData().postValue(sekretessEvent);
     }
 
     public enum ConnectionState {
