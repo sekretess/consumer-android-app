@@ -251,7 +251,7 @@ public class ApiClient {
             keyBundleDto.setDeviceRegistrationToken(deviceToken);
 
             String json = objectMapper.writeValueAsString(keyBundleDto);
-
+            Log.i("ApiClient","deviceToken: " + deviceToken);
             Request request = new Request.Builder()
                     .url(new URL(BuildConfig.CONSUMER_API_URL + "/keystores"))
                     .put(RequestBody.create(MediaType.parse("application/json"), json))
@@ -403,7 +403,7 @@ public class ApiClient {
             userDto.setPassword(password);
             userDto = Mappers.applyKeyBundle(userDto, keyBundle);
             String deviceToken = Tasks.await(FirebaseMessaging.getInstance().getToken());
-
+            Log.e("ApiClient", "deviceToken: " + deviceToken);
             userDto.setDeviceRegistrationToken(deviceToken);
             String jsonObject = objectMapper.writeValueAsString(userDto);
 

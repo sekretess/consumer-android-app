@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "136468664103",
-    "project_id": "sekretess-85cfd",
-    "storage_bucket": "sekretess-85cfd.firebasestorage.app"
+    "project_number": "30051015041",
+    "project_id": "sekretess-1ed14",
+    "storage_bucket": "sekretess-1ed14.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:136468664103:android:1be6bbc061eb177d86e302",
+        "mobilesdk_app_id": "1:30051015041:android:63b8afa94cea00b97f3080",
         "android_client_info": {
           "package_name": "io.sekretess"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyC89l3pjNRQjwBwLSP8VB3ueQgX4FA3teA"
+          "current_key": "AIzaSyCyl9mUbgtmLF2L0D-9wJ53PweotUZYncQ"
         }
       ],
       "services": {

@@ -23,7 +23,7 @@ public class WebSocketMonitor {
 
         this.pingTask = scheduledExecutorService.scheduleAtFixedRate(() -> {
             SekretessDependencyProvider.authenticatedWebSocket().ping();
-        }, 10, 10,TimeUnit.SECONDS);
+        }, 2, 2,TimeUnit.SECONDS);
     }
 
     public void stop() {

@@ -76,7 +76,6 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
 
     @Override
     public void onClosed(okhttp3.WebSocket webSocket, int code, String reason) {
-//        super.onClosed(webSocket, code, reason);
         notify(SekretessEvent.WEBSOCKET_CONNECTION_LOST);
         this.connectionState = ConnectionState.DISCONNECTED;
         webSocketMonitor.stop();
@@ -85,13 +84,11 @@ public class SekretessAuthenticatedWebSocket extends WebSocketListener {
 
     @Override
     public void onClosing(okhttp3.WebSocket webSocket, int code, String reason) {
-//        super.onClosing(webSocket, code, reason);
         Log.i("SekretessWebSocketClient", "WebSocket closing");
     }
 
     @Override
     public void onOpen(okhttp3.WebSocket webSocket, Response response) {
-//        super.onOpen(webSocket, response);
         Log.i("SekretessWebSocketClient", "WebSocket connected");
         try {
             webSocket.send(SekretessDependencyProvider.authService().getAccessToken().toString());

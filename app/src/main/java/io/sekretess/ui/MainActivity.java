@@ -92,7 +92,6 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }, 2000);
                     });
-//            SekretessDependencyProvider.messageService().insertTestData();
             bottomNavigationView.setOnItemSelectedListener(item -> {
                 if (item.getItemId() == R.id.menu_item_business) {
                     replaceFragment(new BusinessesFragment());
