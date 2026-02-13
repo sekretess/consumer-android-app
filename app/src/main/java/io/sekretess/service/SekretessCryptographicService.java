@@ -42,7 +42,7 @@ public class SekretessCryptographicService {
     private static final Base64.Decoder base64Decoder = Base64.getDecoder();
     private final SekretessSignalProtocolStore sekretessSignalProtocolStore;
     private final String TAG = "SekretessCryptographicService";
-    private final int deviceId = 1;
+    private final SecureRandom randomizer = new SecureRandom();
 
 
     public SekretessCryptographicService(SekretessSignalProtocolStore sekretessSignalProtocolStore) {
@@ -77,12 +77,11 @@ public class SekretessCryptographicService {
     }
 
     private KyberPreKeyRecord generateKyberPreKey(ECPrivateKey ecPrivateKey) {
-        int kyberSignedPreKeyId = new SecureRandom().nextInt(Medium.MAX_VALUE - 1);
+        int kyberSignedPreKeyId = randomizer.nextInt(Medium.MAX_VALUE - 1);
         KEMKeyPair kemKeyPair = KEMKeyPair.generate(KEMKeyType.KYBER_1024);
-        KyberPreKeyRecord kyberPreKeyRecord = new KyberPreKeyRecord(kyberSignedPreKeyId,
+        return new KyberPreKeyRecord(kyberSignedPreKeyId,
                 System.currentTimeMillis(), kemKeyPair,
                 ecPrivateKey.calculateSignature(kemKeyPair.getPublicKey().serialize()));
-        return kyberPreKeyRecord;
     }
 
     public void processKeyDistributionMessage(String name, String base64Key) {
@@ -119,15 +118,15 @@ public class SekretessCryptographicService {
 
     private SignedPreKeyRecord generateSignedPreKey(ECKeyPair keyPair, byte[] signature) {
         //Generate signed prekeyRecord
-        int signedPreKeyId = new SecureRandom().nextInt(Medium.MAX_VALUE - 1);
+        int signedPreKeyId = randomizer.nextInt(Medium.MAX_VALUE - 1);
         return new SignedPreKeyRecord(signedPreKeyId, System.currentTimeMillis(), keyPair, signature);
     }
 
     private PreKeyRecord[] generatePreKeys() {
         PreKeyRecord[] preKeyRecords = new PreKeyRecord[SIGNAL_KEY_COUNT];
-        SecureRandom preKeyRecordIdGenerator = new SecureRandom();
+
         for (int i = 0; i < preKeyRecords.length; i++) {
-            int id = preKeyRecordIdGenerator.nextInt(Integer.MAX_VALUE);
+            int id = randomizer.nextInt(Integer.MAX_VALUE);
             ECKeyPair ecKeyPair = ECKeyPair.generate();
             PreKeyRecord preKeyRecord = new PreKeyRecord(id, ecKeyPair);
             preKeyRecords[i] = preKeyRecord;
