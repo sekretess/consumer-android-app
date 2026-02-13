@@ -18,8 +18,8 @@ android {
         applicationId = "io.sekretess"
         minSdk = 30
         targetSdk = 35
-        versionCode = 27
-        versionName = "1.0.27"
+        versionCode = 36
+        versionName = "1.0.36"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -84,7 +84,7 @@ android {
             buildConfigField(
                 "String",
                 "WEB_SOCKET_URL",
-                "\"wss://consumer.sekretess.io/api/v1/consumers/ws\""
+                "\"wss://consumer.test.sekretess.io/api/v1/consumers/ws\""
             )
 
         }
@@ -129,6 +129,7 @@ android {
 }
 
 dependencies {
+    implementation("com.google.android.play:app-update:2.1.0")
     implementation ("androidx.room:room-runtime:2.6.1")
     annotationProcessor ("androidx.room:room-compiler:2.6.1")
     implementation("androidx.core:core-splashscreen:1.0.1")

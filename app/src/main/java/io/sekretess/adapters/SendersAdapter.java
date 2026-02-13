@@ -50,7 +50,7 @@ public class SendersAdapter extends RecyclerView.Adapter<SenderViewHolder> imple
             return;
         MessageBriefDto messageBriefDto = source.get(position);
         holder.getTxtSenderName().setText(messageBriefDto.getSender());
-        holder.getTxtSenderName()
+        holder.getMessageBriefLayout()
                 .setOnClickListener(v -> listener
                         .onClick(holder.getTxtSenderName().getText().toString()));
         String businessImageFilePath = context.getFilesDir().getPath() + "/images/"

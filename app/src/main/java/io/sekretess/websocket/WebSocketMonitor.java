@@ -1,40 +1,34 @@
 package io.sekretess.websocket;
 
-import android.util.Log;
-
-import org.apache.commons.lang3.ThreadUtils;
-
-import java.time.Duration;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import io.sekretess.dependency.SekretessDependencyProvider;
 
 public class WebSocketMonitor {
-    private Thread webSocketMonitorThread;
-
+    private final String PINGER_TASK_NAME = "SekretessWebSocketPingWorker";
+    private ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    private Future<?> pingTask;
     public WebSocketMonitor() {
 
     }
 
 
     public void start() {
-        webSocketMonitorThread = new Thread(() -> {
-            while (!webSocketMonitorThread.isInterrupted()) {
-                try {
-                    ThreadUtils.sleep(Duration.ofSeconds(10));
-                    SekretessDependencyProvider.authenticatedWebSocket().ping();
-                    Log.i("SekretessWebSocketListener", "Ping sent");
-                } catch (InterruptedException e) {
-                    Log.e("SekretessWebSocketListener", "Error occurred during WebSocket monitoring", e);
-                    webSocketMonitorThread.interrupt();
-                }
-            }
-        });
-        webSocketMonitorThread.start();
+        if(this.pingTask != null){
+            this.pingTask.cancel(true);
+        }
+
+        this.pingTask = scheduledExecutorService.scheduleAtFixedRate(() -> {
+            SekretessDependencyProvider.authenticatedWebSocket().ping();
+        }, 2, 2,TimeUnit.SECONDS);
     }
 
     public void stop() {
-        if (webSocketMonitorThread != null) {
-            webSocketMonitorThread.interrupt();
+        if (this.pingTask != null) {
+            this.pingTask.cancel(true);
         }
     }
 }

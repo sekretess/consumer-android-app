@@ -5,10 +5,8 @@ import android.content.Intent;
 
 import androidx.core.content.ContextCompat;
 
-import java.io.IOException;
 import java.net.HttpURLConnection;
 
-import io.sekretess.SekretessApplication;
 import io.sekretess.dependency.SekretessDependencyProvider;
 import io.sekretess.ui.LoginActivity;
 import okhttp3.Authenticator;

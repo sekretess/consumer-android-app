@@ -9,8 +9,6 @@ import androidx.lifecycle.MutableLiveData;
 import io.sekretess.dependency.SekretessDependencyProvider;
 
 public class SekretessNetworkMonitor extends ConnectivityManager.NetworkCallback {
-
-
     public SekretessNetworkMonitor() {
 
     }

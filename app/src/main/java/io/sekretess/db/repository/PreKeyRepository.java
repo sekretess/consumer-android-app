@@ -43,13 +43,15 @@ public class PreKeyRepository {
 
     public void storePreKeyRecord(PreKeyRecord preKeyRecord) {
         PreKeyRecordEntity preKeyRecordEntity = new PreKeyRecordEntity(preKeyRecord.getId(),
-                base64Encoder.encodeToString(preKeyRecord.serialize()), System.currentTimeMillis());
+                base64Encoder.encodeToString(preKeyRecord.serialize()), false, System.currentTimeMillis());
         preKeyDao.insert(preKeyRecordEntity);
     }
 
     public PreKeyRecord loadPreKey(int preKeyId) {
         PreKeyRecordEntity preKeyRecordEntity = preKeyDao.getPreKey(preKeyId);
+        Log.i(TAG, "preKeyRecordEntity: " + preKeyRecordEntity + " preKeyId:" + preKeyId);
         if (preKeyRecordEntity == null) {
+            Log.e(TAG, "PreKeyRecord not found. preKeyId: " + preKeyId);
             return null;
         }
 

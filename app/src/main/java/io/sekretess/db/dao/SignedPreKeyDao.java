@@ -13,10 +13,10 @@ public interface SignedPreKeyDao {
     @Query("SELECT * FROM signed_pre_key_record_store")
     List<SignedPreKeyRecordEntity> getAll();
 
-    @Query("SELECT * FROM signed_pre_key_record_store WHERE spkId = :signedPreKeyId")
+    @Query("SELECT * FROM signed_pre_key_record_store WHERE spkId = :signedPreKeyId and used = 0")
     SignedPreKeyRecordEntity getSignedPreKeyRecord(int signedPreKeyId);
 
-    @Query("DELETE FROM signed_pre_key_record_store WHERE spkId = :signedPreKeyId")
+    @Query("UPDATE signed_pre_key_record_store SET used = 1 WHERE spkId = :signedPreKeyId")
     void removeSignedPreKey(int signedPreKeyId);
 
     @Insert

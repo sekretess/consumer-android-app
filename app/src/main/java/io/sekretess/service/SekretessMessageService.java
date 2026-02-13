@@ -13,9 +13,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.signal.libsignal.protocol.DuplicateMessageException;
 import org.signal.libsignal.protocol.InvalidKeyException;
 import org.signal.libsignal.protocol.InvalidKeyIdException;
@@ -34,6 +31,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import io.sekretess.Constants;
 import io.sekretess.R;
@@ -50,26 +48,29 @@ import io.sekretess.utils.NotificationPreferencesUtils;
 public class SekretessMessageService {
     private final MessageRepository messageRepository;
     private final String TAG = SekretessMessageService.class.getName();
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final DateTimeFormatter WEEK_FORMATTER = DateTimeFormatter.ofPattern("EEEE");
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM");
     private static final DateTimeFormatter YEAR_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM yyyy");
     private String dateTimeText = "";
+    private final String username;
 
     public SekretessMessageService(MessageRepository messageRepository) {
         this.messageRepository = messageRepository;
+        String resolvedUsername = "";
+        try {
+            resolvedUsername = SekretessDependencyProvider.authService().getUsername();
+        } catch (Exception e) {
+            Log.e(TAG, "Getting username failed:", e);
+        }
+        this.username = resolvedUsername;
     }
 
 
-    public MessageDto handleMessage(String jsonPayload) throws InvalidMessageException,
+    public void handleMessage(MessageDto message) throws InvalidMessageException,
             UntrustedIdentityException, DuplicateMessageException, InvalidVersionException,
-            InvalidKeyIdException, LegacyMessageException, InvalidKeyException, NoSessionException,
-            JsonProcessingException {
-
-        MessageDto message = objectMapper.readValue(jsonPayload, MessageDto.class);
+            InvalidKeyIdException, LegacyMessageException, InvalidKeyException, NoSessionException {
         String sender = message.getSender();
-        Log.i(TAG, "Received payload: " + jsonPayload + " sender:");
         String encryptedText = message.getText();
         MessageType messageType = MessageType.getInstance(message.getType());
         switch (messageType) {
@@ -84,11 +85,10 @@ public class SekretessMessageService {
                 break;
         }
         Log.i(TAG, "Encoded message received : " + message);
-        return message;
     }
 
     private void processAdvertisementMessage(String base64Message, String sender) throws NoSessionException, InvalidMessageException, DuplicateMessageException, LegacyMessageException {
-        String username = SekretessDependencyProvider.authService().getUsername();
+
         SekretessDependencyProvider.cryptographicService()
                 .decryptGroupChatMessage(sender, base64Message)
                 .ifPresent(decryptedMessage -> {
@@ -98,15 +98,14 @@ public class SekretessMessageService {
                 });
     }
 
-    private void processPrivateMessage(String base64Message, String sender, MessageType messageType) throws InvalidMessageException, UntrustedIdentityException, DuplicateMessageException, InvalidVersionException, InvalidKeyIdException, LegacyMessageException, InvalidKeyException {
+    private void processPrivateMessage(String encryptedText, String sender, MessageType messageType) throws InvalidMessageException, UntrustedIdentityException, DuplicateMessageException, InvalidVersionException, InvalidKeyIdException, LegacyMessageException, InvalidKeyException {
         SekretessCryptographicService sekretessCryptographicService = SekretessDependencyProvider.cryptographicService();
         sekretessCryptographicService
-                .decryptPrivateMessage(sender, base64Message)
+                .decryptPrivateMessage(sender, encryptedText)
                 .ifPresent(decryptedMessage -> {
                     if (messageType == MessageType.KEY_DISTRIBUTION) {
                         sekretessCryptographicService.processKeyDistributionMessage(sender, decryptedMessage);
                     } else {
-                        String username = SekretessDependencyProvider.authService().getUsername();
                         messageRepository.storeDecryptedMessage(sender, decryptedMessage, username);
                         SekretessDependencyProvider.messageEventStream().postValue("new-message");
                         publishNotification(sender, decryptedMessage);
@@ -114,8 +113,8 @@ public class SekretessMessageService {
                 });
     }
 
+
     public List<MessageBriefDto> getMessageBriefs() {
-        String username = SekretessDependencyProvider.authService().getUsername();
         try {
             List<MessageEntity> messageStoreEntities = messageRepository.getMessages(username);
             return messageStoreEntities
@@ -135,12 +134,11 @@ public class SekretessMessageService {
     }
 
     public List<MessageRecordDto> loadMessages(String from) {
-        String username = SekretessDependencyProvider.authService().getUsername();
-
-        return messageRepository.getMessages(from, username)
+        this.dateTimeText = "";
+        return messageRepository.getMessages(username, from)
                 .stream()
                 .map(this::messageRecordDto)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public String dateTimeText(LocalDate dateTime) {
@@ -174,7 +172,7 @@ public class SekretessMessageService {
         } else {
             dateTimeText = dateTimeAsText;
             return new MessageRecordDto(messageEntity.getId(), messageEntity.getSender(),
-                    null, messageEntity.getCreatedAt(),
+                    messageEntity.getMessageBody(), messageEntity.getCreatedAt(),
                     dateTimeAsText, ItemType.HEADER);
         }
     }
@@ -226,5 +224,17 @@ public class SekretessMessageService {
                 Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             notificationManager.notify(m, notification.build());
         }
+    }
+
+    public void insertTestData() {
+        messageRepository.clearDatabase();
+        messageRepository.storeDecryptedMessage("test_business", "TestMesssage1", "elnur");
+        messageRepository.storeDecryptedMessage("test_business", "TestMesssage2", "elnur");
+        messageRepository.storeDecryptedMessage("test_business", "TestMesssage3", "elnur");
+        messageRepository.storeDecryptedMessage("test_business", "TestMesssage4", "elnur");
+
+        messageRepository.storeDecryptedMessage("test_business1", "TestMesssage1", "elnur");
+        messageRepository.storeDecryptedMessage("test_business1", "TestMesssage2", "elnur");
+        messageRepository.storeDecryptedMessage("test_business1", "TestMesssage3", "elnur");
     }
 }

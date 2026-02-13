@@ -16,6 +16,7 @@ import io.sekretess.db.SekretessDatabase;
 import io.sekretess.db.repository.SenderKeyRepository;
 import io.sekretess.db.repository.SessionRepository;
 import io.sekretess.db.repository.SignedPreKeyRepository;
+import io.sekretess.enums.SekretessEvent;
 import io.sekretess.service.AuthService;
 import io.sekretess.websocket.SekretessAuthenticatedWebSocket;
 import io.sekretess.service.SekretessCryptographicService;
@@ -31,6 +32,8 @@ public class SekretessDependencyProvider {
     private static Context rootContext;
     private static MutableLiveData<String> messageEventStream = new MutableLiveData<>();
 
+    private static MutableLiveData<SekretessEvent> sekretessEventMutableLiveData = new MutableLiveData<>();
+
 
     public SekretessDependencyProvider(Context context) {
         rootContext = context;
@@ -38,13 +41,15 @@ public class SekretessDependencyProvider {
         SekretessSignalProtocolStore sekretessSignalProtocolStore = getSekretessSignalProtocolStore();
         sekretessCryptographicService = new SekretessCryptographicService(sekretessSignalProtocolStore);
 
-        MessageRepository messageRepository = new MessageRepository();
-        sekretessMessageService = new SekretessMessageService(messageRepository);
 
-        AuthRepository authRepository = new AuthRepository();
-        authService = new AuthService(authRepository);
 
         apiClient = new ApiClient();
+
+        AuthRepository authRepository = new AuthRepository();
+        authService = new AuthService(authRepository, apiClient());
+
+        MessageRepository messageRepository = new MessageRepository();
+        sekretessMessageService = new SekretessMessageService(messageRepository);
 
         sekretessAuthenticatedWebSocket = new SekretessAuthenticatedWebSocket();
     }
@@ -82,6 +87,10 @@ public class SekretessDependencyProvider {
 
     public static MutableLiveData<String> messageEventStream() {
         return messageEventStream;
+    }
+
+    public static MutableLiveData<SekretessEvent> getSekretessEventMutableLiveData() {
+        return sekretessEventMutableLiveData;
     }
 
     public static ApiClient apiClient() {

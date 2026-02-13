@@ -16,13 +16,13 @@ public interface PreKeyDao {
     @Query("SELECT COUNT(*) FROM prekey_record_store")
     int getCount();
 
-    @Query("DELETE FROM prekey_record_store WHERE prekeyId = :prekeyId")
+    @Query("UPDATE prekey_record_store SET used = 1 WHERE prekeyId = :prekeyId")
     void removePreKeyRecord(int prekeyId);
 
     @Insert
     void insert(PreKeyRecordEntity preKeyRecordEntity);
 
-    @Query("SELECT * FROM prekey_record_store WHERE prekeyId = :preKeyId")
+    @Query("SELECT * FROM prekey_record_store WHERE prekeyId = :preKeyId AND used = 0")
     PreKeyRecordEntity getPreKey(int preKeyId);
 
     @Query("DELETE FROM prekey_record_store")
